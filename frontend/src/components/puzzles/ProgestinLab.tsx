@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Lock, Unlock, CheckCircle2, AlertTriangle, Wrench } from 'lucide-react';
+import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
   codeSolved: boolean;
@@ -37,8 +38,8 @@ const DESIGN_MODIFICATIONS = [
   },
   {
     id: 'aromatize_ring_a',
-    title: 'آروماتیک کردن حلقه A (فریبنده — مربوط به استروژن‌ها)',
-    effect: 'تبدیل مولکول به لیگاند گیرنده استروژن و از بین رفتن اثر پروژسترونی',
+    title: 'آروماتیک کردن حلقه A مشابه استروژن‌ها',
+    effect: 'ایجاد پیوند هیدروژنی فنولیک با Glu 353 و Arg 394',
   },
 ];
 
@@ -86,8 +87,8 @@ export const ProgestinLab: React.FC<Props> = ({
     try {
       const res = await onSubmitPuzzle('pk_safe_code', checks, elapsed);
       setCodeFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setCodeFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setCodeFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setCodeLoading(false);
     }
@@ -105,8 +106,8 @@ export const ProgestinLab: React.FC<Props> = ({
     try {
       const res = await onSubmitPuzzle('norandrostane_design', selectedMods, elapsed);
       setDesignFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setDesignFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setDesignFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setDesignLoading(false);
     }
@@ -114,41 +115,46 @@ export const ProgestinLab: React.FC<Props> = ({
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-cyan-500/30 bg-slate-900/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-2xl border border-cyan-500/30 bg-white dark:bg-slate-900/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-cyan-400 font-bold text-lg">
+          <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold text-lg">
             <Shield className="w-6 h-6" />
             <span>دپارتمان چهارم: بخش پروژستین‌ها و مشتقات ۱۹-نورآندروستان</span>
           </div>
-          <p className="text-slate-300 text-sm mt-1 leading-6">
+          <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
             محققان این بخش یادداشتی درباره نحوه خنثی‌سازی اثرات پروژسترونی ترکیب اهریمن در گاوصندوق رمزگذاری کرده‌اند.
           </p>
         </div>
         <button
+          type="button"
           onClick={onBackToMap}
-          className="self-start md:self-center rounded-xl border border-slate-600 hover:border-cyan-400 px-4 py-2 text-xs font-semibold text-slate-200 transition"
+          className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
         >
           بازگشت به نقشه شرکت
         </button>
       </div>
 
       {/* معمای ۱: رمزگشایی کد گاوصندوق */}
-      <div className="rounded-2xl border border-slate-700/80 bg-slate-900/75 p-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-base text-slate-100 flex items-center gap-2">
-            {codeSolved ? <Unlock className="w-5 h-5 text-emerald-400" /> : <Lock className="w-5 h-5 text-amber-400" />}
-            <span>معمای ۱: رمزگشایی کد دیجیتال گاوصندوق بر اساس ویژگی‌های فارماکوکینتیک</span>
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            {codeSolved ? <Unlock className="w-5 h-5 text-emerald-500" /> : <Lock className="w-5 h-5 text-amber-500" />}
+            <span>معمای {toPersianDigits(1)}: رمزگشایی کد دیجیتال گاوصندوق بر اساس ویژگی‌های فارماکوکینتیک</span>
           </h3>
-          <div dir="ltr" className="font-mono text-xs bg-slate-950 border border-cyan-500/40 px-3 py-1 rounded-lg text-cyan-300">
-            CODE: {sumDigits(checks.bioavailability)} / {sumDigits(checks.half_life)} / {sumDigits(checks.low_androgen)}
+          <div
+            dir="ltr"
+            className="font-mono text-xs bg-slate-100 dark:bg-slate-950 border border-cyan-500/40 px-3 py-1 rounded-lg text-cyan-700 dark:text-cyan-300 font-bold"
+          >
+            CODE: {toPersianDigits(sumDigits(checks.bioavailability))} / {toPersianDigits(sumDigits(checks.half_life))} /{' '}
+            {toPersianDigits(sumDigits(checks.low_androgen))}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {PROGESTIN_STRUCTURES.map((s) => (
-            <div key={s.id} className="rounded-xl border border-slate-700 bg-[#081220] p-3">
-              <div className="font-bold text-xs text-cyan-300">{s.name}</div>
-              <div className="text-[11px] text-slate-400 mt-1">{s.note}</div>
+            <div key={s.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-3">
+              <div className="font-bold text-xs text-cyan-700 dark:text-cyan-300">{s.name}</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{s.note}</div>
             </div>
           ))}
         </div>
@@ -163,9 +169,9 @@ export const ProgestinLab: React.FC<Props> = ({
           ).map((row) => (
             <div
               key={row.key}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-950/70 px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/70 px-4 py-3"
             >
-              <span className="text-xs font-bold text-slate-200">{row.label}</span>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{row.label}</span>
               <div className="flex items-center gap-2">
                 {['1', '2', '3', '4'].map((num) => {
                   const active = checks[row.key].includes(num);
@@ -175,13 +181,13 @@ export const ProgestinLab: React.FC<Props> = ({
                       type="button"
                       disabled={codeSolved}
                       onClick={() => toggleCheck(row.key, num)}
-                      className={`w-9 h-9 rounded-lg font-mono text-sm font-bold border transition ${
+                      className={`w-9 h-9 rounded-lg text-sm font-bold border transition ${
                         active
-                          ? 'border-cyan-400 bg-cyan-500 text-slate-950'
-                          : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500'
+                          ? 'border-cyan-500 bg-cyan-500 text-slate-950'
+                          : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-400'
                       }`}
                     >
-                      {num}
+                      {toPersianDigits(num)}
                     </button>
                   );
                 })}
@@ -194,8 +200,8 @@ export const ProgestinLab: React.FC<Props> = ({
           <div
             className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
               codeFeedback.ok
-                ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200'
-                : 'border-rose-500/40 bg-rose-950/40 text-rose-200'
+                ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
             }`}
           >
             {codeFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
@@ -206,6 +212,7 @@ export const ProgestinLab: React.FC<Props> = ({
         {!codeSolved && (
           <div className="flex justify-end">
             <button
+              type="button"
               disabled={
                 codeLoading ||
                 !checks.bioavailability.length ||
@@ -213,7 +220,7 @@ export const ProgestinLab: React.FC<Props> = ({
                 !checks.low_androgen.length
               }
               onClick={handleCodeSubmit}
-              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
+              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
             >
               {codeLoading ? 'در حال بررسی رمز...' : 'وارد کردن رمز گاوصندوق'}
             </button>
@@ -225,13 +232,13 @@ export const ProgestinLab: React.FC<Props> = ({
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           codeSolved
-            ? 'border-slate-700/80 bg-slate-900/75'
-            : 'border-slate-800 bg-slate-900/30 opacity-60 pointer-events-none'
+            ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
         }`}
       >
-        <h3 className="font-bold text-base text-slate-100 flex items-center gap-2">
-          <Wrench className="w-5 h-5 text-cyan-400" />
-          <span>معمای ۲: اعمال اصلاحات ساختاری برای تولید پروژستین خوراکی و طولانی‌اثر</span>
+        <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+          <Wrench className="w-5 h-5 text-cyan-500" />
+          <span>معمای {toPersianDigits(2)}: اعمال اصلاحات ساختاری برای تولید پروژستین خوراکی و طولانی‌اثر</span>
         </h3>
 
         <div className="space-y-2.5">
@@ -243,17 +250,19 @@ export const ProgestinLab: React.FC<Props> = ({
                 onClick={() => toggleMod(mod.id)}
                 className={`rounded-xl border p-4 cursor-pointer transition flex items-start justify-between gap-3 ${
                   active
-                    ? 'border-cyan-400 bg-cyan-950/45'
-                    : 'border-slate-700 bg-[#081220] hover:border-slate-500'
+                    ? 'border-cyan-500 bg-cyan-50 dark:border-cyan-400 dark:bg-cyan-950/45'
+                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220]'
                 }`}
               >
                 <div>
-                  <div className="font-bold text-xs text-slate-100">{mod.title}</div>
-                  <div className="text-[11px] text-slate-400 mt-1">{mod.effect}</div>
+                  <div className="font-bold text-xs text-slate-900 dark:text-slate-100">{mod.title}</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{mod.effect}</div>
                 </div>
                 <span
                   className={`text-xs px-2.5 py-1 rounded-md shrink-0 ${
-                    active ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'bg-slate-800 text-slate-400'
+                    active
+                      ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-bold'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   {active ? 'اعمال شد ✓' : 'انتخاب'}
@@ -267,8 +276,8 @@ export const ProgestinLab: React.FC<Props> = ({
           <div
             className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
               designFeedback.ok
-                ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200'
-                : 'border-rose-500/40 bg-rose-950/40 text-rose-200'
+                ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
             }`}
           >
             {designFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
@@ -279,6 +288,7 @@ export const ProgestinLab: React.FC<Props> = ({
         <div className="flex justify-end">
           {designSolved ? (
             <button
+              type="button"
               onClick={onBackToMap}
               className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
@@ -286,6 +296,7 @@ export const ProgestinLab: React.FC<Props> = ({
             </button>
           ) : (
             <button
+              type="button"
               disabled={designLoading || selectedMods.length === 0}
               onClick={handleDesignSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-6 py-2.5 text-sm transition"

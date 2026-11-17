@@ -47,32 +47,35 @@ const LIKERT_LABELS = [
 ];
 
 export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
-  const [answers, setAnswers] = useState<Record<string, number>>(() => {
-    const initial: Record<string, number> = {};
-    MEEGA_QUESTIONS.forEach((q) => {
-      initial[q.id] = 5;
-    });
-    return initial;
-  });
+  // بدون هیچ گزینه از پیش انتخاب‌شده
+  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [comments, setComments] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [doneData, setDoneData] = useState<any>(null);
 
+  const answeredCount = MEEGA_QUESTIONS.filter((q) => answers[q.id] !== undefined).length;
+  const unansweredCount = MEEGA_QUESTIONS.length - answeredCount;
+
   const handleSelect = (qId: string, val: number) => {
     setAnswers((prev) => ({ ...prev, [qId]: val }));
+    if (error) setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (unansweredCount > 0) {
+      setError(`لطفاً به همه پرسش‌ها پاسخ دهید. ${toPersianDigits(unansweredCount)} پرسش بی‌پاسخ مانده است.`);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const res = await api.submitMeega({ answers, comments });
       setDoneData(res.data);
       onSubmitted();
-    } catch (err: any) {
-      setError(err.message || 'خطا در ثبت پرسشنامه');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'خطا در ثبت پرسشنامه');
     } finally {
       setLoading(false);
     }
@@ -80,8 +83,11 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="meega-title"
       className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
-      onClick={(e) => {
+      onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
@@ -90,7 +96,7 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
           <div className="flex items-center gap-2.5">
             <ClipboardCheck className="w-6 h-6 text-emerald-500 shrink-0" />
             <div>
-              <h2 className="font-extrabold text-base md:text-lg text-slate-900 dark:text-white">
+              <h2 id="meega-title" className="font-extrabold text-base md:text-lg text-slate-900 dark:text-white">
                 پرسشنامه استاندارد ارزیابی کیفیت بازی آموزشی (MEEGA+)
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -101,6 +107,7 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
           <button
             type="button"
             onClick={onClose}
+            aria-label="بستن پرسشنامه"
             className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white p-1.5 rounded-lg"
           >
             <X className="w-6 h-6" />
@@ -149,11 +156,26 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-cyan-500/30 bg-cyan-50/70 dark:bg-cyan-950/30 px-4 py-2.5 text-xs">
+              <span className="font-bold text-cyan-800 dark:text-cyan-200" aria-live="polite">
+                پیشرفت تکمیل پرسشنامه: {toPersianDigits(answeredCount)} از {toPersianDigits(MEEGA_QUESTIONS.length)} سوال
+              </span>
+              {unansweredCount > 0 && (
+                <span className="text-amber-700 dark:text-amber-300">
+                  {toPersianDigits(unansweredCount)} سوال باقی‌مانده
+                </span>
+              )}
+            </div>
+
             <div className="space-y-3">
               {MEEGA_QUESTIONS.map((q, idx) => (
                 <div
                   key={q.id}
-                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/75 p-4 space-y-3"
+                  className={`rounded-2xl border p-4 space-y-3 transition ${
+                    answers[q.id] !== undefined
+                      ? 'border-cyan-500/40 bg-slate-50 dark:bg-slate-900/90'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60'
+                  }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
@@ -163,21 +185,30 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
                       {q.domain}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    {LIKERT_LABELS.map((opt) => (
-                      <button
-                        key={opt.val}
-                        type="button"
-                        onClick={() => handleSelect(q.id, opt.val)}
-                        className={`py-2 px-2 rounded-xl text-[11px] font-semibold border transition ${
-                          answers[q.id] === opt.val
-                            ? 'border-cyan-500 bg-cyan-500 text-slate-950 font-bold'
-                            : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 hover:border-cyan-400'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
+                  <div
+                    role="radiogroup"
+                    aria-label={`${toPersianDigits(idx + 1)}. ${q.text}`}
+                    className="grid grid-cols-2 sm:grid-cols-5 gap-2"
+                  >
+                    {LIKERT_LABELS.map((opt) => {
+                      const selected = answers[q.id] === opt.val;
+                      return (
+                        <button
+                          key={opt.val}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => handleSelect(q.id, opt.val)}
+                          className={`py-2 px-2 rounded-xl text-[11px] font-semibold border transition ${
+                            selected
+                              ? 'border-cyan-500 bg-cyan-500 text-slate-950 font-bold shadow-sm'
+                              : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 hover:border-cyan-400'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -197,7 +228,10 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
             </div>
 
             {error && (
-              <div className="rounded-xl border border-rose-500/40 bg-rose-950/80 p-3 text-xs text-rose-200 flex items-center gap-2">
+              <div
+                role="alert"
+                className="rounded-xl border border-rose-500/40 bg-rose-950/85 p-3 text-xs text-rose-200 flex items-center gap-2"
+              >
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -213,8 +247,8 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-6 py-2.5 text-sm flex items-center gap-2"
+                disabled={loading || unansweredCount > 0}
+                className="rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-extrabold px-6 py-2.5 text-sm flex items-center gap-2 transition"
               >
                 <Sparkles className="w-4 h-4" />
                 {loading ? 'در حال ثبت پرسشنامه...' : 'ثبت نهایی پرسشنامه MEEGA+'}
