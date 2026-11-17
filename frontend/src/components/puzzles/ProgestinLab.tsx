@@ -206,7 +206,12 @@ export const ProgestinLab: React.FC<Props> = ({
         {!codeSolved && (
           <div className="flex justify-end">
             <button
-              disabled={codeLoading}
+              disabled={
+                codeLoading ||
+                !checks.bioavailability.length ||
+                !checks.half_life.length ||
+                !checks.low_androgen.length
+              }
               onClick={handleCodeSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
             >

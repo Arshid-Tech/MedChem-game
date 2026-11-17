@@ -78,7 +78,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
   const [conf, setConf] = useState<{ H8: string; H9: string; H14: string }>(
     conformationSolved
       ? { H8: 'beta', H9: 'alpha', H14: 'alpha' }
-      : { H8: 'alpha', H9: 'beta', H14: 'beta' }
+      : { H8: '', H9: '', H14: '' }
   );
   const [confStart] = useState<number>(() => Date.now());
   const [confFeedback, setConfFeedback] = useState<{ ok: boolean; text: string } | null>(null);
@@ -234,7 +234,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         {!conformationSolved && (
           <div className="flex justify-end">
             <button
-              disabled={confLoading}
+              disabled={confLoading || !conf.H8 || !conf.H9 || !conf.H14}
               onClick={handleConfSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
             >

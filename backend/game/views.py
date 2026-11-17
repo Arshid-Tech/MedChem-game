@@ -78,26 +78,68 @@ PUZZLE_SOLUTIONS = {
             "bottom_horizontal": "Estradiol dehydrogenase",
             "left_vertical": "16a-hydroxylase",
             "right_vertical": "16a-hydroxylase",
+            "structure_positions": {
+                "estradiol": "1",
+                "estrone": "2",
+                "estriol": "3",
+                "hydroxyestrone": "4",
+            },
         },
         "base_score": 200,
         "clue": None,
-        "feedback_ok": "مسیر متابولیک تبدیل متقابل استرادیول، استرون و استریول با آنزیم‌های 17β-HSD و 16α-هیدروکسیلاز تکمیل شد.",
-        "feedback_err": "جایگذاری آنزیم‌ها صحیح نیست. تبدیل برگشت‌پذیر الکل C17 به کتون توسط Estradiol dehydrogenase و هیدروکسیلاسیون C16 توسط 16α-hydroxylase انجام می‌شود.",
+        "feedback_ok": "ساختارهای استرادیول، استرون، استریول و 16α-هیدروکسی‌استرون و مسیر آنزیمی آن‌ها به‌درستی مشخص شدند.",
+        "feedback_err": "جایگاه ساختارها یا آنزیم‌ها درست نیست. برای E2/E1 از Estradiol dehydrogenase و برای هیدروکسیلاسیون C16 از 16α-hydroxylase استفاده کنید.",
+    },
+    ("estrogen", "oral_long_acting_design"): {
+        "type": "set_match",
+        "expected": ["add_17alpha_ethynyl", "methylate_3_hydroxyl"],
+        "base_score": 150,
+        "clue": None,
+        "feedback_ok": "اتینیل‌استرادیول/مسترانول با اصلاح گروه 17α و متیلاسیون گروه فنولی C3 برای مصرف خوراکی و طول اثر بیشتر طراحی شد.",
+        "feedback_err": "برای افزایش پایداری خوراکی و طول اثر، گروه 17α-اتینیل و متیلاسیون گروه هیدروکسیل C3 را انتخاب کنید.",
+    },
+    ("estrogen", "estrogen_potency_sort"): {
+        "type": "rank_tiers",
+        "expected": [["3"], ["1", "2"], ["4"]],
+        "base_score": 150,
+        "clue": None,
+        "feedback_ok": "ترتیب قدرت صحیح است: ترکیب ۳ > ترکیب‌های ۱ و ۲ (برابر) > ترکیب ۴.",
+        "feedback_err": "ترتیب قدرت صحیح نیست. پاسخ منبع: ۳ > ۱ = ۲ > ۴.",
     },
     ("estrogen", "receptor_docking_and_class"): {
         "type": "exact_dict",
         "expected": {
             "rotation_angle": 180,
-            "non_steroidal_ai": "D",
         },
-        "base_score": 250,
+        "base_score": 150,
+        "clue": None,
+        "feedback_ok": "اتصال DES با برقراری پیوندهای مناسب با Glu 353، Arg 394 و His 524 انجام شد.",
+        "feedback_err": "لیگاند را تا زاویه ۱۸۰ درجه بچرخانید تا با آمینواسیدهای جایگاه فعال هم‌تراز شود.",
+    },
+    ("estrogen", "active_metabolite_prevention"): {
+        "type": "exact_str",
+        "expected": "prevent_active_metabolite",
+        "base_score": 150,
+        "clue": None,
+        "feedback_ok": "طرح دارو طوری اصلاح شد که متابولیت فعال مورد نظر تشکیل نشود.",
+        "feedback_err": "هدف پرونده، اصلاح دارو برای جلوگیری از تشکیل متابولیت فعال است.",
+    },
+    ("estrogen", "estrogen_drug_classification"): {
+        "type": "exact_dict",
+        "expected": {
+            "serm": "B",
+            "pure_antiestrogen": "C",
+            "steroid_aromatase_inhibitor": "A",
+            "non_steroid_aromatase_inhibitor": "D",
+        },
+        "base_score": 200,
         "clue": {
             "id": "clue_est_cyanide",
             "title": "سرنخ سوم: گروه سیانید (-C≡N)",
             "detail": "ساختار نهایی اهریمن همانند مهارکننده‌های غیر استروئیدی آروماتاز (لتروزول/آناستروزول) دارای گروه سیانید است.",
         },
-        "feedback_ok": "داکینگ لیگاند در سایت فعال گیرنده استروژن (پیوند هیدروژنی با Glu 353، Arg 394 و His 524) و شناسایی مهارکننده غیر استروئیدی آروماتاز (D) با موفقیت انجام شد!",
-        "feedback_err": "زاویه چرخش لیگاند برای برقراری پیوند هیدروژنی هم‌زمان با Glu 353/Arg 394 و His 524 یا انتخاب مهارکننده غیر استروئیدی آروماتاز (دارای گروه سیانید) صحیح نیست.",
+        "feedback_ok": "چهار ساختار به‌درستی به SERM، آنتی‌استروژن خالص و مهارکننده‌های استروئیدی و غیراستروئیدی آروماتاز متصل شدند.",
+        "feedback_err": "دسته‌ها را مطابق ساختارها تطبیق دهید: SERM (B)، آنتی‌استروژن خالص (C)، مهارکننده استروئیدی (A) و غیراستروئیدی آروماتاز (D).",
     },
     # دپارتمان ۴: پروژستین‌ها
     ("progestin", "pk_safe_code"): {
@@ -125,6 +167,14 @@ PUZZLE_SOLUTIONS = {
         "feedback_err": "اصلاحات ساختاری کامل نیست. برای حذف اثر آندروژنی، فعال‌سازی خوراکی و افزایش طول اثر به هر سه تغییر نیاز دارید.",
     },
     # دپارتمان ۵: آندروژن‌ها و مهارکننده‌ها
+    ("androgen", "androgen_entry_potency_sort"): {
+        "type": "exact_list",
+        "expected": ["3", "2", "1", "4"],
+        "base_score": 150,
+        "clue": None,
+        "feedback_ok": "ترتیب قدرت ترکیبات برای ورود به اتاق صحیح است: ۳ > ۲ > ۱ > ۴.",
+        "feedback_err": "ترتیب قدرت نادرست است. پاسخ منبع: ۳ > ۲ > ۱ > ۴.",
+    },
     ("androgen", "flutamide_metabolite"): {
         "type": "exact_str",
         "expected": "2-hydroxyflutamide",
@@ -132,6 +182,22 @@ PUZZLE_SOLUTIONS = {
         "clue": None,
         "feedback_ok": "صحیح است! ۲-هیدروکسی‌فلوتامید متابولیت ماژور و فعال آنتی‌آندروژنی فلوتامید است که میل ترکیبی بسیار بالاتری به گیرنده آندروژن دارد.",
         "feedback_err": "پاسخ صحیح نیست. هیدروکسیلاسیون روی کربن متین زنجیره ایزوبوتیریل متابولیت فعال را ایجاد می‌کند.",
+    },
+    ("androgen", "sarm_alternative"): {
+        "type": "one_of",
+        "expected": ["6", "10"],
+        "base_score": 150,
+        "clue": None,
+        "feedback_ok": "یک تعدیل‌کننده انتخابی گیرنده آندروژن (SARM) به‌عنوان جایگزین انتخاب شد.",
+        "feedback_err": "جایگزین باید از گروه تعدیل‌کننده‌های انتخابی گیرنده آندروژن (SARM) باشد.",
+    },
+    ("androgen", "low_androgenicity_design"): {
+        "type": "set_match",
+        "expected": ["remove_androgenic_features", "add_low_androgenic_features"],
+        "base_score": 150,
+        "clue": None,
+        "feedback_ok": "گروه‌های آندروژن‌ساز حذف و تغییرات کاهنده آندروژنیسیته اضافه شدند.",
+        "feedback_err": "طبق راهنمای زیگموند، بخش‌های آندروژن‌ساز را حذف و ساختارهای کاهنده آندروژنیسیته را اضافه کنید.",
     },
     ("androgen", "antiandrogen_classification"): {
         "type": "bucket_sets",
@@ -164,6 +230,20 @@ PUZZLE_SOLUTIONS = {
         "feedback_err": "اجزای کمپلکس آنزیمی ۵-آلفا ردوکتاز صحیح انتخاب نشده‌اند.",
     },
     # مرحله نهایی: اتاق مخفی و سنتز پادزهر اهریمن
+    ("final", "hidden_room_classification"): {
+        "type": "exact_dict",
+        "expected": {
+            "1": "glucocorticoid",
+            "2": "mineralocorticoid",
+            "3": "androgen",
+            "4": "progesterone",
+            "5": "estrogen",
+        },
+        "base_score": 200,
+        "clue": None,
+        "feedback_ok": "هر پنج ساختار به‌درستی به خانواده هورمونی خود متصل شدند؛ اتاق مخفی باز است.",
+        "feedback_err": "یک یا چند ساختار به خانواده هورمونی نادرست متصل شده‌اند. بررسی کنید و دوباره تلاش کنید.",
+    },
     ("final", "biosynthesis_vault"): {
         "type": "exact_dict",
         "expected": {
@@ -196,10 +276,10 @@ DEPARTMENT_REQUIRED_COUNT = {
     "entrance": 1,
     "glucocorticoid": 2,
     "mineralocorticoid": 2,
-    "estrogen": 2,
+    "estrogen": 6,
     "progestin": 2,
-    "androgen": 3,
-    "final": 2,
+    "androgen": 6,
+    "final": 3,
 }
 
 DEPARTMENT_BADGES = {
@@ -233,6 +313,20 @@ def evaluate_answer(puzzle_key, submitted):
             is_ok = normalized_sub == expected
     elif p_type == "exact_list":
         is_ok = isinstance(submitted, list) and [str(x) for x in submitted] == expected
+    elif p_type == "rank_tiers":
+        if not isinstance(submitted, list) or len(submitted) != sum(map(len, expected)):
+            is_ok = False
+        else:
+            offset = 0
+            is_ok = True
+            for tier in expected:
+                submitted_tier = [str(x) for x in submitted[offset : offset + len(tier)]]
+                if set(submitted_tier) != set(tier) or len(submitted_tier) != len(tier):
+                    is_ok = False
+                    break
+                offset += len(tier)
+    elif p_type == "one_of":
+        is_ok = isinstance(submitted, str) and submitted in expected
     elif p_type == "exact_str":
         is_ok = isinstance(submitted, str) and submitted.strip() == expected
     elif p_type == "bucket_sets":
