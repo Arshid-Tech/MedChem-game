@@ -37,8 +37,8 @@ const ROUTE_COMPOUNDS: RouteCompound[] = [
 type BucketKey = 'systemic' | 'topical' | 'inhalation';
 
 interface Props {
-  arrowsSolved: boolean;
-  routesSolved: boolean;
+  entryPotencySolved: boolean;
+  sarmSolved: boolean;
   onSubmitPuzzle: (
     puzzleCode: string,
     answer: unknown,
@@ -48,8 +48,8 @@ interface Props {
 }
 
 export const MineralocorticoidLab: React.FC<Props> = ({
-  arrowsSolved,
-  routesSolved,
+  entryPotencySolved,
+  sarmSolved,
   onSubmitPuzzle,
   onBackToMap,
 }) => {
@@ -59,7 +59,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
     half_life: 'up' | 'down' | '';
     mineralocorticoid: 'up' | 'down' | '';
   }>(
-    arrowsSolved
+    entryPotencySolved
       ? { anti_inflammatory: 'up', half_life: 'up', mineralocorticoid: 'down' }
       : { anti_inflammatory: '', half_life: '', mineralocorticoid: '' }
   );
@@ -69,7 +69,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
 
   // معمای ۲: دسته‌بندی ۹ ترکیب در ۳ سبد
   const [buckets, setBuckets] = useState<Record<BucketKey, string[]>>(
-    routesSolved
+    sarmSolved
       ? { systemic: ['1', '5', '8'], topical: ['2', '6', '7'], inhalation: ['3', '4', '9'] }
       : { systemic: [], topical: [], inhalation: [] }
   );
@@ -93,7 +93,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
   };
 
   const assignToBucket = (bucket: BucketKey, id: string) => {
-    if (routesSolved) return;
+    if (sarmSolved) return;
     setBuckets((prev) => {
       const cleaned: Record<BucketKey, string[]> = {
         systemic: prev.systemic.filter((x) => x !== id),
@@ -107,7 +107,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
   };
 
   const removeFromBucket = (bucket: BucketKey, id: string) => {
-    if (routesSolved) return;
+    if (sarmSolved) return;
     setBuckets((prev) => ({
       ...prev,
       [bucket]: prev[bucket].filter((x) => x !== id),
@@ -179,7 +179,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
               <div className="text-xs font-semibold text-slate-200">{item.label}</div>
               <div className="flex gap-2">
                 <button
-                  disabled={arrowsSolved}
+                  disabled={entryPotencySolved}
                   onClick={() => setArrows((p) => ({ ...p, [item.key]: 'up' }))}
                   className={`flex-1 py-2 rounded-lg text-xs font-bold border flex items-center justify-center gap-1 transition ${
                     arrows[item.key] === 'up'
@@ -190,7 +190,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
                   <ArrowUp className="w-4 h-4" /> افزایش (↑)
                 </button>
                 <button
-                  disabled={arrowsSolved}
+                  disabled={entryPotencySolved}
                   onClick={() => setArrows((p) => ({ ...p, [item.key]: 'down' }))}
                   className={`flex-1 py-2 rounded-lg text-xs font-bold border flex items-center justify-center gap-1 transition ${
                     arrows[item.key] === 'down'
@@ -218,7 +218,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
           </div>
         )}
 
-        {!arrowsSolved && (
+        {!entryPotencySolved && (
           <div className="flex justify-end">
             <button
               disabled={arrowLoading || !arrows.anti_inflammatory || !arrows.half_life || !arrows.mineralocorticoid}
@@ -234,7 +234,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
       {/* معمای ۲: دسته‌بندی مسیر تجویز ۹ ترکیب */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
-          arrowsSolved
+          entryPotencySolved
             ? 'border-slate-700/80 bg-slate-900/75'
             : 'border-slate-800 bg-slate-900/30 opacity-60 pointer-events-none'
         }`}
@@ -244,7 +244,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
             <Layers className="w-5 h-5 text-cyan-400" />
             <span>معمای ۲: تفکیک ترکیبات بر اساس مسیر تجویز (سیستمیک، موضعی، استنشاقی)</span>
           </h3>
-          {!routesSolved && assignedIds.length > 0 && (
+          {!sarmSolved && assignedIds.length > 0 && (
             <button
               onClick={() => setBuckets({ systemic: [], topical: [], inhalation: [] })}
               className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1"
@@ -263,7 +263,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
           {ROUTE_COMPOUNDS.filter((c) => !assignedIds.includes(c.id)).map((comp) => (
             <div
               key={comp.id}
-              draggable={!routesSolved}
+              draggable={!sarmSolved}
               onDragStart={(e) => e.dataTransfer.setData('text/plain', comp.id)}
               onClick={() => setSelectedChip(selectedChip === comp.id ? null : comp.id)}
               className={`rounded-xl border p-3 cursor-pointer transition ${
@@ -314,7 +314,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
                       className="flex items-center justify-between rounded-lg bg-slate-800/90 border border-slate-700 px-3 py-1.5 text-xs text-slate-100 cursor-pointer hover:border-rose-400"
                     >
                       <span>{item.label}</span>
-                      {!routesSolved && <span className="text-rose-400 text-[11px]">×</span>}
+                      {!sarmSolved && <span className="text-rose-400 text-[11px]">×</span>}
                     </div>
                   );
                 })}
@@ -342,7 +342,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
         )}
 
         <div className="flex justify-end">
-          {routesSolved ? (
+          {sarmSolved ? (
             <button
               onClick={onBackToMap}
               className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
