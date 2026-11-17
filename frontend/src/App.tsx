@@ -12,8 +12,8 @@ import {
   Sparkles,
   Skull,
   ClipboardCheck,
-  User,
-  HelpCircle,
+  UserRound,
+  CircleHelp,
   ChevronLeft,
   Sun,
   Moon,
@@ -22,7 +22,8 @@ import { api, clearTokens, getAccessToken } from './api';
 import { Badge, GameSession, LeaderboardEntry, StudentUser } from './types';
 import { AuthScreen } from './components/AuthScreen';
 import { UserProfileModal } from './components/UserProfileModal';
-import { GuidedTour } from './components/GuidedTour';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { GuidedTour, TourStep } from './components/GuidedTour';
 import { EntranceGatePuzzle } from './components/puzzles/EntranceGatePuzzle';
 import { GlucocorticoidLab } from './components/puzzles/GlucocorticoidLab';
 import { MineralocorticoidLab } from './components/puzzles/MineralocorticoidLab';
@@ -47,38 +48,66 @@ type ActiveView =
 const DEPARTMENTS = [
   {
     code: 'glucocorticoid',
-    number: '۱',
     title: 'دپارتمان ۱: آزمایشگاه گلوکوکورتیکوئیدها',
     shortTitle: '۱. گلوکوکورتیکوئیدها',
     subtitle: 'کانفورماسیون حلقه‌ها و تحلیل SAR ضدالتهابی',
   },
   {
     code: 'mineralocorticoid',
-    number: '۲',
     title: 'دپارتمان ۲: بخش مینرالوکورتیکوئیدها',
     shortTitle: '۲. مینرالوکورتیکوئیدها',
     subtitle: 'احتباس آب و الکترولیت و تشخیص مسیر تجویز موضعی',
   },
   {
     code: 'estrogen',
-    number: '۳',
     title: 'دپارتمان ۳: آزمایشگاه استروژن‌ها',
     shortTitle: '۳. استروژن‌ها',
-    subtitle: 'مسیر متابولیسم و داکینگ سه‌بعدی در گیرنده (Glu353/Arg394)',
+    subtitle: 'مسیر متابولیسم، طراحی خوراکی، داکینگ گیرنده و کلاس‌های دارویی',
   },
   {
     code: 'progestin',
-    number: '۴',
     title: 'دپارتمان ۴: بخش پروژستین‌ها',
     shortTitle: '۴. پروژستین‌ها',
     subtitle: 'مشتقات ۱۹-نورآندروستان و فراهمی زیستی خوراکی',
   },
   {
     code: 'androgen',
-    number: '۵',
     title: 'دپارتمان ۵: آندروژن‌ها و مهارکننده‌های آنزیمی',
     shortTitle: '۵. آندروژن‌ها',
-    subtitle: 'متابولیسم فلوتامید، SARMs و کمپلکس ۵-آلفا ردوکتاز',
+    subtitle: 'متابولیسم فلوتامید، SARMs، آندروژنیسیته و کمپلکس ۵-آلفا ردوکتاز',
+  },
+];
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    target: '[data-tour="navigation"]',
+    title: 'نقشه و جابه‌جایی سریع',
+    description:
+      'از این نوار بین نقشه شرکت، پنج دپارتمان تخصصی و مرحله نهایی جابه‌جا شوید. دپارتمان‌ها پس از عبور از گیت ورودی باز می‌شوند.',
+  },
+  {
+    target: '[data-tour="progress"]',
+    title: 'زمان بازرسی FDA و امتیاز',
+    description:
+      'زمان باقی‌مانده تا بازرسی FDA، امتیاز کل شما و وضعیت پرسشنامه ارزیابی پژوهشی را از این بخش دنبال کنید.',
+  },
+  {
+    target: '[data-tour="workspace"]',
+    title: 'محیط تعاملی حل معماها',
+    description:
+      'معماهای هر دپارتمان به ترتیب باز می‌شوند. ساختارها یا گزینه‌ها را انتخاب کنید و برای ثبت، دکمه تایید همان معما را بزنید.',
+  },
+  {
+    target: '[data-tour="clues"]',
+    title: 'پرونده سرنخ‌ها و مدال‌ها',
+    description:
+      'سرنخ‌های کشف‌شده برای شناخت ساختار مولکول اهریمن و مدال‌های پژوهشی خود را در این ستون مرور کنید.',
+  },
+  {
+    target: '[data-tour="profile"]',
+    title: 'پروفایل کاربری و تغییر رمز عبور',
+    description:
+      'اطلاعات دانشجویی، آمار عملکرد و گزینه تغییر رمز عبور از طریق دکمه «پروفایل» در دسترس است.',
   },
 ];
 
@@ -91,10 +120,13 @@ export function App() {
   const [timeLeft, setTimeLeft] = useState<number>(3600);
   const [loadingApp, setLoadingApp] = useState<boolean>(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [tourStarted, setTourStarted] = useState(false);
   const [showMeegaModal, setShowMeegaModal] = useState(false);
+  const [surveyPrompted, setSurveyPrompted] = useState(false);
   const [meegaSubmitted, setMeegaSubmitted] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('medchem_theme') !== 'light';
   });
@@ -128,9 +160,6 @@ export function App() {
       if (!gameData.session.completed_stages?.includes('entrance')) {
         setActiveView('entrance');
       }
-      if (!localStorage.getItem('medchem_tour_seen')) {
-        setShowTour(true);
-      }
     } catch {
       clearTokens();
       setUser(null);
@@ -142,6 +171,28 @@ export function App() {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    const finished = session?.status === 'completed' || session?.completed_stages?.includes('final');
+    if (
+      user &&
+      session &&
+      !finished &&
+      !tourStarted &&
+      localStorage.getItem('medchem_tour_seen') !== 'true'
+    ) {
+      setShowTour(true);
+      setTourStarted(true);
+    }
+  }, [user, session, tourStarted]);
+
+  useEffect(() => {
+    const completed = session?.status === 'completed' || session?.completed_stages?.includes('final');
+    if (completed && !meegaSubmitted && !surveyPrompted) {
+      setShowMeegaModal(true);
+      setSurveyPrompted(true);
+    }
+  }, [session, meegaSubmitted, surveyPrompted]);
 
   useEffect(() => {
     if (!user || !session || session.status === 'completed') return;
@@ -159,8 +210,8 @@ export function App() {
     return toPersianDigits(`${m}:${s}`);
   };
 
-  const showNotification = (msg: string) => {
-    setToast(msg);
+  const showNotification = (msg: string, isError = false) => {
+    setToast({ message: msg, isError });
     setTimeout(() => setToast(null), 5000);
   };
 
@@ -197,8 +248,8 @@ export function App() {
     try {
       const res = await api.getLeaderboard();
       setLeaderboard(res.leaderboard);
-    } catch {
-      // ignore
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : 'دریافت جدول رده‌بندی ناموفق بود.', true);
     }
   };
 
@@ -206,6 +257,16 @@ export function App() {
     clearTokens();
     setUser(null);
     setSession(null);
+    setShowTour(false);
+    setTourStarted(false);
+    setShowProfileModal(false);
+    setShowPasswordModal(false);
+    setSurveyPrompted(false);
+  };
+
+  const closeTour = () => {
+    setShowTour(false);
+    localStorage.setItem('medchem_tour_seen', 'true');
   };
 
   if (loadingApp) {
@@ -241,7 +302,7 @@ export function App() {
       ? 'اتاق مخفی و سنتز پادزهر'
       : activeView === 'leaderboard'
       ? 'جدول رده‌بندی'
-      : DEPARTMENTS.find((d) => d.code === activeView)?.title || 'نقشه مرکزی R&D';
+      : DEPARTMENTS.find((d) => d.code === activeView)?.title || 'نقشه دپارتمان‌ها';
 
   return (
     <div
@@ -277,7 +338,7 @@ export function App() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <div data-tour="progress" className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {/* تایمر */}
             <div
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold ${
@@ -315,23 +376,14 @@ export function App() {
               <span>{meegaSubmitted ? 'MEEGA+ ثبت شد ✓' : 'پرسشنامه MEEGA+'}</span>
             </button>
 
-            {/* رده‌بندی */}
+            {/* پروفایل (شامل آمار و تغییر رمز عبور) */}
             <button
               type="button"
-              onClick={openLeaderboard}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-cyan-500 bg-slate-100 dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
-            >
-              <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
-              <span className="hidden md:inline">رده‌بندی</span>
-            </button>
-
-            {/* پروفایل */}
-            <button
-              type="button"
+              data-tour="profile"
               onClick={() => setShowProfileModal(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-cyan-500 bg-slate-100 dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
             >
-              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-600 dark:text-cyan-400" />
+              <UserRound className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-600 dark:text-cyan-400" />
               <span>پروفایل</span>
             </button>
 
@@ -340,9 +392,10 @@ export function App() {
               type="button"
               onClick={() => setShowTour(true)}
               title="راهنمای بازی"
+              aria-label="راهنمای بازی"
               className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-cyan-500 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition"
             >
-              <HelpCircle className="w-4 h-4" />
+              <CircleHelp className="w-4 h-4" />
             </button>
 
             {/* تغییر تم تاریک / روشن */}
@@ -350,6 +403,7 @@ export function App() {
               type="button"
               onClick={() => setDarkMode((prev) => !prev)}
               title={darkMode ? 'تغییر به تم روشن' : 'تغییر به تم تاریک'}
+              aria-label={darkMode ? 'تغییر به تم روشن' : 'تغییر به تم تاریک'}
               className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-amber-400 bg-slate-100 dark:bg-slate-900 text-amber-600 dark:text-amber-300 transition"
             >
               {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 text-slate-700" />}
@@ -360,6 +414,7 @@ export function App() {
               type="button"
               onClick={handleLogout}
               title="خروج از حساب"
+              aria-label="خروج از حساب"
               className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-rose-400 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition"
             >
               <LogOut className="w-4 h-4" />
@@ -367,58 +422,74 @@ export function App() {
           </div>
         </div>
 
-        {/* نوار دسترسی سریع به اتاق‌ها */}
-        {entranceSolved && (
-          <div className="border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-100/70 dark:bg-[#050c17]">
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-              <button
-                type="button"
-                onClick={() => setActiveView('map')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${
-                  activeView === 'map'
-                    ? 'bg-cyan-500 text-slate-950'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800'
-                }`}
-              >
-                نقشه شرکت
-              </button>
-              {DEPARTMENTS.map((d) => {
-                const done = session?.completed_stages?.includes(d.code);
-                return (
-                  <button
-                    key={d.code}
-                    type="button"
-                    onClick={() => setActiveView(d.code as ActiveView)}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 ${
-                      activeView === d.code
-                        ? 'bg-cyan-500 text-slate-950 font-bold'
-                        : done
-                        ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>{d.shortTitle}</span>
-                    {done && <span>✓</span>}
-                  </button>
-                );
-              })}
-              <button
-                type="button"
-                disabled={!allFiveDepartmentsDone}
-                onClick={() => setActiveView('final')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${
-                  activeView === 'final'
-                    ? 'bg-rose-500 text-white'
-                    : allFiveDepartmentsDone
-                    ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
-                    : 'text-slate-400 dark:text-slate-600 cursor-not-allowed'
-                }`}
-              >
-                مرحله نهایی
-              </button>
-            </div>
+        {/* نوار دسترسی سریع به اتاق‌ها (بدون اسکرول‌بار افقی سفید) */}
+        <nav
+          data-tour="navigation"
+          aria-label="ناوبری بازی"
+          className="border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-100/70 dark:bg-[#050c17]"
+        >
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <button
+              type="button"
+              disabled={!entranceSolved}
+              onClick={() => setActiveView('map')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition disabled:opacity-40 disabled:cursor-not-allowed ${
+                activeView === 'map'
+                  ? 'bg-cyan-500 text-slate-950'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+              }`}
+            >
+              نقشه شرکت
+            </button>
+            {DEPARTMENTS.map((d) => {
+              const done = session?.completed_stages?.includes(d.code);
+              return (
+                <button
+                  key={d.code}
+                  type="button"
+                  disabled={!entranceSolved}
+                  onClick={() => setActiveView(d.code as ActiveView)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed ${
+                    activeView === d.code
+                      ? 'bg-cyan-500 text-slate-950 font-bold'
+                      : done
+                      ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <span>{d.shortTitle}</span>
+                  {done && <span>✓</span>}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              disabled={!allFiveDepartmentsDone}
+              onClick={() => setActiveView('final')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+                activeView === 'final'
+                  ? 'bg-rose-500 text-white'
+                  : allFiveDepartmentsDone
+                  ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
+                  : 'text-slate-400 dark:text-slate-600 cursor-not-allowed'
+              }`}
+            >
+              مرحله نهایی
+            </button>
+            <button
+              type="button"
+              onClick={openLeaderboard}
+              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition flex items-center gap-1 ${
+                activeView === 'leaderboard'
+                  ? 'bg-amber-400 text-slate-950'
+                  : 'text-amber-700 dark:text-amber-300 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              <span>رده‌بندی</span>
+            </button>
           </div>
-        )}
+        </nav>
       </header>
 
       {/* مسیر راهنمای صفحه (Breadcrumb) */}
@@ -437,14 +508,25 @@ export function App() {
       </div>
 
       {toast && (
-        <div className="fixed bottom-5 left-5 z-50 rounded-2xl border border-emerald-400/50 bg-emerald-950/95 px-4 py-3 text-sm text-emerald-100 shadow-xl flex items-center gap-2">
-          <Award className="w-5 h-5 text-emerald-400 shrink-0" />
-          <span>{toast}</span>
+        <div
+          role={toast.isError ? 'alert' : 'status'}
+          className={`fixed bottom-5 left-5 z-50 rounded-2xl border px-4 py-3 text-sm shadow-xl flex items-center gap-2 ${
+            toast.isError
+              ? 'border-rose-400/50 bg-rose-950/95 text-rose-100'
+              : 'border-emerald-400/50 bg-emerald-950/95 text-emerald-100'
+          }`}
+        >
+          {toast.isError ? (
+            <AlertOctagon className="w-5 h-5 text-rose-400 shrink-0" />
+          ) : (
+            <Award className="w-5 h-5 text-emerald-400 shrink-0" />
+          )}
+          <span>{toast.message}</span>
         </div>
       )}
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-9">
+        <div data-tour="workspace" className="lg:col-span-9">
           {activeView === 'entrance' && (
             <EntranceGatePuzzle
               isSolved={entranceSolved}
@@ -477,10 +559,12 @@ export function App() {
 
           {activeView === 'estrogen' && (
             <EstrogenLab
+              metabolismSolved={isPuzzleSolved('estrogen', 'metabolism_enzymes')}
               oralDesignSolved={isPuzzleSolved('estrogen', 'oral_long_acting_design')}
-              potencySolved={isPuzzleSolved('estrogen', 'estrogen_potency_and_docking')}
-              metaboliteSolved={isPuzzleSolved('estrogen', 'prevent_active_metabolite')}
-              classificationSolved={isPuzzleSolved('estrogen', 'receptor_docking_and_class')}
+              potencySolved={isPuzzleSolved('estrogen', 'estrogen_potency_sort')}
+              dockingSolved={isPuzzleSolved('estrogen', 'receptor_docking_and_class')}
+              metaboliteSolved={isPuzzleSolved('estrogen', 'active_metabolite_prevention')}
+              classificationSolved={isPuzzleSolved('estrogen', 'estrogen_drug_classification')}
               onSubmitPuzzle={(pCode, ans, elapsed) =>
                 handlePuzzleSubmit('estrogen', pCode, ans, elapsed)
               }
@@ -501,10 +585,10 @@ export function App() {
 
           {activeView === 'androgen' && (
             <AndrogenLab
-              entryPotencySolved={isPuzzleSolved('androgen', 'androgen_potency_order')}
+              entryPotencySolved={isPuzzleSolved('androgen', 'androgen_entry_potency_sort')}
               metaboliteSolved={isPuzzleSolved('androgen', 'flutamide_metabolite')}
-              sarmSolved={isPuzzleSolved('androgen', 'bicalutamide_to_sarm')}
-              androgenicitySolved={isPuzzleSolved('androgen', 'reduce_androgenicity')}
+              sarmSolved={isPuzzleSolved('androgen', 'sarm_alternative')}
+              androgenicitySolved={isPuzzleSolved('androgen', 'low_androgenicity_design')}
               classificationSolved={isPuzzleSolved('androgen', 'antiandrogen_classification')}
               enzymeComplexSolved={isPuzzleSolved('androgen', 'five_alpha_reductase_complex')}
               onSubmitPuzzle={(pCode, ans, elapsed) =>
@@ -516,7 +600,7 @@ export function App() {
 
           {activeView === 'final' && (
             <FinalAntidoteLab
-              mappingSolved={isPuzzleSolved('final', 'steroid_family_mapping')}
+              mappingSolved={isPuzzleSolved('final', 'hidden_room_classification')}
               vaultSolved={isPuzzleSolved('final', 'biosynthesis_vault')}
               antidoteSolved={isPuzzleSolved('final', 'antidote_synthesis')}
               onSubmitPuzzle={(pCode, ans, elapsed) =>
@@ -711,7 +795,7 @@ export function App() {
         </div>
 
         {/* ستون کناری: پرونده سرنخ‌های کشف‌شده و نشان‌ها */}
-        <aside className="lg:col-span-3 space-y-5">
+        <aside data-tour="clues" className="lg:col-span-3 space-y-5">
           <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 p-4 space-y-3 shadow-sm">
             <div className="flex items-center gap-2 text-sm font-bold text-cyan-700 dark:text-cyan-300 border-b border-slate-100 dark:border-slate-800 pb-2.5">
               <FileSearch className="w-4 h-4" />
@@ -762,22 +846,22 @@ export function App() {
         </aside>
       </main>
 
-      {showProfileModal && (
+      {showProfileModal && user && (
         <UserProfileModal
           user={user}
+          session={session}
+          badgeCount={badges.length}
           onClose={() => setShowProfileModal(false)}
-          onProfileUpdated={(updatedUser: StudentUser) => setUser(updatedUser)}
-        />
-      )}
-
-      {showTour && (
-        <GuidedTour
-          onClose={() => {
-            localStorage.setItem('medchem_tour_seen', 'true');
-            setShowTour(false);
+          onChangePassword={() => {
+            setShowProfileModal(false);
+            setShowPasswordModal(true);
           }}
         />
       )}
+
+      {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
+
+      {showTour && <GuidedTour steps={TOUR_STEPS} onClose={closeTour} />}
 
       {showMeegaModal && (
         <MeegaSurveyModal

@@ -10,6 +10,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { SteroidMoleculeSVG, SteroidRenderProps } from '../molecules/SteroidMoleculeSVG';
+import { toPersianDigits } from '../../utils/persian';
 
 interface CompoundCard {
   id: string;
@@ -74,7 +75,6 @@ export const GlucocorticoidLab: React.FC<Props> = ({
   onSubmitPuzzle,
   onBackToMap,
 }) => {
-  // معمای ۱: کانفورماسیون هیدروژن‌ها
   const [conf, setConf] = useState<{ H8: string; H9: string; H14: string }>(
     conformationSolved
       ? { H8: 'beta', H9: 'alpha', H14: 'alpha' }
@@ -84,7 +84,6 @@ export const GlucocorticoidLab: React.FC<Props> = ({
   const [confFeedback, setConfFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [confLoading, setConfLoading] = useState(false);
 
-  // معمای ۲: مرتب‌سازی قدرت اثر SAR (از قوی‌ترین به ضعیف‌ترین)
   const [order, setOrder] = useState<string[]>(
     sarSolved ? ['5', '3', '4', '6', '2', '1'] : ['1', '2', '3', '4', '5', '6']
   );
@@ -99,8 +98,8 @@ export const GlucocorticoidLab: React.FC<Props> = ({
     try {
       const res = await onSubmitPuzzle('conformation_lock', conf, elapsed);
       setConfFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setConfFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setConfFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setConfLoading(false);
     }
@@ -122,8 +121,8 @@ export const GlucocorticoidLab: React.FC<Props> = ({
     try {
       const res = await onSubmitPuzzle('sar_potency_sort', order, elapsed);
       setSarFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setSarFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setSarFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setSarLoading(false);
     }
@@ -131,48 +130,48 @@ export const GlucocorticoidLab: React.FC<Props> = ({
 
   return (
     <div className="space-y-8">
-      {/* هدر دپارتمان */}
-      <div className="rounded-2xl border border-cyan-500/30 bg-slate-900/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-2xl border border-cyan-500/30 bg-white dark:bg-slate-900/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-cyan-400 font-bold text-lg">
+          <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold text-lg">
             <FlaskConical className="w-6 h-6" />
             <span>دپارتمان اول: آزمایشگاه گلوکوکورتیکوئیدها (دفتر سابق دکتر ارول)</span>
           </div>
-          <p className="text-slate-300 text-sm mt-1 leading-6">
+          <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
             یادداشت روی دیوار آزمایشگاه: <em>«هر چقدر قدرت ضدالتهابی را بیشتر کنی، به فرمول اهریمن نزدیک‌تر می‌شوی...»</em>
           </p>
         </div>
         <button
+          type="button"
           onClick={onBackToMap}
-          className="self-start md:self-center rounded-xl border border-slate-600 hover:border-cyan-400 px-4 py-2 text-xs font-semibold text-slate-200 transition"
+          className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
         >
           بازگشت به نقشه شرکت
         </button>
       </div>
 
       {/* معمای ۱: قفل کانفورماسیون استریوشیمیایی */}
-      <div className="rounded-2xl border border-slate-700/80 bg-slate-900/75 p-6 space-y-5">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-base text-slate-100 flex items-center gap-2">
+          <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
             {conformationSolved ? (
-              <Unlock className="w-5 h-5 text-emerald-400" />
+              <Unlock className="w-5 h-5 text-emerald-500" />
             ) : (
-              <Lock className="w-5 h-5 text-amber-400" />
+              <Lock className="w-5 h-5 text-amber-500" />
             )}
-            <span>معمای ۱: تنظیم کانفورماسیون فضایی هیدروژن‌های اتصال حلقه‌ها</span>
+            <span>معمای {toPersianDigits(1)}: تنظیم کانفورماسیون فضایی هیدروژن‌های اتصال حلقه‌ها</span>
           </h3>
           <span
             className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
               conformationSolved
-                ? 'bg-emerald-500/20 text-emerald-300'
-                : 'bg-amber-500/20 text-amber-300'
+                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
             }`}
           >
             {conformationSolved ? 'قفل باز شده ✓' : 'قفل امنیتی فعال'}
           </span>
         </div>
 
-        <p className="text-sm text-slate-300 leading-7">
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-7">
           برای دسترسی به سیستم کامپیوتر دکتر ارول، آرایش فضایی (آلفا با پیوند خط‌چین به سمت پشت صفحه یا بتا با گوه توپر به سمت جلوی صفحه)
           را برای سه اتم هیدروژن کلیدی در اتصالات حلقه‌های <strong>B/C</strong> و <strong>C/D</strong> (کربن‌های 8، 9 و 14) در گلوکوکورتیکوئیدهای فعال بیولوژیک تنظیم کنید:
         </p>
@@ -181,30 +180,32 @@ export const GlucocorticoidLab: React.FC<Props> = ({
           {(['H8', 'H9', 'H14'] as const).map((pos) => (
             <div
               key={pos}
-              className="rounded-xl border border-slate-700 bg-[#081220] p-4 flex flex-col items-center gap-3"
+              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 flex flex-col items-center gap-3"
             >
-              <div dir="ltr" className="font-mono text-base font-bold text-cyan-300">
+              <div dir="ltr" className="font-mono text-base font-bold text-cyan-700 dark:text-cyan-300">
                 موقعیت {pos}
               </div>
               <div className="flex gap-2 w-full">
                 <button
+                  type="button"
                   disabled={conformationSolved}
                   onClick={() => setConf((prev) => ({ ...prev, [pos]: 'alpha' }))}
                   className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${
                     conf[pos] === 'alpha'
-                      ? 'border-cyan-400 bg-cyan-500/20 text-cyan-200'
-                      : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                      ? 'border-cyan-500 bg-cyan-500/20 text-cyan-800 dark:text-cyan-200'
+                      : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   α (خط‌چین / پشت)
                 </button>
                 <button
+                  type="button"
                   disabled={conformationSolved}
                   onClick={() => setConf((prev) => ({ ...prev, [pos]: 'beta' }))}
                   className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${
                     conf[pos] === 'beta'
-                      ? 'border-purple-400 bg-purple-500/20 text-purple-200'
-                      : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                      ? 'border-purple-500 bg-purple-500/20 text-purple-800 dark:text-purple-200'
+                      : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   β (گوه توپر / جلو)
@@ -218,8 +219,8 @@ export const GlucocorticoidLab: React.FC<Props> = ({
           <div
             className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
               confFeedback.ok
-                ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200'
-                : 'border-rose-500/40 bg-rose-950/40 text-rose-200'
+                ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
             }`}
           >
             {confFeedback.ok ? (
@@ -234,9 +235,10 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         {!conformationSolved && (
           <div className="flex justify-end">
             <button
+              type="button"
               disabled={confLoading || !conf.H8 || !conf.H9 || !conf.H14}
               onClick={handleConfSubmit}
-              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
+              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
             >
               {confLoading ? 'در حال بررسی...' : 'ثبت آرایش فضایی و باز کردن کامپیوتر'}
             </button>
@@ -244,23 +246,25 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۲: مرتب‌سازی قدرت SAR گلوکوکورتیکوئیدها */}
+      {/* معمای ۲: مرتب‌سازی قدرت اثر SAR گلوکوکورتیکوئیدها */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           conformationSolved
-            ? 'border-slate-700/80 bg-slate-900/75'
-            : 'border-slate-800 bg-slate-900/30 opacity-60 pointer-events-none'
+            ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
         }`}
       >
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-base text-slate-100 flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-cyan-400" />
-            <span>معمای ۲: تحلیل رابطه ساختار-اثر (SAR) و رتبه‌بندی قدرت ضدالتهابی</span>
+          <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-cyan-500" />
+            <span>معمای {toPersianDigits(2)}: تحلیل رابطه ساختار-اثر (SAR) و رتبه‌بندی قدرت ضدالتهابی</span>
           </h3>
-          <span className="text-xs text-slate-400">از قوی‌ترین (رتبه ۱) به ضعیف‌ترین (رتبه ۶)</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            از قوی‌ترین (رتبه {toPersianDigits(1)}) به ضعیف‌ترین (رتبه {toPersianDigits(6)})
+          </span>
         </div>
 
-        <p className="text-sm text-slate-300 leading-7">
+        <p className="text-sm text-slate-600 dark:text-slate-300 leading-7">
           در ایمیل بازیابی‌شده از دکتر ارول آمده است: <em>«این ۶ مشتق کورتیکواستروئیدی را از قوی‌ترین به ضعیف‌ترین مرتب کن تا ویژگی مشترک دو ترکیب فوق‌قوی برایت آشکار شود.»</em>
           با دکمه‌های بالا و پایین، ترتیب کارت‌ها را از <strong>قوی‌ترین (بالا)</strong> به <strong>ضعیف‌ترین (پایین)</strong> بچینید:
         </p>
@@ -271,15 +275,15 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             return (
               <div
                 key={comp.id}
-                className="rounded-xl border border-slate-700 bg-[#081220] p-4 flex flex-col md:flex-row items-center justify-between gap-4"
+                className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 flex flex-col md:flex-row items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-4 w-full md:w-auto">
-                  <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-extrabold flex items-center justify-center shrink-0">
-                    {idx + 1}
+                  <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-700 dark:text-cyan-300 font-extrabold flex items-center justify-center shrink-0">
+                    {toPersianDigits(idx + 1)}
                   </div>
                   <div>
-                    <div className="font-bold text-slate-100 text-sm">{comp.codeName}</div>
-                    <div className="text-xs text-slate-400 mt-0.5">{comp.subtitle}</div>
+                    <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">{comp.codeName}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{comp.subtitle}</div>
                   </div>
                 </div>
 
@@ -288,18 +292,20 @@ export const GlucocorticoidLab: React.FC<Props> = ({
                   {!sarSolved && (
                     <div className="flex flex-col gap-1.5">
                       <button
+                        type="button"
                         disabled={idx === 0}
                         onClick={() => moveItem(idx, -1)}
                         title="افزایش رتبه قدرت"
-                        className="p-2 rounded-lg border border-slate-700 bg-slate-800 hover:border-cyan-400 disabled:opacity-30 text-slate-200"
+                        className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-cyan-400 disabled:opacity-30 text-slate-700 dark:text-slate-200"
                       >
                         <ArrowUp className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         disabled={idx === order.length - 1}
                         onClick={() => moveItem(idx, 1)}
                         title="کاهش رتبه قدرت"
-                        className="p-2 rounded-lg border border-slate-700 bg-slate-800 hover:border-cyan-400 disabled:opacity-30 text-slate-200"
+                        className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-cyan-400 disabled:opacity-30 text-slate-700 dark:text-slate-200"
                       >
                         <ArrowDown className="w-4 h-4" />
                       </button>
@@ -315,8 +321,8 @@ export const GlucocorticoidLab: React.FC<Props> = ({
           <div
             className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
               sarFeedback.ok
-                ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200'
-                : 'border-rose-500/40 bg-rose-950/40 text-rose-200'
+                ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
             }`}
           >
             {sarFeedback.ok ? (
@@ -331,6 +337,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         <div className="flex justify-end gap-3">
           {sarSolved ? (
             <button
+              type="button"
               onClick={onBackToMap}
               className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
@@ -338,6 +345,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             </button>
           ) : (
             <button
+              type="button"
               disabled={sarLoading}
               onClick={handleSarSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
