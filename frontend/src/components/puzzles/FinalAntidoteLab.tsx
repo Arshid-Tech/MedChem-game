@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 interface Props {
+  mappingSolved: boolean;
   vaultSolved: boolean;
   antidoteSolved: boolean;
   onSubmitPuzzle: (
@@ -50,14 +51,34 @@ const ANTIDOTE_TOOLS = [
   },
 ];
 
+const HIDDEN_STRUCTURES = [
+  { id: '1', label: 'گلوکوکورتیکوئید' },
+  { id: '2', label: 'مینرالوکورتیکوئید' },
+  { id: '3', label: 'آندروژن' },
+  { id: '4', label: 'پروژسترون' },
+  { id: '5', label: 'استروژن' },
+] as const;
+
 export const FinalAntidoteLab: React.FC<Props> = ({
+  mappingSolved,
   vaultSolved,
   antidoteSolved,
   onSubmitPuzzle,
   onOpenSurvey,
   onBackToMap,
 }) => {
-  // معمای ۱: مسیر بیوسنتز کلسترول + رمز CORTICOSTEROID
+  const [structureClasses, setStructureClasses] = useState({
+    '1': mappingSolved ? 'glucocorticoid' : '',
+    '2': mappingSolved ? 'mineralocorticoid' : '',
+    '3': mappingSolved ? 'androgen' : '',
+    '4': mappingSolved ? 'progesterone' : '',
+    '5': mappingSolved ? 'estrogen' : '',
+  });
+  const [mappingStart] = useState<number>(() => Date.now());
+  const [mappingFeedback, setMappingFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [mappingLoading, setMappingLoading] = useState(false);
+
+  // معمای ۲: مسیر بیوسنتز کلسترول + رمز CORTICOSTEROID
   const [biosynthesis, setBiosynthesis] = useState({
     step_1: vaultSolved ? 'Pregnenolone' : '',
     step_2: vaultSolved ? 'Progesterone' : '',
@@ -92,35 +113,53 @@ export const FinalAntidoteLab: React.FC<Props> = ({
     return () => clearInterval(t);
   }, [vaultSolved, antidoteSolved]);
 
+  const handleMappingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mappingSolved || Object.values(structureClasses).some((value) => !value)) return;
+    setMappingLoading(true);
+    setMappingFeedback(null);
+    const elapsed = Math.max(1, Math.round((Date.now() - mappingStart) / 1000));
+    try {
+      const res = await onSubmitPuzzle('hidden_room_classification', structureClasses, elapsed);
+      setMappingFeedback({ ok: res.correct, text: res.feedback });
+    } catch (err: unknown) {
+      setMappingFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
+    } finally {
+      setMappingLoading(false);
+    }
+  };
+
   const handleVaultSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!mappingSolved) return;
     setVaultLoading(true);
     setVaultFeedback(null);
     const elapsed = Math.max(1, Math.round((Date.now() - vaultStart) / 1000));
     try {
       const res = await onSubmitPuzzle('biosynthesis_vault', biosynthesis, elapsed);
       setVaultFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setVaultFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setVaultFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setVaultLoading(false);
     }
   };
 
   const toggleTool = (id: string) => {
-    if (antidoteSolved) return;
+    if (!vaultSolved || antidoteSolved) return;
     setSelectedTools((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   const handleAntidoteSubmit = async () => {
+    if (!vaultSolved || !selectedTools.length) return;
     setAntidoteLoading(true);
     setAntidoteFeedback(null);
     const elapsed = Math.max(1, Math.round((Date.now() - antidoteStart) / 1000));
     try {
       const res = await onSubmitPuzzle('antidote_synthesis', selectedTools, elapsed);
       setAntidoteFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setAntidoteFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setAntidoteFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setAntidoteLoading(false);
     }
@@ -152,18 +191,85 @@ export const FinalAntidoteLab: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* بخش ۱: گاوصندوق مسیر بیوسنتز کلسترول */}
+      {/* بخش ۱: قفل اتاق مخفی */}
+      <form
+        onSubmit={handleMappingSubmit}
+        className="rounded-2xl border border-cyan-500/30 bg-slate-900/80 p-6 space-y-5"
+      >
+        <div className="flex items-center gap-2 font-bold text-base text-cyan-300">
+          <KeyRound className="w-5 h-5" />
+          <span>گام ۱: بازکردن قفل اتاق مخفی</span>
+        </div>
+        <p className="text-xs leading-6 text-slate-300">
+          هر ساختار شماره‌گذاری‌شده را به خانواده هورمونی مربوط وصل کنید تا به گاوصندوق دسترسی پیدا کنید.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {HIDDEN_STRUCTURES.map((structure) => (
+            <label key={structure.id} className="space-y-1 text-[11px] text-slate-300">
+              <span>ساختار {structure.id}</span>
+              <select
+                required
+                disabled={mappingSolved}
+                value={structureClasses[structure.id]}
+                onChange={(event) =>
+                  setStructureClasses((previous) => ({
+                    ...previous,
+                    [structure.id]: event.target.value,
+                  }))
+                }
+                className="w-full rounded-lg border border-slate-600 bg-slate-900 px-2 py-2 text-xs text-white"
+              >
+                <option value="">انتخاب خانواده...</option>
+                <option value="glucocorticoid">گلوکوکورتیکوئید</option>
+                <option value="mineralocorticoid">مینرالوکورتیکوئید</option>
+                <option value="androgen">آندروژن</option>
+                <option value="progesterone">پروژسترون</option>
+                <option value="estrogen">استروژن</option>
+              </select>
+            </label>
+          ))}
+        </div>
+        {mappingFeedback && (
+          <div
+            role="status"
+            className={`rounded-xl border p-3 text-sm ${
+              mappingFeedback.ok
+                ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/40 text-rose-200'
+            }`}
+          >
+            {mappingFeedback.text}
+          </div>
+        )}
+        {!mappingSolved && (
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={mappingLoading || Object.values(structureClasses).some((value) => !value)}
+              className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
+            >
+              {mappingLoading ? 'در حال بررسی...' : 'باز کردن اتاق مخفی'}
+            </button>
+          </div>
+        )}
+      </form>
+
+      {/* بخش ۲: گاوصندوق مسیر بیوسنتز کلسترول */}
       <form
         onSubmit={handleVaultSubmit}
-        className="rounded-2xl border border-slate-700/80 bg-slate-900/80 p-6 space-y-5"
+        className={`rounded-2xl border p-6 space-y-5 transition ${
+          mappingSolved
+            ? 'border-slate-700/80 bg-slate-900/80'
+            : 'border-slate-800 bg-slate-900/30 opacity-60 pointer-events-none'
+        }`}
       >
         <div className="flex items-center gap-2 font-bold text-base text-amber-300">
           <KeyRound className="w-5 h-5" />
-          <span>گام ۱: رمزگشایی گاوصندوق بیوسنتز استروئیدها</span>
+          <span>گام ۲: رمزگشایی گاوصندوق بیوسنتز استروئیدها</span>
         </div>
 
         <p className="text-xs text-slate-300 leading-6">
-          واسطه‌های کلیدی مسیر بیوسنتز از <strong>کلسترول (Cholesterol)</strong> را تکمیل کنید و کلیدواژه ۱۴ حرفی رمز گاوصندوق را وارد نمایید:
+          واسطه‌های کلیدی مسیر بیوسنتز از <strong>کلسترول (Cholesterol)</strong> و کلیدواژه ۱۴ حرفی را تکمیل کنید:
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -171,7 +277,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
             <div className="text-xs font-bold text-cyan-300">۱. اولین محصول برش زنجیره جانبی کلسترول (CYP11A1):</div>
             <select
               required
-              disabled={vaultSolved}
+              disabled={!mappingSolved || vaultSolved}
               value={biosynthesis.step_1}
               onChange={(e) => setBiosynthesis((p) => ({ ...p, step_1: e.target.value }))}
               dir="ltr"
@@ -188,7 +294,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
             <div className="text-xs font-bold text-cyan-300">۲. محصول عمل آنزیم 3β-HSD و ایزومراز روی ترکیب ۱:</div>
             <select
               required
-              disabled={vaultSolved}
+              disabled={!mappingSolved || vaultSolved}
               value={biosynthesis.step_2}
               onChange={(e) => setBiosynthesis((p) => ({ ...p, step_2: e.target.value }))}
               dir="ltr"
@@ -205,7 +311,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
             <div className="text-xs font-bold text-cyan-300">۳. پیش‌ساز مستقیم 5α-DHT و استرادیول (حاصل 17β-HSD):</div>
             <select
               required
-              disabled={vaultSolved}
+              disabled={!mappingSolved || vaultSolved}
               value={biosynthesis.step_3}
               onChange={(e) => setBiosynthesis((p) => ({ ...p, step_3: e.target.value }))}
               dir="ltr"
@@ -227,7 +333,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
           <input
             type="text"
             required
-            disabled={vaultSolved}
+            disabled={!mappingSolved || vaultSolved}
             dir="ltr"
             placeholder="CORTICO......."
             value={biosynthesis.vault_password}
@@ -253,7 +359,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
           <div className="flex justify-end">
             <button
               type="submit"
-              disabled={vaultLoading}
+              disabled={!mappingSolved || vaultLoading}
               className="rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-6 py-2.5 text-sm transition"
             >
               {vaultLoading ? 'در حال بررسی رمز...' : 'باز کردن قفل گاوصندوق ارول'}
@@ -262,7 +368,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
         )}
       </form>
 
-      {/* بخش ۲: اوج بازی — سنتز پادزهر اهریمن */}
+      {/* بخش ۳: اوج بازی — سنتز پادزهر اهریمن */}
       <div
         className={`rounded-2xl border p-6 space-y-6 transition ${
           vaultSolved
@@ -273,7 +379,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 font-extrabold text-base text-rose-300">
             <Sparkles className="w-5 h-5" />
-            <span>گام ۲ (اوج بحران): مهندسی معکوس مولکول اهریمن و سنتز پادزهر</span>
+            <span>گام ۳ (اوج بحران): مهندسی معکوس مولکول اهریمن و سنتز پادزهر</span>
           </div>
           {!antidoteSolved && vaultSolved && (
             <div className="flex items-center gap-1.5 rounded-xl border border-rose-500/50 bg-rose-950/60 px-3 py-1.5 text-xs font-bold text-rose-200">
@@ -413,7 +519,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
             </button>
           ) : (
             <button
-              disabled={antidoteLoading || selectedTools.length === 0}
+              disabled={!vaultSolved || antidoteLoading || selectedTools.length === 0}
               onClick={handleAntidoteSubmit}
               className="rounded-xl bg-rose-500 hover:bg-rose-400 disabled:opacity-40 text-white font-extrabold px-6 py-3 text-sm transition"
             >

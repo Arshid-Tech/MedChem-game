@@ -5,6 +5,7 @@ export interface StudentUser {
   age?: number | null;
   gender?: string;
   gaming_frequency?: number | null;
+  date_joined?: string;
 }
 
 export interface Clue {

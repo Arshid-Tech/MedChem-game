@@ -19,6 +19,10 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
       setStatus({ ok: false, msg: 'رمز عبور جدید و تکرار آن یکسان نیستند.' });
       return;
     }
+    if (newPassword === oldPassword) {
+      setStatus({ ok: false, msg: 'رمز عبور جدید باید با رمز فعلی متفاوت باشد.' });
+      return;
+    }
     setLoading(true);
     setStatus(null);
     try {
@@ -39,13 +43,18 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-[#0d1b2e] p-6 space-y-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="change-password-title"
+        className="w-full max-w-md rounded-2xl border border-slate-700 bg-[#0d1b2e] p-6 space-y-4"
+      >
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2 font-bold text-slate-100 text-sm">
             <KeyRound className="w-4 h-4 text-cyan-400" />
-            <span>تغییر رمز عبور حساب دانشجویی</span>
+            <span id="change-password-title">تغییر رمز عبور حساب دانشجویی</span>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+          <button type="button" onClick={onClose} aria-label="بستن پنجره تغییر رمز" className="text-slate-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>

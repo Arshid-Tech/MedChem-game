@@ -5,6 +5,13 @@ const API_BASE = rawUrl
     : `https://${rawUrl}/api`
   : '/api';
 
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export function getAccessToken(): string | null {
   return localStorage.getItem('medchem_access_token');
 }
@@ -40,7 +47,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       data?.detail ||
       (typeof data === 'object' && Object.values(data).flat()[0]) ||
       'خطا در ارتباط با سرور';
-    throw new Error(String(firstError));
+    throw new ApiError(String(firstError), res.status);
   }
   return data as T;
 }
