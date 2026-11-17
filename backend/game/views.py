@@ -11,6 +11,7 @@ from .serializers import (
 
 # کلید پاسخ‌های علمی و اعتبارسنجی سرورساید معماها
 PUZZLE_SOLUTIONS = {
+    # مرحله ورود
     ("entrance", "steroid_core"): {
         "type": "set_match",
         "expected": ["ring_a", "ring_b", "ring_c", "ring_d", "c17_sidechain"],
@@ -19,6 +20,7 @@ PUZZLE_SOLUTIONS = {
         "feedback_ok": "اسکلت سیکلوپنتانوپرهیدروفنانترن با موفقیت سنتز شد. گیت امنیتی R&D باز شد.",
         "feedback_err": "چیدمان حلقه‌های A، B، C و D یا زنجیره جانبی C17 صحیح نیست. ساختار پایه استروئید را بررسی کنید.",
     },
+    # دپارتمان ۱: گلوکوکورتیکوئیدها
     ("glucocorticoid", "conformation_lock"): {
         "type": "exact_dict",
         "expected": {"H8": "beta", "H9": "alpha", "H14": "alpha"},
@@ -39,6 +41,145 @@ PUZZLE_SOLUTIONS = {
         "feedback_ok": "ترتیب قدرت ضدالتهابی (5 > 3 > 4 > 6 > 2 > 1) کاملاً دقیق است! وجود 9α-فلوئور و استخلاف C16 قدرت را به حداکثر رسانده است.",
         "feedback_err": "ترتیب قدرت صحیح نیست. به نقش پیوند دوگانه Δ1، فلوئور در کربن 9α و متیل/هیدروکسیل در C16 دقت کنید.",
     },
+    # دپارتمان ۲: مینرالوکورتیکوئیدها
+    ("mineralocorticoid", "effect_arrows"): {
+        "type": "exact_dict",
+        "expected": {
+            "anti_inflammatory": "up",
+            "half_life": "up",
+            "mineralocorticoid": "down",
+        },
+        "base_score": 200,
+        "clue": None,
+        "feedback_ok": "تحلیل مقایسه‌ای کاملاً صحیح است! وجود متیل 6α/16 و Δ1 اثر ضدالتهابی و نیمه‌عمر را افزایش و احتباس سدیم را کاهش می‌دهد.",
+        "feedback_err": "مقایسه اثرات صحیح نیست. به اثر استخلاف متیل در حلقه B/D و پیوند دوگانه Δ1 بر کاهش اثر مینرالوکورتیکوئیدی دقت کنید.",
+    },
+    ("mineralocorticoid", "route_classification"): {
+        "type": "bucket_sets",
+        "expected": {
+            "systemic": ["1", "5", "8"],
+            "topical": ["2", "6", "7"],
+            "inhalation": ["3", "4", "9"],
+        },
+        "base_score": 250,
+        "clue": {
+            "id": "clue_mc_topical",
+            "title": "سرنخ دوم: تجویز موضعی (Topical)",
+            "detail": "اهریمن برای اثرگذاری متمرکز و حداکثر لیپوفیلیته موضعی (استونیدها و استرهای C17/C21) طراحی شده است.",
+        },
+        "feedback_ok": "تفکیک مسیرهای تجویز کاملاً دقیق است! ترکیبات ۲، ۶ و ۷ (استونیدها و دی‌استرهای لیپوفیل) برای مصرف موضعی طراحی شده‌اند.",
+        "feedback_err": "دسته‌بندی مسیر تجویز دارای خطاست. ترکیبات استونید (مثل فلوسینولون استونید) موضعی و استرهای پروپیونات/فوروئات استنشاقی هستند.",
+    },
+    # دپارتمان ۳: استروژن‌ها
+    ("estrogen", "metabolism_enzymes"): {
+        "type": "exact_dict",
+        "expected": {
+            "top_horizontal": "Estradiol dehydrogenase",
+            "bottom_horizontal": "Estradiol dehydrogenase",
+            "left_vertical": "16a-hydroxylase",
+            "right_vertical": "16a-hydroxylase",
+        },
+        "base_score": 200,
+        "clue": None,
+        "feedback_ok": "مسیر متابولیک تبدیل متقابل استرادیول، استرون و استریول با آنزیم‌های 17β-HSD و 16α-هیدروکسیلاز تکمیل شد.",
+        "feedback_err": "جایگذاری آنزیم‌ها صحیح نیست. تبدیل برگشت‌پذیر الکل C17 به کتون توسط Estradiol dehydrogenase و هیدروکسیلاسیون C16 توسط 16α-hydroxylase انجام می‌شود.",
+    },
+    ("estrogen", "receptor_docking_and_class"): {
+        "type": "exact_dict",
+        "expected": {
+            "rotation_angle": 180,
+            "non_steroidal_ai": "D",
+        },
+        "base_score": 250,
+        "clue": {
+            "id": "clue_est_cyanide",
+            "title": "سرنخ سوم: گروه سیانید (-C≡N)",
+            "detail": "ساختار نهایی اهریمن همانند مهارکننده‌های غیر استروئیدی آروماتاز (لتروزول/آناستروزول) دارای گروه سیانید است.",
+        },
+        "feedback_ok": "داکینگ لیگاند در سایت فعال گیرنده استروژن (پیوند هیدروژنی با Glu 353، Arg 394 و His 524) و شناسایی مهارکننده غیر استروئیدی آروماتاز (D) با موفقیت انجام شد!",
+        "feedback_err": "زاویه چرخش لیگاند برای برقراری پیوند هیدروژنی هم‌زمان با Glu 353/Arg 394 و His 524 یا انتخاب مهارکننده غیر استروئیدی آروماتاز (دارای گروه سیانید) صحیح نیست.",
+    },
+    # دپارتمان ۴: پروژستین‌ها
+    ("progestin", "pk_safe_code"): {
+        "type": "exact_dict",
+        "expected": {
+            "bioavailability": ["3", "4"],
+            "half_life": ["2", "3", "4"],
+            "low_androgen": ["1", "2", "3"],
+        },
+        "base_score": 200,
+        "clue": None,
+        "feedback_ok": "کد گاوصندوق باز شد! رمز ۹ / ۶ / ۷ (جمع اعداد ویژگی‌ها) تایید گردید.",
+        "feedback_err": "انتخاب ترکیبات در ویژگی‌های فراهمی زیستی، نیمه‌عمر یا کاهش اثر آندروژنی دقیق نیست.",
+    },
+    ("progestin", "norandrostane_design"): {
+        "type": "set_match",
+        "expected": ["remove_c19_methyl", "c17_alpha_ethynyl", "c3_oxime_or_ester"],
+        "base_score": 250,
+        "clue": {
+            "id": "clue_prog_activity",
+            "title": "سرنخ چهارم: خاصیت پروژسترونی و اتینیل C17α",
+            "detail": "اهریمن دارای استخلاف اتینیل در موقعیت 17α و ویژگی‌های آگونیستی گیرنده پروژسترون است.",
+        },
+        "feedback_ok": "طراحی پروژستین خوراکی طولانی‌اثر مشتق ۱۹-نورآندروستان (حذف متیل C19 + اتینیل 17α + اصلاح C3/C17) تکمیل شد!",
+        "feedback_err": "اصلاحات ساختاری کامل نیست. برای حذف اثر آندروژنی، فعال‌سازی خوراکی و افزایش طول اثر به هر سه تغییر نیاز دارید.",
+    },
+    # دپارتمان ۵: آندروژن‌ها و مهارکننده‌ها
+    ("androgen", "flutamide_metabolite"): {
+        "type": "exact_str",
+        "expected": "2-hydroxyflutamide",
+        "base_score": 150,
+        "clue": None,
+        "feedback_ok": "صحیح است! ۲-هیدروکسی‌فلوتامید متابولیت ماژور و فعال آنتی‌آندروژنی فلوتامید است که میل ترکیبی بسیار بالاتری به گیرنده آندروژن دارد.",
+        "feedback_err": "پاسخ صحیح نیست. هیدروکسیلاسیون روی کربن متین زنجیره ایزوبوتیریل متابولیت فعال را ایجاد می‌کند.",
+    },
+    ("androgen", "antiandrogen_classification"): {
+        "type": "bucket_sets",
+        "expected": {
+            "steroid_antiandrogen": ["1", "7"],
+            "non_steroid_antiandrogen": ["2", "8"],
+            "five_alpha_reductase": ["3", "9"],
+            "cyp17_inhibitor": ["4", "5"],
+            "sarms": ["6", "10"],
+        },
+        "base_score": 250,
+        "clue": None,
+        "feedback_ok": "دسته‌بندی تمام ۱۰ ترکیب دارویی محور آندروژن با دقت ۱۰۰٪ انجام شد!",
+        "feedback_err": "چیدمان دسته‌های دارویی دارای خطاست. به هسته ۴-آزااستروئیدی مهارکننده‌های ۵-آلفا ردوکتاز (۳ و ۹) و ایمیدازول/پیریدین مهارکننده‌های CYP17 (۴ و ۵) دقت کنید.",
+    },
+    ("androgen", "five_alpha_reductase_complex"): {
+        "type": "exact_dict",
+        "expected": {
+            "selected_inhibitors": ["3", "9"],
+            "cofactor_complex": "nadph_covalent_adduct",
+            "pharmacophore": "keto_enol_lactam",
+        },
+        "base_score": 250,
+        "clue": {
+            "id": "clue_and_5ar",
+            "title": "سرنخ پنجم: مهار ۵-آلفا ردوکتاز و سیستم کتو-انول",
+            "detail": "اهریمن دارای سیستم کونژوگه کتو-انول / لاکتام برای مهار آنزیم ۵-آلفا ردوکتاز و کاهش آندروژنیسیته است.",
+        },
+        "feedback_ok": "کمپلکس مهارکننده-NADPH در سایت فعال ۵-آلفا ردوکتاز تشکیل شد و آخرین سرنخ ساختاری اهریمن کشف گردید!",
+        "feedback_err": "اجزای کمپلکس آنزیمی ۵-آلفا ردوکتاز صحیح انتخاب نشده‌اند.",
+    },
+}
+
+DEPARTMENT_REQUIRED_COUNT = {
+    "entrance": 1,
+    "glucocorticoid": 2,
+    "mineralocorticoid": 2,
+    "estrogen": 2,
+    "progestin": 2,
+    "androgen": 3,
+}
+
+DEPARTMENT_BADGES = {
+    "glucocorticoid": ("master_glucocorticoids", "استاد کورتیکواستروئیدها", "تکمیل بدون خطای دپارتمان گلوکوکورتیکوئیدها و تحلیل SAR"),
+    "mineralocorticoid": ("master_mineralocorticoids", "متخصص تعادل الکترولیتی", "تکمیل بدون خطای بخش مینرالوکورتیکوئیدها و تشخیص مسیر تجویز"),
+    "estrogen": ("master_estrogens", "کاوشگر گیرنده‌های استروژنی", "تکمیل بدون خطای آزمایشگاه استروژن‌ها و داکینگ سه‌بعدی"),
+    "progestin": ("master_progestins", "معمار ۱۹-نورآندروستان", "تکمیل بدون خطای بخش پروژستین‌ها و طراحی پیش‌داروی خوراکی"),
+    "androgen": ("master_androgens", "مهارکننده ۵-آلفا ردوکتاز", "تکمیل بدون خطای دپارتمان آندروژن‌ها و آنتی‌آندروژن‌ها"),
 }
 
 
@@ -51,14 +192,22 @@ def evaluate_answer(puzzle_key, submitted):
     expected = rule["expected"]
 
     if p_type == "set_match":
-        if isinstance(submitted, list):
-            is_ok = set(submitted) == set(expected) and len(submitted) == len(expected)
-        else:
-            is_ok = False
+        is_ok = isinstance(submitted, list) and set(submitted) == set(expected) and len(submitted) == len(expected)
     elif p_type == "exact_dict":
         is_ok = isinstance(submitted, dict) and submitted == expected
     elif p_type == "exact_list":
         is_ok = isinstance(submitted, list) and [str(x) for x in submitted] == expected
+    elif p_type == "exact_str":
+        is_ok = isinstance(submitted, str) and submitted.strip() == expected
+    elif p_type == "bucket_sets":
+        if not isinstance(submitted, dict):
+            is_ok = False
+        else:
+            is_ok = all(
+                set(str(x) for x in submitted.get(k, [])) == set(v)
+                and len(submitted.get(k, [])) == len(v)
+                for k, v in expected.items()
+            )
     else:
         is_ok = False
 
@@ -148,41 +297,34 @@ class SubmitPuzzleView(APIView):
                         clues.append(unlocked_clue)
                         session.unlocked_clues = clues
 
-                # بررسی تکمیل دپارتمان گلوکوکورتیکوئیدها
-                if stage_code == "glucocorticoid":
-                    gc_solved = PuzzleAttempt.objects.filter(
-                        session=session,
-                        stage_code="glucocorticoid",
-                        is_solved=True,
-                    ).count()
-                    if gc_solved >= 2:
-                        completed = list(session.completed_stages)
-                        if "glucocorticoid" not in completed:
-                            completed.append("glucocorticoid")
-                            session.completed_stages = completed
+                required_count = DEPARTMENT_REQUIRED_COUNT.get(stage_code, 1)
+                solved_in_stage = PuzzleAttempt.objects.filter(
+                    session=session,
+                    stage_code=stage_code,
+                    is_solved=True,
+                ).count()
 
-                        total_gc_errors = sum(
+                if solved_in_stage >= required_count:
+                    completed = list(session.completed_stages)
+                    if stage_code not in completed:
+                        completed.append(stage_code)
+                        session.completed_stages = completed
+
+                    if stage_code in DEPARTMENT_BADGES:
+                        total_stage_errors = sum(
                             PuzzleAttempt.objects.filter(
-                                session=session, stage_code="glucocorticoid"
+                                session=session, stage_code=stage_code
                             ).values_list("errors_count", flat=True)
                         )
-                        if total_gc_errors == 0:
+                        if total_stage_errors == 0:
+                            b_code, b_title, b_desc = DEPARTMENT_BADGES[stage_code]
                             badge, created = StudentBadge.objects.get_or_create(
                                 student=request.user,
-                                badge_code="master_glucocorticoids",
-                                defaults={
-                                    "title": "استاد کورتیکواستروئیدها",
-                                    "description": "تکمیل بدون خطای دپارتمان گلوکوکورتیکوئیدها و تحلیل SAR",
-                                },
+                                badge_code=b_code,
+                                defaults={"title": b_title, "description": b_desc},
                             )
                             if created:
                                 new_badge = StudentBadgeSerializer(badge).data
-
-                if stage_code == "entrance":
-                    completed = list(session.completed_stages)
-                    if "entrance" not in completed:
-                        completed.append("entrance")
-                        session.completed_stages = completed
         else:
             attempt.errors_count += 1
             session.total_errors += 1
