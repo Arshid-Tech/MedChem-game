@@ -3,9 +3,28 @@
 @tailwind utilities;
 
 @layer base {
+  html,
   body {
     font-family: 'Vazirmatn', system-ui, sans-serif;
     overflow-x: hidden;
+  }
+
+  button,
+  a,
+  select,
+  input[type='checkbox'],
+  input[type='radio'],
+  [role='button'] {
+    cursor: pointer;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  select:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #06b6d4;
+    outline-offset: 2px;
   }
 }
 
@@ -18,23 +37,32 @@
 
 .lab-grid-light-bg {
   background-image:
-    linear-gradient(to right, rgba(14, 116, 144, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(14, 116, 144, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(14, 116, 144, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(14, 116, 144, 0.05) 1px, transparent 1px);
   background-size: 32px 32px;
 }
 
-/* مخفی کردن اسکرول‌بار افقی اضافی در تمام مرورگرها */
+/* مخفی کردن کامل نوار اسکرول افقی اضافی در نوار ناوبری و تب‌ها */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* استایل ظریف برای اسکرول عمودی */
 ::-webkit-scrollbar {
-  height: 4px;
   width: 6px;
+  height: 0px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.3);
+  background: rgba(100, 116, 139, 0.35);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.5);
+  background: rgba(100, 116, 139, 0.55);
 }
