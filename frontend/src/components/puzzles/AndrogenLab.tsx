@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dna, CheckCircle2, AlertTriangle, RotateCcw, Cpu, ShieldCheck } from 'lucide-react';
+import { Dna, CheckCircle2, AlertTriangle, RotateCcw, Cpu, ArrowDown, ArrowUp } from 'lucide-react';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -17,11 +17,11 @@ interface Props {
   onBackToMap: () => void;
 }
 
-const ANDROGEN_POTENCY = [
-  { id: '3', name: 'ترکیب ۳ (متابولنولون / استروئید متیله 1α,17α-دی‌متیل)', desc: 'بالاترین قدرت آنابولیک و آندروژنی و مقاومت به متابولیسم کبدی' },
-  { id: '2', name: 'ترکیب ۲ (استانوزولول - Stanozolol)', desc: 'دارای حلقه پیرازول متصل به حلقه A و گروه 17α-متیل' },
-  { id: '1', name: 'ترکیب ۱ (اکسی‌متولون - Oxymetholone)', desc: 'مشتق دی‌هیدروتستوسترون با گروه 2-هیدروکسی‌متیلن' },
-  { id: '4', name: 'ترکیب ۴ (فلوکسی‌مسترون / مشتق هیدروکسیله 11β)', desc: 'دارای فلوئور 9α و هیدروکسیل 11β (کمترین قدرت در این مجموعه)' },
+const ENTRY_POTENCY_ITEMS = [
+  { id: '1', name: 'ساختار ۱ (اکسی‌متولون - Oxymetholone)', desc: 'مشتق دی‌هیدروتستوسترون با گروه 2-هیدروکسی‌متیلن' },
+  { id: '2', name: 'ساختار ۲ (استانوزولول - Stanozolol)', desc: 'دارای حلقه پیرازول متصل به حلقه A و گروه 17α-متیل' },
+  { id: '3', name: 'ساختار ۳ (متابولنولون / استروئید متیله 1α,17α-دی‌متیل)', desc: 'ممانعت فضایی حداکثری در برابر متابولیسم و بیشترین قدرت اثر' },
+  { id: '4', name: 'ساختار ۴ (فلوکسی‌مسترون / مشتق هیدروکسیله 11β)', desc: 'دارای فلوئور 9α و هیدروکسیل 11β' },
 ];
 
 const ANDROGEN_DRUGS = [
@@ -54,35 +54,34 @@ export const AndrogenLab: React.FC<Props> = ({
   onSubmitPuzzle,
   onBackToMap,
 }) => {
-  // معمای ۱: ترتیب قدرت آندروژنی
-  const [potencyOrder, setPotencyOrder] = useState<string[]>(
+  const [entryOrder, setEntryOrder] = useState<string[]>(
     entryPotencySolved ? ['3', '2', '1', '4'] : ['1', '2', '3', '4']
   );
-  const [potStart] = useState<number>(() => Date.now());
-  const [potFeedback, setPotFeedback] = useState<{ ok: boolean; text: string } | null>(null);
-  const [potLoading, setPotLoading] = useState(false);
+  const [entryStart] = useState<number>(() => Date.now());
+  const [entryFeedback, setEntryFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [entryLoading, setEntryLoading] = useState(false);
 
-  // معمای ۲: متابولیت ماژور فلوتامید
-  const [metabolite, setMetabolite] = useState<string>(metaboliteSolved ? '2-hydroxyflutamide' : '');
+  const [metabolite, setMetabolite] = useState<string>(
+    metaboliteSolved ? '2-hydroxyflutamide' : ''
+  );
   const [metStart] = useState<number>(() => Date.now());
   const [metFeedback, setMetFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [metLoading, setMetLoading] = useState(false);
 
-  // معمای ۳: طراحی SARM ایمن از بیکالوتامید
-  const [sarmChoice, setSarmChoice] = useState<string>(sarmSolved ? 'aryl_propionamide_ether' : '');
+  const [sarmChoice, setSarmChoice] = useState(sarmSolved ? '10' : '');
   const [sarmStart] = useState<number>(() => Date.now());
   const [sarmFeedback, setSarmFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [sarmLoading, setSarmLoading] = useState(false);
 
-  // معمای ۴: کاهش آندروژنیسیته
-  const [andMods, setAndMods] = useState<string[]>(
-    androgenicitySolved ? ['remove_c19_methyl', 'block_5alpha_reduction'] : []
+  const [androgenicityMods, setAndrogenicityMods] = useState<string[]>(
+    androgenicitySolved
+      ? ['remove_androgenic_features', 'add_low_androgenic_features']
+      : []
   );
-  const [andStart] = useState<number>(() => Date.now());
-  const [andFeedback, setAndFeedback] = useState<{ ok: boolean; text: string } | null>(null);
-  const [andLoading, setAndLoading] = useState(false);
+  const [androgenicityStart] = useState<number>(() => Date.now());
+  const [androgenicityFeedback, setAndrogenicityFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [androgenicityLoading, setAndrogenicityLoading] = useState(false);
 
-  // معمای ۵: دسته‌بندی ۱۰ ترکیب
   const [buckets, setBuckets] = useState<Record<AndrogenBucket, string[]>>(
     classificationSolved
       ? {
@@ -105,7 +104,6 @@ export const AndrogenLab: React.FC<Props> = ({
   const [classFeedback, setClassFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [classLoading, setClassLoading] = useState(false);
 
-  // معمای ۶: کمپلکس آنزیم ۵-آلفا ردوکتاز
   const [complexState, setComplexState] = useState({
     selected_inhibitors: enzymeComplexSolved ? ['3', '9'] : ([] as string[]),
     cofactor_complex: enzymeComplexSolved ? 'nadph_covalent_adduct' : '',
@@ -115,78 +113,83 @@ export const AndrogenLab: React.FC<Props> = ({
   const [compFeedback, setCompFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [compLoading, setCompLoading] = useState(false);
 
-  const movePot = (idx: number, dir: -1 | 1) => {
+  const moveEntryItem = (index: number, direction: -1 | 1) => {
     if (entryPotencySolved) return;
-    const t = idx + dir;
-    if (t < 0 || t >= potencyOrder.length) return;
-    const copy = [...potencyOrder];
-    [copy[idx], copy[t]] = [copy[t], copy[idx]];
-    setPotencyOrder(copy);
+    const target = index + direction;
+    if (target < 0 || target >= entryOrder.length) return;
+    const next = [...entryOrder];
+    [next[index], next[target]] = [next[target], next[index]];
+    setEntryOrder(next);
   };
 
-  const handlePotSubmit = async () => {
-    setPotLoading(true);
-    setPotFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - potStart) / 1000));
+  const handleEntrySubmit = async () => {
+    setEntryLoading(true);
+    setEntryFeedback(null);
     try {
-      const res = await onSubmitPuzzle('androgen_potency_order', potencyOrder, elapsed);
-      setPotFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setPotFeedback({ ok: false, text: err.message });
+      const elapsed = Math.max(1, Math.round((Date.now() - entryStart) / 1000));
+      const res = await onSubmitPuzzle('androgen_entry_potency_sort', entryOrder, elapsed);
+      setEntryFeedback({ ok: res.correct, text: res.feedback });
+    } catch (err: unknown) {
+      setEntryFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
-      setPotLoading(false);
+      setEntryLoading(false);
     }
   };
 
   const handleMetSubmit = async () => {
+    if (!entryPotencySolved || !metabolite) return;
     setMetLoading(true);
     setMetFeedback(null);
     const elapsed = Math.max(1, Math.round((Date.now() - metStart) / 1000));
     try {
       const res = await onSubmitPuzzle('flutamide_metabolite', metabolite, elapsed);
       setMetFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setMetFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setMetFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setMetLoading(false);
     }
   };
 
   const handleSarmSubmit = async () => {
+    if (!metaboliteSolved || !sarmChoice) return;
     setSarmLoading(true);
     setSarmFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - sarmStart) / 1000));
     try {
-      const res = await onSubmitPuzzle('bicalutamide_to_sarm', sarmChoice, elapsed);
+      const elapsed = Math.max(1, Math.round((Date.now() - sarmStart) / 1000));
+      const res = await onSubmitPuzzle('sarm_alternative', sarmChoice, elapsed);
       setSarmFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setSarmFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setSarmFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setSarmLoading(false);
     }
   };
 
-  const toggleAndMod = (id: string) => {
-    if (androgenicitySolved) return;
-    setAndMods((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const toggleAndrogenicityMod = (id: string) => {
+    if (!sarmSolved || androgenicitySolved) return;
+    setAndrogenicityMods((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
-  const handleAndSubmit = async () => {
-    setAndLoading(true);
-    setAndFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - andStart) / 1000));
+  const handleAndrogenicitySubmit = async () => {
+    if (!sarmSolved || !androgenicityMods.length) return;
+    setAndrogenicityLoading(true);
+    setAndrogenicityFeedback(null);
     try {
-      const res = await onSubmitPuzzle('reduce_androgenicity', andMods, elapsed);
-      setAndFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setAndFeedback({ ok: false, text: err.message });
+      const elapsed = Math.max(1, Math.round((Date.now() - androgenicityStart) / 1000));
+      const res = await onSubmitPuzzle('low_androgenicity_design', androgenicityMods, elapsed);
+      setAndrogenicityFeedback({ ok: res.correct, text: res.feedback });
+    } catch (err: unknown) {
+      setAndrogenicityFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
-      setAndLoading(false);
+      setAndrogenicityLoading(false);
     }
   };
 
   const assignToBucket = (bucket: AndrogenBucket, id: string) => {
-    if (classificationSolved) return;
+    if (!androgenicitySolved || classificationSolved) return;
     setBuckets((prev) => {
       const next: Record<AndrogenBucket, string[]> = {
         steroid_antiandrogen: prev.steroid_antiandrogen.filter((x) => x !== id),
@@ -202,28 +205,29 @@ export const AndrogenLab: React.FC<Props> = ({
   };
 
   const removeFromBucket = (bucket: AndrogenBucket, id: string) => {
-    if (classificationSolved) return;
+    if (!androgenicitySolved || classificationSolved) return;
     setBuckets((prev) => ({ ...prev, [bucket]: prev[bucket].filter((x) => x !== id) }));
   };
 
   const assignedCount = Object.values(buckets).flat().length;
 
   const handleClassSubmit = async () => {
+    if (!androgenicitySolved || assignedCount < 10) return;
     setClassLoading(true);
     setClassFeedback(null);
     const elapsed = Math.max(1, Math.round((Date.now() - classStart) / 1000));
     try {
       const res = await onSubmitPuzzle('antiandrogen_classification', buckets, elapsed);
       setClassFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setClassFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setClassFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setClassLoading(false);
     }
   };
 
   const toggleInhibitor = (id: string) => {
-    if (enzymeComplexSolved) return;
+    if (!classificationSolved || enzymeComplexSolved) return;
     setComplexState((prev) => {
       const exists = prev.selected_inhibitors.includes(id);
       const next = exists
@@ -234,14 +238,21 @@ export const AndrogenLab: React.FC<Props> = ({
   };
 
   const handleComplexSubmit = async () => {
+    if (
+      !classificationSolved ||
+      !complexState.selected_inhibitors.length ||
+      !complexState.cofactor_complex ||
+      !complexState.pharmacophore
+    )
+      return;
     setCompLoading(true);
     setCompFeedback(null);
     const elapsed = Math.max(1, Math.round((Date.now() - compStart) / 1000));
     try {
       const res = await onSubmitPuzzle('five_alpha_reductase_complex', complexState, elapsed);
       setCompFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setCompFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setCompFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setCompLoading(false);
     }
@@ -251,15 +262,16 @@ export const AndrogenLab: React.FC<Props> = ({
     <div className="space-y-8">
       <div className="rounded-2xl border border-cyan-500/30 bg-white dark:bg-slate-900/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold text-lg">
+          <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold text-lg">
             <Dna className="w-6 h-6" />
             <span>دپارتمان پنجم: بخش آندروژن‌ها و مهارکننده‌های ۵-آلفا ردوکتاز</span>
           </div>
           <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
-            آخرین بخش تحقیقاتی: بررسی متابولیسم آنتی‌آندروژن‌ها، طراحی SARM و مکانیسم مهار آنزیم ۵-آلفا ردوکتاز.
+            آخرین بخش تحقیقاتی: بررسی متابولیسم آنتی‌آندروژن‌ها، انتخاب SARM و مکانیسم مهار آنزیم ۵-آلفا ردوکتاز برای کاهش آندروژنیسیته.
           </p>
         </div>
         <button
+          type="button"
           onClick={onBackToMap}
           className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
         >
@@ -267,56 +279,112 @@ export const AndrogenLab: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* معمای ۱: ترتیب قدرت آندروژنی */}
+      {/* معمای ۱: رتبه‌بندی قدرت آندروژنی */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-4 shadow-sm">
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(1)}: رتبه‌بندی مشتقات آندروژنی بر اساس قدرت اثر (قوی‌ترین به ضعیف‌ترین)
+          معمای {toPersianDigits(1)}: رتبه‌بندی قدرت اثر مشتقات آندروژنی برای باز کردن قفل آزمایشگاه
         </h3>
-        <div className="space-y-2.5">
-          {potencyOrder.map((id, idx) => {
-            const item = ANDROGEN_POTENCY.find((x) => x.id === id)!;
+        <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
+          چهار ترکیب زیر را بر اساس رابطه ساختار-اثر (SAR) از قوی‌ترین (رتبه ۱) به ضعیف‌ترین (رتبه ۴) مرتب کنید:
+        </p>
+        <div className="space-y-2">
+          {entryOrder.map((id, index) => {
+            const item = ENTRY_POTENCY_ITEMS.find((x) => x.id === id)!;
             return (
-              <div key={id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-3 flex items-center justify-between gap-2">
+              <div
+                key={id}
+                className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-3"
+              >
                 <div>
-                  <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400 ml-2">{toPersianDigits(idx + 1)}.</span>
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100">{item.name}</span>
+                  <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400 ml-2">
+                    رتبه {toPersianDigits(index + 1)} —
+                  </span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-cyan-200">{item.name}</span>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{item.desc}</div>
                 </div>
                 {!entryPotencySolved && (
-                  <div className="flex gap-1">
-                    <button type="button" disabled={idx === 0} onClick={() => movePot(idx, -1)} className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-xs disabled:opacity-30">↑</button>
-                    <button type="button" disabled={idx === potencyOrder.length - 1} onClick={() => movePot(idx, 1)} className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-xs disabled:opacity-30">↓</button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => moveEntryItem(index, -1)}
+                      aria-label={`بالا بردن ساختار ${id}`}
+                      className="rounded-lg border border-slate-300 dark:border-slate-700 p-2 text-slate-700 dark:text-slate-200 disabled:opacity-40"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === entryOrder.length - 1}
+                      onClick={() => moveEntryItem(index, 1)}
+                      aria-label={`پایین بردن ساختار ${id}`}
+                      className="rounded-lg border border-slate-300 dark:border-slate-700 p-2 text-slate-700 dark:text-slate-200 disabled:opacity-40"
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </button>
                   </div>
                 )}
               </div>
             );
           })}
         </div>
-        {potFeedback && (
-          <div className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${potFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/80 text-emerald-200' : 'border-rose-500/40 bg-rose-950/80 text-rose-200'}`}>
-            {potFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
-            <span>{potFeedback.text}</span>
+        {entryFeedback && (
+          <div
+            className={`rounded-xl border p-3 text-sm ${
+              entryFeedback.ok
+                ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
+            }`}
+          >
+            {entryFeedback.text}
           </div>
         )}
         {!entryPotencySolved && (
           <div className="flex justify-end">
-            <button disabled={potLoading} onClick={handlePotSubmit} className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2.5 text-sm">
-              {potLoading ? 'در حال بررسی...' : 'تایید ترتیب قدرت آندروژنی'}
+            <button
+              type="button"
+              disabled={entryLoading}
+              onClick={handleEntrySubmit}
+              className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
+            >
+              {entryLoading ? 'در حال بررسی...' : 'ثبت ترتیب و باز کردن در'}
             </button>
           </div>
         )}
       </div>
 
       {/* معمای ۲: متابولیت ماژور فلوتامید */}
-      <div className={`rounded-2xl border p-6 space-y-4 transition ${entryPotencySolved ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm' : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'}`}>
+      <div
+        className={`rounded-2xl border p-6 space-y-4 transition ${
+          entryPotencySolved
+            ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
+        }`}
+      >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
           معمای {toPersianDigits(2)}: شناسایی متابولیت ماژور و فعال داروی فلوتامید (Flutamide)
         </h3>
+        <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
+          فلوتامید یک پیش‌داروی غیر استروئیدی است که در کبد توسط CYP1A2 هیدروکسیله شده و به فرم بسیار قوی‌تر تبدیل می‌شود. کدام گزینه متابولیت فعال آن است؟
+        </p>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[
-            { id: '2-hydroxyflutamide', title: '۲-هیدروکسی‌فلوتامید (2-Hydroxyflutamide)', desc: 'هیدروکسیلاسیون روی کربن متین زنجیره ایزوبوتیریل' },
-            { id: 'nitro_reduced_amine', title: 'آمین آروماتیک احیاشده (-NH2)', desc: 'احیای گروه نیترو حلقه بنزن (متابولیت غیرفعال)' },
-            { id: 'n_dealkylated_anilide', title: 'پارا-نیترو-متا-تری‌فلورومتیل آنیلین', desc: 'هیدرولیز کامل پیوند آمیدی (متابولیت سمی/غیرفعال)' },
+            {
+              id: '2-hydroxyflutamide',
+              title: '۲-هیدروکسی‌فلوتامید (2-Hydroxyflutamide)',
+              desc: 'هیدروکسیلاسیون روی کربن متین زنجیره ایزوبوتیریل',
+            },
+            {
+              id: 'nitro_reduced_amine',
+              title: 'آمین آروماتیک احیاشده (-NH2)',
+              desc: 'احیای گروه نیترو حلقه بنزن (متابولیت غیرفعال)',
+            },
+            {
+              id: 'n_dealkylated_anilide',
+              title: 'پارا-نیترو-متا-تری‌فلورومتیل آنیلین',
+              desc: 'هیدرولیز کامل پیوند آمیدی (متابولیت سمی/غیرفعال)',
+            },
           ].map((opt) => (
             <div
               key={opt.id}
@@ -332,109 +400,160 @@ export const AndrogenLab: React.FC<Props> = ({
             </div>
           ))}
         </div>
+
         {metFeedback && (
-          <div className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${metFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/80 text-emerald-200' : 'border-rose-500/40 bg-rose-950/80 text-rose-200'}`}>
+          <div
+            className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
+              metFeedback.ok
+                ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
+            }`}
+          >
             {metFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
             <span>{metFeedback.text}</span>
           </div>
         )}
+
         {!metaboliteSolved && (
           <div className="flex justify-end">
-            <button disabled={metLoading || !metabolite} onClick={handleMetSubmit} className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm">
+            <button
+              type="button"
+              disabled={metLoading || !metabolite}
+              onClick={handleMetSubmit}
+              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
+            >
               {metLoading ? 'در حال بررسی...' : 'تایید متابولیت فعال'}
             </button>
           </div>
         )}
       </div>
 
-      {/* معمای ۳: تبدیل بیکالوتامید به SARM */}
-      <div className={`rounded-2xl border p-6 space-y-4 transition ${metaboliteSolved ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm' : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'}`}>
-        <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-emerald-500" />
-          <span>معمای {toPersianDigits(3)}: طراحی SARM با نیمه‌عمر طولانی از داربست بیکالوتامید</span>
+      {/* معمای ۳: جایگزین SARM */}
+      <div
+        className={`rounded-2xl border p-6 space-y-4 transition ${
+          metaboliteSolved
+            ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
+        }`}
+      >
+        <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
+          معمای {toPersianDigits(3)}: پیشنهاد یک SARM انتخابی به‌جای بیکالوتامید
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {[
-            { id: 'aryl_propionamide_ether', title: 'جایگزینی پل سولفونیل با اتر (-O-) و گروه استامیدو/فلوئور در پارا', desc: 'تبدیل آنتاگونیست خالص به تعدیل‌کننده انتخابی گیرنده آندروژن (انوبوسارم/آندارین)' },
-            { id: 'remove_cn_group', title: 'حذف گروه سیانو (-CN) و تری‌فلورومتیل', desc: 'کاهش شدید میل اتصال به گیرنده آندروژن' },
-            { id: 'esterify_tertiary_oh', title: 'استریفیکاسیون الکل نوع سوم با اسید چرب بلند', desc: 'کاهش جذب خوراکی' },
-          ].map((opt) => (
-            <div
-              key={opt.id}
-              onClick={() => !sarmSolved && setSarmChoice(opt.id)}
-              className={`rounded-xl border p-4 cursor-pointer transition ${
-                sarmChoice === opt.id ? 'border-cyan-500 bg-cyan-50 dark:border-cyan-400 dark:bg-cyan-950/50' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220]'
-              }`}
-            >
-              <div className="font-bold text-xs text-cyan-700 dark:text-cyan-300">{opt.title}</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{opt.desc}</div>
-            </div>
-          ))}
-        </div>
+        <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
+          آقای زیگموند به دارویی با اثر انتخابی بافتی و بدون عوارض متابولیک کبدی نیاز دارد. یکی از ساختارهای SARM را انتخاب کنید:
+        </p>
+        <select
+          disabled={!metaboliteSolved || sarmSolved}
+          value={sarmChoice}
+          onChange={(event) => setSarmChoice(event.target.value)}
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
+        >
+          <option value="">انتخاب ترکیب...</option>
+          <option value="2">ترکیب ۲ — نیلوتامید (آنتاگونیست غیراستروئیدی ایمیدازولیدین‌دیون)</option>
+          <option value="6">ترکیب ۶ — انوبوسارم (Enobosarm - SARM)</option>
+          <option value="10">ترکیب ۱۰ — آندارین (Andarine - SARM)</option>
+        </select>
         {sarmFeedback && (
-          <div className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${sarmFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/80 text-emerald-200' : 'border-rose-500/40 bg-rose-950/80 text-rose-200'}`}>
-            {sarmFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
-            <span>{sarmFeedback.text}</span>
+          <div
+            className={`rounded-xl border p-3 text-sm ${
+              sarmFeedback.ok
+                ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
+            }`}
+          >
+            {sarmFeedback.text}
           </div>
         )}
         {!sarmSolved && (
           <div className="flex justify-end">
-            <button disabled={sarmLoading || !sarmChoice} onClick={handleSarmSubmit} className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm">
-              {sarmLoading ? 'در حال بررسی...' : 'تایید ساختار SARM'}
+            <button
+              type="button"
+              disabled={!metaboliteSolved || sarmLoading || !sarmChoice}
+              onClick={handleSarmSubmit}
+              className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
+            >
+              {sarmLoading ? 'در حال بررسی...' : 'ثبت انتخاب SARM'}
             </button>
           </div>
         )}
       </div>
 
       {/* معمای ۴: کاهش آندروژنیسیته */}
-      <div className={`rounded-2xl border p-6 space-y-4 transition ${sarmSolved ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm' : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'}`}>
+      <div
+        className={`rounded-2xl border p-6 space-y-4 transition ${
+          sarmSolved
+            ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
+        }`}
+      >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(4)}: حذف بخش‌های ایجادکننده آندروژنیسیته و کاهش تبدیل به DHT
+          معمای {toPersianDigits(4)}: اصلاح ساختار برای کمینه‌کردن آندروژنیسیته
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="space-y-2">
           {[
-            { id: 'remove_c19_methyl', title: 'حذف گروه متیل C19 (مشتق ۱۹-نور)', desc: 'کاهش میل اتصال به گیرنده آندروژن و افزایش نسبت آنابولیک به آندروژنیک' },
-            { id: 'block_5alpha_reduction', title: 'ایجاد ممانعت یا پیوند دوگانه Δ1 برای مهار احیای 5α', desc: 'جلوگیری از تبدیل به متابولیت فوق‌قوی ۵-آلفا دی‌هیدروتستوسترون' },
-            { id: 'add_17alpha_methyl', title: 'افزودن 17α-متیل و فلوئور 9α (فریبنده)', desc: 'افزایش شدید قدرت آندروژنی و سمیت کبدی' },
-          ].map((opt) => {
-            const active = andMods.includes(opt.id);
+            { id: 'remove_androgenic_features', label: 'حذف بخش‌هایی از ساختار که خواص آندروژنی ایجاد می‌کنند (مانند متیل زاویه‌ای C19)' },
+            { id: 'add_low_androgenic_features', label: 'افزودن تغییرات ساختاری کاهنده آندروژنیسیته و مهارکننده احیای 5α' },
+            { id: 'add_androgenic_features', label: 'افزودن استخلاف‌های 17α-متیل و 9α-فلوئور برای تقویت اتصال گیرنده آندروژن' },
+          ].map((modification) => {
+            const active = androgenicityMods.includes(modification.id);
             return (
-              <div
-                key={opt.id}
-                onClick={() => toggleAndMod(opt.id)}
-                className={`rounded-xl border p-4 cursor-pointer transition ${
-                  active ? 'border-cyan-500 bg-cyan-50 dark:border-cyan-400 dark:bg-cyan-950/50' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220]'
+              <button
+                key={modification.id}
+                type="button"
+                disabled={!sarmSolved || androgenicitySolved}
+                aria-pressed={active}
+                onClick={() => toggleAndrogenicityMod(modification.id)}
+                className={`w-full rounded-xl border p-3.5 text-right text-xs sm:text-sm transition ${
+                  active
+                    ? 'border-cyan-500 bg-cyan-50 dark:border-cyan-400 dark:bg-cyan-950/50 text-cyan-900 dark:text-cyan-100 font-semibold'
+                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] text-slate-700 dark:text-slate-300'
                 }`}
               >
-                <div className="font-bold text-xs text-cyan-700 dark:text-cyan-300">{opt.title}</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{opt.desc}</div>
-              </div>
+                {modification.label}
+              </button>
             );
           })}
         </div>
-        {andFeedback && (
-          <div className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${andFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/80 text-emerald-200' : 'border-rose-500/40 bg-rose-950/80 text-rose-200'}`}>
-            {andFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
-            <span>{andFeedback.text}</span>
+        {androgenicityFeedback && (
+          <div
+            className={`rounded-xl border p-3 text-sm ${
+              androgenicityFeedback.ok
+                ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
+            }`}
+          >
+            {androgenicityFeedback.text}
           </div>
         )}
         {!androgenicitySolved && (
           <div className="flex justify-end">
-            <button disabled={andLoading || andMods.length === 0} onClick={handleAndSubmit} className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm">
-              {andLoading ? 'در حال بررسی...' : 'تایید کاهش آندروژنیسیته'}
+            <button
+              type="button"
+              disabled={!sarmSolved || androgenicityLoading || !androgenicityMods.length}
+              onClick={handleAndrogenicitySubmit}
+              className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
+            >
+              {androgenicityLoading ? 'در حال بررسی...' : 'تایید اصلاحات آندروژنیسیته'}
             </button>
           </div>
         )}
       </div>
 
       {/* معمای ۵: دسته‌بندی ۱۰ ترکیب */}
-      <div className={`rounded-2xl border p-6 space-y-5 transition ${androgenicitySolved ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm' : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'}`}>
+      <div
+        className={`rounded-2xl border p-6 space-y-5 transition ${
+          androgenicitySolved
+            ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
+        }`}
+      >
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-            معمای {toPersianDigits(5)}: دسته‌بندی ۱۰ ترکیب دارویی محور آندروژن در ۵ کلاس مکانیسمی
+            معمای {toPersianDigits(5)}: دسته‌بندی {toPersianDigits(10)} ترکیب دارویی محور آندروژن در {toPersianDigits(5)} کلاس مکانیسمی
           </h3>
           {!classificationSolved && assignedCount > 0 && (
             <button
+              type="button"
               onClick={() =>
                 setBuckets({
                   steroid_antiandrogen: [],
@@ -444,6 +563,7 @@ export const AndrogenLab: React.FC<Props> = ({
                   sarms: [],
                 })
               }
+              disabled={!androgenicitySolved}
               className="text-xs text-slate-500 hover:text-rose-500 flex items-center gap-1"
             >
               <RotateCcw className="w-3.5 h-3.5" /> پاکسازی
@@ -455,9 +575,12 @@ export const AndrogenLab: React.FC<Props> = ({
           {ANDROGEN_DRUGS.filter((d) => !Object.values(buckets).flat().includes(d.id)).map((drug) => (
             <div
               key={drug.id}
-              draggable={!classificationSolved}
+              draggable={androgenicitySolved && !classificationSolved}
               onDragStart={(e) => e.dataTransfer.setData('text/plain', drug.id)}
-              onClick={() => setSelectedChip(selectedChip === drug.id ? null : drug.id)}
+              onClick={() => {
+                if (!androgenicitySolved || classificationSolved) return;
+                setSelectedChip(selectedChip === drug.id ? null : drug.id);
+              }}
               className={`rounded-xl border p-3 cursor-pointer transition ${
                 selectedChip === drug.id
                   ? 'border-cyan-500 bg-cyan-50 dark:border-cyan-400 dark:bg-cyan-950/50'
@@ -515,7 +638,13 @@ export const AndrogenLab: React.FC<Props> = ({
         </div>
 
         {classFeedback && (
-          <div className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${classFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/80 text-emerald-200' : 'border-rose-500/40 bg-rose-950/80 text-rose-200'}`}>
+          <div
+            className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
+              classFeedback.ok
+                ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
+            }`}
+          >
             {classFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
             <span>{classFeedback.text}</span>
           </div>
@@ -523,15 +652,26 @@ export const AndrogenLab: React.FC<Props> = ({
 
         {!classificationSolved && (
           <div className="flex justify-end">
-            <button disabled={classLoading || assignedCount < 10} onClick={handleClassSubmit} className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm">
-              {classLoading ? 'در حال بررسی...' : 'تایید دسته‌بندی ۱۰ ترکیب'}
+            <button
+              type="button"
+              disabled={!androgenicitySolved || classLoading || assignedCount < 10}
+              onClick={handleClassSubmit}
+              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
+            >
+              {classLoading ? 'در حال بررسی...' : `تایید دسته‌بندی ${toPersianDigits(10)} ترکیب`}
             </button>
           </div>
         )}
       </div>
 
       {/* معمای ۶: کمپلکس آنزیم ۵-آلفا ردوکتاز */}
-      <div className={`rounded-2xl border p-6 space-y-5 transition ${classificationSolved ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm' : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'}`}>
+      <div
+        className={`rounded-2xl border p-6 space-y-5 transition ${
+          classificationSolved
+            ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
+        }`}
+      >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
           <Cpu className="w-5 h-5 text-cyan-500" />
           <span>معمای {toPersianDigits(6)}: شبیه‌سازی کمپلکس مهارکننده در سایت فعال آنزیم ۵-آلفا ردوکتاز</span>
@@ -547,7 +687,7 @@ export const AndrogenLab: React.FC<Props> = ({
                   <button
                     key={num}
                     type="button"
-                    disabled={enzymeComplexSolved}
+                    disabled={!classificationSolved || enzymeComplexSolved}
                     onClick={() => toggleInhibitor(num)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
                       active
@@ -565,7 +705,7 @@ export const AndrogenLab: React.FC<Props> = ({
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-2">
             <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">۲. مکانیسم مهار در سایت فعال:</div>
             <select
-              disabled={enzymeComplexSolved}
+              disabled={!classificationSolved || enzymeComplexSolved}
               value={complexState.cofactor_complex}
               onChange={(e) => setComplexState((p) => ({ ...p, cofactor_complex: e.target.value }))}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
@@ -580,7 +720,7 @@ export const AndrogenLab: React.FC<Props> = ({
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-2">
             <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">۳. فارماکوفور کلیدی حلقه A در ترکیب اهریمن:</div>
             <select
-              disabled={enzymeComplexSolved}
+              disabled={!classificationSolved || enzymeComplexSolved}
               value={complexState.pharmacophore}
               onChange={(e) => setComplexState((p) => ({ ...p, pharmacophore: e.target.value }))}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
@@ -594,7 +734,13 @@ export const AndrogenLab: React.FC<Props> = ({
         </div>
 
         {compFeedback && (
-          <div className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${compFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/80 text-emerald-200' : 'border-rose-500/40 bg-rose-950/80 text-rose-200'}`}>
+          <div
+            className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
+              compFeedback.ok
+                ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
+            }`}
+          >
             {compFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
             <span>{compFeedback.text}</span>
           </div>
@@ -602,11 +748,26 @@ export const AndrogenLab: React.FC<Props> = ({
 
         <div className="flex justify-end">
           {enzymeComplexSolved ? (
-            <button onClick={onBackToMap} className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm">
+            <button
+              type="button"
+              onClick={onBackToMap}
+              className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
+            >
               ذخیره سرنخ پنجم و بازگشت به نقشه ←
             </button>
           ) : (
-            <button disabled={compLoading} onClick={handleComplexSubmit} className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-2.5 text-sm">
+            <button
+              type="button"
+              disabled={
+                compLoading ||
+                !classificationSolved ||
+                !complexState.selected_inhibitors.length ||
+                !complexState.cofactor_complex ||
+                !complexState.pharmacophore
+              }
+              onClick={handleComplexSubmit}
+              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
+            >
               {compLoading ? 'در حال ثبت کمپلکس...' : 'تایید کمپلکس آنزیمی و استخراج سرنخ'}
             </button>
           )}
