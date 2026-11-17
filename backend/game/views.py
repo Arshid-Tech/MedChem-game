@@ -163,6 +163,33 @@ PUZZLE_SOLUTIONS = {
         "feedback_ok": "کمپلکس مهارکننده-NADPH در سایت فعال ۵-آلفا ردوکتاز تشکیل شد و آخرین سرنخ ساختاری اهریمن کشف گردید!",
         "feedback_err": "اجزای کمپلکس آنزیمی ۵-آلفا ردوکتاز صحیح انتخاب نشده‌اند.",
     },
+    # مرحله نهایی: اتاق مخفی و سنتز پادزهر اهریمن
+    ("final", "biosynthesis_vault"): {
+        "type": "exact_dict",
+        "expected": {
+            "step_1": "Pregnenolone",
+            "step_2": "Progesterone",
+            "step_3": "Testosterone",
+            "vault_password": "CORTICOSTEROID",
+        },
+        "base_score": 300,
+        "clue": None,
+        "feedback_ok": "مسیر بیوسنتز کلسترول (پرگننولون ← پروژسترون ← تستوسترون) و رمز گاوصندوق CORTICOSTEROID تایید شد! محفظه ترکیب اهریمن باز شد.",
+        "feedback_err": "واسطه‌های مسیر بیوسنتز کلسترول یا کلیدواژه رمز گاوصندوق (CORTICOSTEROID) صحیح نیست.",
+    },
+    ("final", "antidote_synthesis"): {
+        "type": "set_match",
+        "expected": [
+            "remove_9alpha_f",
+            "remove_cyanide",
+            "add_11beta_antagonist_aryl",
+            "hydrolyze_lipophilic_ester",
+        ],
+        "base_score": 400,
+        "clue": None,
+        "feedback_ok": "پادزهر آنتاگونیست با موفقیت سنتز شد! فرمول سمی اهریمن خنثی گردید و بازرسان FDA سلامت آزمایشگاه Apex Pharma را تایید کردند.",
+        "feedback_err": "اصلاحات پادزهر کامل نیست. برای تبدیل اهریمن به آنتاگونیست بی‌خطر، باید فلوئور 9α و گروه سیانید را حذف کنید، استر لیپوفیل را هیدرولیز نمایید و گروه حجیم 11β-آریل آنتاگونیستی اضافه کنید.",
+    },
 }
 
 DEPARTMENT_REQUIRED_COUNT = {
@@ -172,6 +199,7 @@ DEPARTMENT_REQUIRED_COUNT = {
     "estrogen": 2,
     "progestin": 2,
     "androgen": 3,
+    "final": 2,
 }
 
 DEPARTMENT_BADGES = {
@@ -180,6 +208,7 @@ DEPARTMENT_BADGES = {
     "estrogen": ("master_estrogens", "کاوشگر گیرنده‌های استروژنی", "تکمیل بدون خطای آزمایشگاه استروژن‌ها و داکینگ سه‌بعدی"),
     "progestin": ("master_progestins", "معمار ۱۹-نورآندروستان", "تکمیل بدون خطای بخش پروژستین‌ها و طراحی پیش‌داروی خوراکی"),
     "androgen": ("master_androgens", "مهارکننده ۵-آلفا ردوکتاز", "تکمیل بدون خطای دپارتمان آندروژن‌ها و آنتی‌آندروژن‌ها"),
+    "final": ("savior_of_pharmacochem", "قهرمان شیمی دارویی Apex Pharma", "سنتز موفق پادزهر اهریمن و نجات آزمایشگاه قبل از بازرسی FDA"),
 }
 
 
@@ -194,7 +223,14 @@ def evaluate_answer(puzzle_key, submitted):
     if p_type == "set_match":
         is_ok = isinstance(submitted, list) and set(submitted) == set(expected) and len(submitted) == len(expected)
     elif p_type == "exact_dict":
-        is_ok = isinstance(submitted, dict) and submitted == expected
+        if not isinstance(submitted, dict):
+            is_ok = False
+        else:
+            normalized_sub = {
+                k: (v.strip().upper() if k == "vault_password" and isinstance(v, str) else v)
+                for k, v in submitted.items()
+            }
+            is_ok = normalized_sub == expected
     elif p_type == "exact_list":
         is_ok = isinstance(submitted, list) and [str(x) for x in submitted] == expected
     elif p_type == "exact_str":
@@ -218,11 +254,17 @@ class ActiveSessionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        session, _ = GameSession.objects.get_or_create(
-            student=request.user,
-            status="in_progress",
-            defaults={"time_remaining_seconds": 3600},
+        session = (
+            GameSession.objects.filter(student=request.user, status="completed")
+            .order_by("-completed_at")
+            .first()
         )
+        if not session:
+            session, _ = GameSession.objects.get_or_create(
+                student=request.user,
+                status="in_progress",
+                defaults={"time_remaining_seconds": 3600},
+            )
         badges = StudentBadge.objects.filter(student=request.user)
         return Response(
             {
@@ -254,10 +296,12 @@ class SubmitPuzzleView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        session, _ = GameSession.objects.get_or_create(
-            student=request.user,
-            status="in_progress",
+        session = (
+            GameSession.objects.filter(student=request.user, status="in_progress").first()
+            or GameSession.objects.filter(student=request.user, status="completed").first()
         )
+        if not session:
+            session = GameSession.objects.create(student=request.user, status="in_progress")
 
         stage_code = data["stage_code"]
         puzzle_code = data["puzzle_code"]
@@ -310,7 +354,18 @@ class SubmitPuzzleView(APIView):
                         completed.append(stage_code)
                         session.completed_stages = completed
 
-                    if stage_code in DEPARTMENT_BADGES:
+                    if stage_code == "final":
+                        session.status = "completed"
+                        session.completed_at = timezone.now()
+                        b_code, b_title, b_desc = DEPARTMENT_BADGES["final"]
+                        badge, created = StudentBadge.objects.get_or_create(
+                            student=request.user,
+                            badge_code=b_code,
+                            defaults={"title": b_title, "description": b_desc},
+                        )
+                        if created:
+                            new_badge = StudentBadgeSerializer(badge).data
+                    elif stage_code in DEPARTMENT_BADGES:
                         total_stage_errors = sum(
                             PuzzleAttempt.objects.filter(
                                 session=session, stage_code=stage_code
