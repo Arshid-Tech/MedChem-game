@@ -8,10 +8,13 @@ import {
   Sparkles,
   Timer,
   ClipboardCheck,
+  Layers,
 } from 'lucide-react';
+import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
   mappingSolved: boolean;
+  vaultSolved: boolean;
   antidoteSolved: boolean;
   onSubmitPuzzle: (
     puzzleCode: string,
@@ -52,23 +55,40 @@ const ANTIDOTE_TOOLS = [
 
 export const FinalAntidoteLab: React.FC<Props> = ({
   mappingSolved,
+  vaultSolved,
   antidoteSolved,
   onSubmitPuzzle,
   onOpenSurvey,
   onBackToMap,
 }) => {
-  // معمای ۱: مسیر بیوسنتز کلسترول + رمز CORTICOSTEROID
+  // گام ۱: تطبیق ۵ ساختار استروئیدی با دسته‌های دارویی برای باز کردن درِ اتاق مخفی
+  const [mapping, setMapping] = useState<Record<string, string>>(
+    mappingSolved
+      ? {
+          '1': 'glucocorticoid',
+          '2': 'mineralocorticoid',
+          '3': 'androgen',
+          '4': 'progesterone',
+          '5': 'estrogen',
+        }
+      : { '1': '', '2': '', '3': '', '4': '', '5': '' }
+  );
+  const [mapStart] = useState<number>(() => Date.now());
+  const [mapFeedback, setMapFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
+
+  // گام ۲: مسیر بیوسنتز کلسترول + رمز CORTICOSTEROID
   const [biosynthesis, setBiosynthesis] = useState({
-    step_1: mappingSolved ? 'Pregnenolone' : '',
-    step_2: mappingSolved ? 'Progesterone' : '',
-    step_3: mappingSolved ? 'Testosterone' : '',
-    vault_password: mappingSolved ? 'CORTICOSTEROID' : '',
+    step_1: vaultSolved ? 'Pregnenolone' : '',
+    step_2: vaultSolved ? 'Progesterone' : '',
+    step_3: vaultSolved ? 'Testosterone' : '',
+    vault_password: vaultSolved ? 'CORTICOSTEROID' : '',
   });
   const [vaultStart] = useState<number>(() => Date.now());
   const [vaultFeedback, setVaultFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [vaultLoading, setVaultLoading] = useState(false);
 
-  // معمای ۲: چالش ۶۰ ثانیه‌ای سنتز پادزهر
+  // گام ۳: چالش ۶۰ ثانیه‌ای سنتز پادزهر
   const [selectedTools, setSelectedTools] = useState<string[]>(
     antidoteSolved
       ? [
@@ -85,12 +105,26 @@ export const FinalAntidoteLab: React.FC<Props> = ({
   const [antidoteLoading, setAntidoteLoading] = useState(false);
 
   useEffect(() => {
-    if (!mappingSolved || antidoteSolved) return;
+    if (!vaultSolved || antidoteSolved) return;
     const t = setInterval(() => {
       setClimaxTimer((prev) => (prev > 0 ? prev - 1 : 60));
     }, 1000);
     return () => clearInterval(t);
-  }, [mappingSolved, antidoteSolved]);
+  }, [vaultSolved, antidoteSolved]);
+
+  const handleMapSubmit = async () => {
+    setMapLoading(true);
+    setMapFeedback(null);
+    const elapsed = Math.max(1, Math.round((Date.now() - mapStart) / 1000));
+    try {
+      const res = await onSubmitPuzzle('steroid_family_mapping', mapping, elapsed);
+      setMapFeedback({ ok: res.correct, text: res.feedback });
+    } catch (err: any) {
+      setMapFeedback({ ok: false, text: err.message });
+    } finally {
+      setMapLoading(false);
+    }
+  };
 
   const handleVaultSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,49 +167,108 @@ export const FinalAntidoteLab: React.FC<Props> = ({
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-l from-rose-950/40 via-slate-900 to-slate-900 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-2xl border border-rose-500/40 bg-white dark:bg-gradient-to-l dark:from-rose-950/40 dark:via-slate-900 dark:to-slate-900 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-rose-400 font-extrabold text-lg">
+          <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-lg">
             <Skull className="w-6 h-6" />
             <span>مرحله نهایی: اتاق مخفی دکتر ارول و سنتز پادزهر «پروژه اهریمن»</span>
           </div>
-          <p className="text-slate-300 text-sm mt-1 leading-6">
-            تمام ۵ سرنخ جمع‌آوری شدند: گلوکوکورتیکوئید فلوئوردار (9α-F)، موضعی، دارای سیانید (-C≡N)،
-            خواص پروژسترونی و مهارکننده 5α-reductase. اکنون گاوصندوق اصلی را باز کرده و مولکول را خنثی کنید!
+          <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
+            تمام {toPersianDigits(5)} سرنخ جمع‌آوری شدند: گلوکوکورتیکوئید فلوئوردار (9α-F)، موضعی، دارای سیانید (-C≡N)،
+            خواص پروژسترونی و مهارکننده 5α-reductase. اکنون قفل اتاق مخفی و گاوصندوق را باز کرده و مولکول را خنثی کنید!
           </p>
         </div>
         <button
           onClick={onBackToMap}
-          className="self-start md:self-center rounded-xl border border-slate-600 hover:border-cyan-400 px-4 py-2 text-xs font-semibold text-slate-200 transition"
+          className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
         >
           بازگشت به نقشه شرکت
         </button>
       </div>
 
-      {/* بخش ۱: گاوصندوق مسیر بیوسنتز کلسترول */}
-      <form
-        onSubmit={handleVaultSubmit}
-        className="rounded-2xl border border-slate-700/80 bg-slate-900/80 p-6 space-y-5"
-      >
-        <div className="flex items-center gap-2 font-bold text-base text-amber-300">
-          <KeyRound className="w-5 h-5" />
-          <span>گام ۱: رمزگشایی گاوصندوق بیوسنتز استروئیدها</span>
+      {/* گام ۱: تطبیق ۵ خانواده استروئیدی برای باز کردن در اتاق مخفی */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 p-6 space-y-4 shadow-sm">
+        <div className="flex items-center gap-2 font-bold text-base text-cyan-700 dark:text-cyan-300">
+          <Layers className="w-5 h-5" />
+          <span>گام {toPersianDigits(1)}: رمزگشایی پنل ورودی اتاق مخفی (تطبیق ساختارهای استروئیدی)</span>
         </div>
 
-        <p className="text-xs text-slate-300 leading-6">
-          واسطه‌های کلیدی مسیر بیوسنتز از <strong>کلسترول (Cholesterol)</strong> را تکمیل کنید و کلیدواژه ۱۴ حرفی رمز گاوصندوق را وارد نمایید:
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[
+            { id: '1', label: 'ساختار ۱: هسته پرگنان با C11-OH، C17α-OH و C21-OH (Δ1,4-3-one)' },
+            { id: '2', label: 'ساختار ۲: هسته پرگنان دارای فلوئور 9α و استات C21 (بدون C17α-OH)' },
+            { id: '3', label: 'ساختار ۳: هسته آندروستان (19 کربنه) با 2-هیدروکسی‌متیلن و 17β-OH' },
+            { id: '4', label: 'ساختار ۴: هسته پرگنان (21 کربنه) با استات C17α و متیل C6' },
+            { id: '5', label: 'ساختار ۵: هسته استران (18 کربنه) با حلقه A آروماتیک و 17α-اتینیل' },
+          ].map((item) => (
+            <div key={item.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{item.label}</span>
+              <select
+                disabled={mappingSolved}
+                value={mapping[item.id]}
+                onChange={(e) => setMapping((p) => ({ ...p, [item.id]: e.target.value }))}
+                dir="ltr"
+                className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs text-slate-900 dark:text-white shrink-0"
+              >
+                <option value="">Select class...</option>
+                <option value="glucocorticoid">Glucocorticoid</option>
+                <option value="mineralocorticoid">Mineralocorticoid</option>
+                <option value="androgen">Androgen</option>
+                <option value="progesterone">Progestin / Progesterone</option>
+                <option value="estrogen">Estrogen</option>
+              </select>
+            </div>
+          ))}
+        </div>
+
+        {mapFeedback && (
+          <div className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${mapFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/80 text-emerald-200' : 'border-rose-500/40 bg-rose-950/80 text-rose-200'}`}>
+            {mapFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
+            <span>{mapFeedback.text}</span>
+          </div>
+        )}
+
+        {!mappingSolved && (
+          <div className="flex justify-end">
+            <button
+              disabled={mapLoading || Object.values(mapping).some((v) => !v)}
+              onClick={handleMapSubmit}
+              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-6 py-2.5 text-sm"
+            >
+              {mapLoading ? 'در حال بررسی...' : 'باز کردن در اتاق مخفی'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* گام ۲: گاوصندوق مسیر بیوسنتز کلسترول */}
+      <form
+        onSubmit={handleVaultSubmit}
+        className={`rounded-2xl border p-6 space-y-5 transition ${
+          mappingSolved
+            ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
+        }`}
+      >
+        <div className="flex items-center gap-2 font-bold text-base text-amber-600 dark:text-amber-300">
+          <KeyRound className="w-5 h-5" />
+          <span>گام {toPersianDigits(2)}: رمزگشایی گاوصندوق بیوسنتز استروئیدها</span>
+        </div>
+
+        <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
+          واسطه‌های کلیدی مسیر بیوسنتز از <strong>کلسترول (Cholesterol)</strong> را تکمیل کنید و کلیدواژه {toPersianDigits(14)} حرفی رمز گاوصندوق را وارد نمایید:
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-xl border border-slate-700 bg-[#081220] p-4 space-y-2">
-            <div className="text-xs font-bold text-cyan-300">۱. اولین محصول برش زنجیره جانبی کلسترول (CYP11A1):</div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-2">
+            <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">۱. اولین محصول برش زنجیره جانبی کلسترول (CYP11A1):</div>
             <select
               required
-              disabled={mappingSolved}
+              disabled={vaultSolved}
               value={biosynthesis.step_1}
               onChange={(e) => setBiosynthesis((p) => ({ ...p, step_1: e.target.value }))}
               dir="ltr"
-              className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-xs text-white"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
             >
               <option value="">انتخاب ترکیب ۱...</option>
               <option value="Pregnenolone">Pregnenolone</option>
@@ -184,15 +277,15 @@ export const FinalAntidoteLab: React.FC<Props> = ({
             </select>
           </div>
 
-          <div className="rounded-xl border border-slate-700 bg-[#081220] p-4 space-y-2">
-            <div className="text-xs font-bold text-cyan-300">۲. محصول عمل آنزیم 3β-HSD و ایزومراز روی ترکیب ۱:</div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-2">
+            <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">۲. محصول عمل آنزیم 3β-HSD و ایزومراز روی ترکیب ۱:</div>
             <select
               required
-              disabled={mappingSolved}
+              disabled={vaultSolved}
               value={biosynthesis.step_2}
               onChange={(e) => setBiosynthesis((p) => ({ ...p, step_2: e.target.value }))}
               dir="ltr"
-              className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-xs text-white"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
             >
               <option value="">انتخاب ترکیب ۲...</option>
               <option value="Progesterone">Progesterone</option>
@@ -201,15 +294,15 @@ export const FinalAntidoteLab: React.FC<Props> = ({
             </select>
           </div>
 
-          <div className="rounded-xl border border-slate-700 bg-[#081220] p-4 space-y-2">
-            <div className="text-xs font-bold text-cyan-300">۳. پیش‌ساز مستقیم 5α-DHT و استرادیول (حاصل 17β-HSD):</div>
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-2">
+            <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">۳. پیش‌ساز مستقیم 5α-DHT و استرادیول (حاصل 17β-HSD):</div>
             <select
               required
-              disabled={mappingSolved}
+              disabled={vaultSolved}
               value={biosynthesis.step_3}
               onChange={(e) => setBiosynthesis((p) => ({ ...p, step_3: e.target.value }))}
               dir="ltr"
-              className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-xs text-white"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
             >
               <option value="">انتخاب ترکیب ۳...</option>
               <option value="Testosterone">Testosterone</option>
@@ -219,37 +312,31 @@ export const FinalAntidoteLab: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-50 dark:bg-amber-950/20 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="text-xs font-bold text-amber-200">کلیدواژه رمز گاوصندوق (نام انگلیسی خانواده هورمون‌های قشر آدرنال):</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">راهنما: ۱۴ حرف انگلیسی (شروع با CORTICO...)</div>
+            <div className="text-xs font-bold text-amber-800 dark:text-amber-200">کلیدواژه رمز گاوصندوق (نام انگلیسی خانواده هورمون‌های قشر آدرنال):</div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">راهنما: {toPersianDigits(14)} حرف انگلیسی (شروع با CORTICO...)</div>
           </div>
           <input
             type="text"
             required
-            disabled={mappingSolved}
+            disabled={vaultSolved}
             dir="ltr"
             placeholder="CORTICO......."
             value={biosynthesis.vault_password}
             onChange={(e) => setBiosynthesis((p) => ({ ...p, vault_password: e.target.value.toUpperCase() }))}
-            className="rounded-xl border border-amber-500/50 bg-slate-950 px-4 py-2 text-sm font-mono font-bold text-amber-300 tracking-widest focus:outline-none"
+            className="rounded-xl border border-amber-500/50 bg-white dark:bg-slate-950 px-4 py-2 text-sm font-mono font-bold text-amber-700 dark:text-amber-300 tracking-widest focus:outline-none"
           />
         </div>
 
         {vaultFeedback && (
-          <div
-            className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
-              vaultFeedback.ok
-                ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200'
-                : 'border-rose-500/40 bg-rose-950/40 text-rose-200'
-            }`}
-          >
+          <div className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${vaultFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/80 text-emerald-200' : 'border-rose-500/40 bg-rose-950/80 text-rose-200'}`}>
             {vaultFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
             <span>{vaultFeedback.text}</span>
           </div>
         )}
 
-        {!mappingSolved && (
+        {!vaultSolved && (
           <div className="flex justify-end">
             <button
               type="submit"
@@ -262,36 +349,33 @@ export const FinalAntidoteLab: React.FC<Props> = ({
         )}
       </form>
 
-      {/* بخش ۲: اوج بازی — سنتز پادزهر اهریمن */}
+      {/* گام ۳: اوج بازی — سنتز پادزهر اهریمن */}
       <div
         className={`rounded-2xl border p-6 space-y-6 transition ${
-          mappingSolved
-            ? 'border-rose-500/40 bg-slate-900/85'
-            : 'border-slate-800 bg-slate-900/30 opacity-60 pointer-events-none'
+          vaultSolved
+            ? 'border-rose-500/40 bg-white dark:bg-slate-900/85 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
         }`}
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 font-extrabold text-base text-rose-300">
+          <div className="flex items-center gap-2 font-extrabold text-base text-rose-600 dark:text-rose-300">
             <Sparkles className="w-5 h-5" />
-            <span>گام ۲ (اوج بحران): مهندسی معکوس مولکول اهریمن و سنتز پادزهر</span>
+            <span>گام {toPersianDigits(3)} (اوج بحران): مهندسی معکوس مولکول اهریمن و سنتز پادزهر</span>
           </div>
-          {!antidoteSolved && mappingSolved && (
-            <div className="flex items-center gap-1.5 rounded-xl border border-rose-500/50 bg-rose-950/60 px-3 py-1.5 text-xs font-bold text-rose-200">
+          {!antidoteSolved && vaultSolved && (
+            <div className="flex items-center gap-1.5 rounded-xl border border-rose-500/50 bg-rose-950/80 px-3 py-1.5 text-xs font-bold text-rose-200">
               <Timer className="w-4 h-4 animate-spin" />
-              <span>چرخه پایداری راکتور: {climaxTimer} ثانیه</span>
+              <span>چرخه پایداری راکتور: {toPersianDigits(climaxTimer)} ثانیه</span>
             </div>
           )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          {/* نمایش زنده ساختار اهریمن / پادزهر در راکتور */}
           <div dir="ltr" className="lg:col-span-6 rounded-2xl border border-slate-700 bg-[#07111f] p-4 flex flex-col items-center">
             <svg viewBox="0 0 360 225" className="w-full max-w-[360px] h-56">
-              {/* حلقه‌های استروئیدی A, B, C, D */}
               <polygon points="55,115 89,95 123,115 123,153 89,173 55,153" fill="none" stroke="#cbd5e1" strokeWidth="2.2" />
               <line x1="35" y1="163" x2="55" y2="153" stroke="#f87171" strokeWidth="2.2" />
               <text x="20" y="170" fill="#f87171" fontSize="12" fontWeight="bold">O</text>
-              {/* سیستم کتو-انول */}
               <line x1="61" y1="118" x2="87" y2="103" stroke="#a3e635" strokeWidth="2.2" />
               <line x1="89" y1="173" x2="89" y2="195" stroke="#a3e635" strokeWidth="2" />
               <text x="80" y="208" fill="#a3e635" fontSize="11" fontWeight="bold">OH</text>
@@ -300,7 +384,6 @@ export const FinalAntidoteLab: React.FC<Props> = ({
               <polygon points="157,95 191,75 225,95 225,133 191,153 191,115" fill="none" stroke="#cbd5e1" strokeWidth="2.2" />
               <polygon points="225,95 262,106 271,139 247,157 225,133" fill="none" stroke="#cbd5e1" strokeWidth="2.2" />
 
-              {/* اتم فلوئور 9α (اگر حذف نشده باشد) */}
               {!hasRemovedF && (
                 <>
                   <line x1="157" y1="115" x2="157" y2="140" stroke="#22d3ee" strokeWidth="2.5" strokeDasharray="3,2" />
@@ -308,7 +391,6 @@ export const FinalAntidoteLab: React.FC<Props> = ({
                 </>
               )}
 
-              {/* گروه‌های سیانید (اگر حذف نشده باشند) */}
               {!hasRemovedCN && (
                 <>
                   <line x1="191" y1="153" x2="205" y2="178" stroke="#fbbf24" strokeWidth="2.4" />
@@ -318,7 +400,6 @@ export const FinalAntidoteLab: React.FC<Props> = ({
                 </>
               )}
 
-              {/* گروه حجیم آنتاگونیستی 11β-آریل (در صورت افزودن) */}
               {hasAddedAryl ? (
                 <g>
                   <polygon points="191,75 173,50 181,46" fill="#34d399" />
@@ -332,7 +413,6 @@ export const FinalAntidoteLab: React.FC<Props> = ({
                 </>
               )}
 
-              {/* زنجیره C17 (استر لیپوفیل یا اسید هیدرولیزشده) */}
               <line x1="262" y1="106" x2="288" y2="85" stroke="#c084fc" strokeWidth="2.2" />
               <text x="285" y="79" fill="#c084fc" fontSize="11" fontWeight="bold">C≡CH</text>
               {hasHydrolyzedEster ? (
@@ -351,9 +431,8 @@ export const FinalAntidoteLab: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* ابزارهای ویرایش مولکول */}
           <div className="lg:col-span-6 space-y-2.5">
-            <div className="text-xs font-bold text-slate-200 mb-1">
+            <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
               ابزارهای اصلاح شیمیایی را برای خنثی‌سازی فارماکوفورهای سمی انتخاب کنید:
             </div>
             {ANTIDOTE_TOOLS.map((tool) => {
@@ -364,17 +443,17 @@ export const FinalAntidoteLab: React.FC<Props> = ({
                   onClick={() => toggleTool(tool.id)}
                   className={`rounded-xl border p-3.5 cursor-pointer transition flex items-start justify-between gap-3 ${
                     active
-                      ? 'border-emerald-400 bg-emerald-950/35'
-                      : 'border-slate-700 bg-[#081220] hover:border-slate-500'
+                      ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/35'
+                      : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220]'
                   }`}
                 >
                   <div>
-                    <div className="font-bold text-xs text-slate-100">{tool.title}</div>
-                    <div className="text-[11px] text-slate-400 mt-1">{tool.desc}</div>
+                    <div className="font-bold text-xs text-slate-900 dark:text-slate-100">{tool.title}</div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{tool.desc}</div>
                   </div>
                   <span
                     className={`text-xs px-2.5 py-1 rounded-md shrink-0 ${
-                      active ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'bg-slate-800 text-slate-400'
+                      active ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                     }`}
                   >
                     {active ? 'اعمال شد ✓' : 'اجرا'}
@@ -386,18 +465,8 @@ export const FinalAntidoteLab: React.FC<Props> = ({
         </div>
 
         {antidoteFeedback && (
-          <div
-            className={`rounded-xl border p-4 text-sm flex items-start gap-2.5 ${
-              antidoteFeedback.ok
-                ? 'border-emerald-500/50 bg-emerald-950/50 text-emerald-100'
-                : 'border-rose-500/40 bg-rose-950/40 text-rose-200'
-            }`}
-          >
-            {antidoteFeedback.ok ? (
-              <ShieldCheck className="w-6 h-6 text-emerald-400 shrink-0" />
-            ) : (
-              <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
-            )}
+          <div className={`rounded-xl border p-4 text-sm flex items-start gap-2.5 ${antidoteFeedback.ok ? 'border-emerald-500/50 bg-emerald-950/80 text-emerald-100' : 'border-rose-500/40 bg-rose-950/80 text-rose-200'}`}>
+            {antidoteFeedback.ok ? <ShieldCheck className="w-6 h-6 text-emerald-400 shrink-0" /> : <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />}
             <span>{antidoteFeedback.text}</span>
           </div>
         )}
@@ -406,7 +475,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
           {antidoteSolved ? (
             <button
               onClick={onOpenSurvey}
-              className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-6 py-3 text-sm transition flex items-center gap-2 shadow-lg shadow-emerald-950/50"
+              className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-6 py-3 text-sm transition flex items-center gap-2 shadow-lg"
             >
               <ClipboardCheck className="w-5 h-5" />
               <span>تکمیل پرسشنامه پژوهشی MEEGA+ و ثبت نهایی ماموریت</span>
