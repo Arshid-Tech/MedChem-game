@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Vazirmatn', system-ui, sans-serif;
+    background-color: #060d18;
+    color: #f1f5f9;
+  }
+}
+
+.lab-grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(6, 182, 212, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 182, 212, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
