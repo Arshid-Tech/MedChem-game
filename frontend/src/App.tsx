@@ -18,8 +18,20 @@ import { AuthScreen } from './components/AuthScreen';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { EntranceGatePuzzle } from './components/puzzles/EntranceGatePuzzle';
 import { GlucocorticoidLab } from './components/puzzles/GlucocorticoidLab';
+import { MineralocorticoidLab } from './components/puzzles/MineralocorticoidLab';
+import { EstrogenLab } from './components/puzzles/EstrogenLab';
+import { ProgestinLab } from './components/puzzles/ProgestinLab';
+import { AndrogenLab } from './components/puzzles/AndrogenLab';
 
-type ActiveView = 'map' | 'entrance' | 'glucocorticoid' | 'leaderboard';
+type ActiveView =
+  | 'map'
+  | 'entrance'
+  | 'glucocorticoid'
+  | 'mineralocorticoid'
+  | 'estrogen'
+  | 'progestin'
+  | 'androgen'
+  | 'leaderboard';
 
 const DEPARTMENTS = [
   {
@@ -32,25 +44,25 @@ const DEPARTMENTS = [
     code: 'mineralocorticoid',
     title: 'دپارتمان ۲: بخش مینرالوکورتیکوئیدها',
     subtitle: 'احتباس آب و الکترولیت و تشخیص مسیر تجویز موضعی',
-    available: false,
+    available: true,
   },
   {
     code: 'estrogen',
     title: 'دپارتمان ۳: آزمایشگاه استروژن‌ها',
     subtitle: 'مسیر متابولیسم و داکینگ سه‌بعدی در گیرنده (Glu353/Arg394)',
-    available: false,
+    available: true,
   },
   {
     code: 'progestin',
     title: 'دپارتمان ۴: بخش پروژستین‌ها',
     subtitle: 'مشتقات ۱۹-نورآندروستان و فراهمی زیستی خوراکی',
-    available: false,
+    available: true,
   },
   {
     code: 'androgen',
     title: 'دپارتمان ۵: آندروژن‌ها و مهارکننده‌های آنزیمی',
     subtitle: 'متابولیسم فلوتامید، SARMs و کمپلکس ۵-آلفا ردوکتاز',
-    available: false,
+    available: true,
   },
 ];
 
@@ -91,7 +103,6 @@ export function App() {
     loadInitialData();
   }, []);
 
-  // تایمر معکوس بحران FDA
   useEffect(() => {
     if (!user || !session) return;
     const timer = setInterval(() => {
@@ -112,6 +123,11 @@ export function App() {
     setToast(msg);
     setTimeout(() => setToast(null), 5000);
   };
+
+  const isPuzzleSolved = (stage: string, puzzle: string) =>
+    session?.puzzle_attempts?.some(
+      (a) => a.stage_code === stage && a.puzzle_code === puzzle && a.is_solved
+    ) ?? false;
 
   const handlePuzzleSubmit = async (
     stageCode: string,
@@ -173,14 +189,10 @@ export function App() {
   }
 
   const entranceSolved = session?.completed_stages?.includes('entrance') ?? false;
-  const gcConformationSolved =
-    session?.puzzle_attempts?.some(
-      (a) => a.stage_code === 'glucocorticoid' && a.puzzle_code === 'conformation_lock' && a.is_solved
-    ) ?? false;
-  const gcSarSolved =
-    session?.puzzle_attempts?.some(
-      (a) => a.stage_code === 'glucocorticoid' && a.puzzle_code === 'sar_potency_sort' && a.is_solved
-    ) ?? false;
+  const allFiveDepartmentsDone =
+    ['glucocorticoid', 'mineralocorticoid', 'estrogen', 'progestin', 'androgen'].every((d) =>
+      session?.completed_stages?.includes(d)
+    );
 
   return (
     <div className="min-h-screen lab-grid-bg flex flex-col">
@@ -205,7 +217,6 @@ export function App() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* تایمر بازرسی FDA */}
             <div
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold ${
                 timeLeft < 600
@@ -220,13 +231,11 @@ export function App() {
               </span>
             </div>
 
-            {/* امتیاز */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/30 text-emerald-300 text-xs font-bold">
               <Sparkles className="w-4 h-4" />
               <span>امتیاز: {session?.total_score ?? 0}</span>
             </div>
 
-            {/* جدول رده‌بندی */}
             <button
               onClick={openLeaderboard}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 hover:border-cyan-400 bg-slate-900 text-xs font-semibold text-slate-200 transition"
@@ -235,7 +244,6 @@ export function App() {
               <span>رده‌بندی</span>
             </button>
 
-            {/* تغییر رمز */}
             <button
               onClick={() => setShowPasswordModal(true)}
               title="تغییر رمز عبور"
@@ -244,7 +252,6 @@ export function App() {
               <KeyRound className="w-4 h-4" />
             </button>
 
-            {/* خروج */}
             <button
               onClick={handleLogout}
               title="خروج از حساب"
@@ -256,7 +263,6 @@ export function App() {
         </div>
       </header>
 
-      {/* اعلان شناور (Toast) */}
       {toast && (
         <div className="fixed bottom-5 left-5 z-50 rounded-2xl border border-emerald-400/50 bg-emerald-950/95 px-4 py-3 text-sm text-emerald-100 shadow-xl flex items-center gap-2">
           <Award className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -264,9 +270,7 @@ export function App() {
         </div>
       )}
 
-      {/* بدنه اصلی */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* ستون اصلی محتوای مرحله */}
         <div className="lg:col-span-9">
           {activeView === 'entrance' && (
             <EntranceGatePuzzle
@@ -278,10 +282,55 @@ export function App() {
 
           {activeView === 'glucocorticoid' && (
             <GlucocorticoidLab
-              conformationSolved={gcConformationSolved}
-              sarSolved={gcSarSolved}
+              conformationSolved={isPuzzleSolved('glucocorticoid', 'conformation_lock')}
+              sarSolved={isPuzzleSolved('glucocorticoid', 'sar_potency_sort')}
               onSubmitPuzzle={(pCode, ans, elapsed) =>
                 handlePuzzleSubmit('glucocorticoid', pCode, ans, elapsed)
+              }
+              onBackToMap={() => setActiveView('map')}
+            />
+          )}
+
+          {activeView === 'mineralocorticoid' && (
+            <MineralocorticoidLab
+              arrowsSolved={isPuzzleSolved('mineralocorticoid', 'effect_arrows')}
+              routesSolved={isPuzzleSolved('mineralocorticoid', 'route_classification')}
+              onSubmitPuzzle={(pCode, ans, elapsed) =>
+                handlePuzzleSubmit('mineralocorticoid', pCode, ans, elapsed)
+              }
+              onBackToMap={() => setActiveView('map')}
+            />
+          )}
+
+          {activeView === 'estrogen' && (
+            <EstrogenLab
+              metabolismSolved={isPuzzleSolved('estrogen', 'metabolism_enzymes')}
+              dockingSolved={isPuzzleSolved('estrogen', 'receptor_docking_and_class')}
+              onSubmitPuzzle={(pCode, ans, elapsed) =>
+                handlePuzzleSubmit('estrogen', pCode, ans, elapsed)
+              }
+              onBackToMap={() => setActiveView('map')}
+            />
+          )}
+
+          {activeView === 'progestin' && (
+            <ProgestinLab
+              codeSolved={isPuzzleSolved('progestin', 'pk_safe_code')}
+              designSolved={isPuzzleSolved('progestin', 'norandrostane_design')}
+              onSubmitPuzzle={(pCode, ans, elapsed) =>
+                handlePuzzleSubmit('progestin', pCode, ans, elapsed)
+              }
+              onBackToMap={() => setActiveView('map')}
+            />
+          )}
+
+          {activeView === 'androgen' && (
+            <AndrogenLab
+              metaboliteSolved={isPuzzleSolved('androgen', 'flutamide_metabolite')}
+              classificationSolved={isPuzzleSolved('androgen', 'antiandrogen_classification')}
+              enzymeComplexSolved={isPuzzleSolved('androgen', 'five_alpha_reductase_complex')}
+              onSubmitPuzzle={(pCode, ans, elapsed) =>
+                handlePuzzleSubmit('androgen', pCode, ans, elapsed)
               }
               onBackToMap={() => setActiveView('map')}
             />
@@ -349,10 +398,23 @@ export function App() {
                   </h2>
                   <p className="text-xs text-slate-300 mt-1 leading-6">
                     هر یک از ۵ دپارتمان تحقیقاتی شرکت Apex Pharma سرنخی از ساختار شیمیایی ترکیب اهریمن را در خود پنهان کرده است.
-                    دپارتمان‌ها را بررسی کنید تا ۵ ویژگی کلیدی مولکول را برای سنتز پادزهر نهایی به دست آورید.
+                    همه ۵ دپارتمان را بررسی کنید تا قفل اتاق مخفی سنتز پادزهر باز شود.
                   </p>
                 </div>
               </div>
+
+              {allFiveDepartmentsDone && (
+                <div className="rounded-2xl border border-emerald-400/50 bg-emerald-950/40 p-5 flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <div className="font-extrabold text-sm text-emerald-300">
+                      هر ۵ سرنخ ساختاری اهریمن کشف شد! درِ اتاق مخفی دکتر ارول آماده بازگشایی است.
+                    </div>
+                    <div className="text-xs text-slate-300 mt-1">
+                      در فاز ۳: حل مسیر بیوسنتز کلسترول، سنتز پادزهر اهریمن و تکمیل فرم پژوهشی MEEGA+ اضافه می‌شود.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {DEPARTMENTS.map((dept) => {
@@ -361,9 +423,9 @@ export function App() {
                     <div
                       key={dept.code}
                       className={`rounded-2xl border p-5 flex flex-col justify-between transition ${
-                        dept.available
-                          ? 'border-cyan-500/40 bg-slate-900/80 hover:border-cyan-400'
-                          : 'border-slate-800 bg-slate-900/40 opacity-65'
+                        isCompleted
+                          ? 'border-emerald-500/40 bg-slate-900/85'
+                          : 'border-cyan-500/40 bg-slate-900/80 hover:border-cyan-400'
                       }`}
                     >
                       <div>
@@ -380,20 +442,18 @@ export function App() {
 
                       <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
                         <span className="text-[11px] text-slate-400">
-                          {isCompleted
-                            ? 'تکمیل شده ✓'
-                            : dept.available
-                            ? 'آماده ورود و رمزگشایی'
-                            : 'در فاز ۲ توسعه باز می‌شود'}
+                          {isCompleted ? 'تکمیل شده و سرنخ ثبت شد ✓' : 'آماده ورود و رمزگشایی'}
                         </span>
-                        {dept.available && (
-                          <button
-                            onClick={() => setActiveView(dept.code as ActiveView)}
-                            className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-1.5 text-xs transition"
-                          >
-                            {isCompleted ? 'مرور آزمایشگاه' : 'ورود به دپارتمان'}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setActiveView(dept.code as ActiveView)}
+                          className={`rounded-xl font-bold px-4 py-1.5 text-xs transition ${
+                            isCompleted
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                              : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950'
+                          }`}
+                        >
+                          {isCompleted ? 'مرور آزمایشگاه' : 'ورود به دپارتمان'}
+                        </button>
                       </div>
                     </div>
                   );
@@ -405,7 +465,6 @@ export function App() {
 
         {/* ستون کناری: پرونده سرنخ‌های کشف‌شده و نشان‌ها */}
         <aside className="lg:col-span-3 space-y-5">
-          {/* پرونده سرنخ‌ها */}
           <div className="rounded-2xl border border-slate-700/80 bg-slate-900/80 p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold text-cyan-300 border-b border-slate-800 pb-2.5">
               <FileSearch className="w-4 h-4" />
@@ -430,7 +489,6 @@ export function App() {
             )}
           </div>
 
-          {/* نشان‌ها و مدال‌ها */}
           <div className="rounded-2xl border border-slate-700/80 bg-slate-900/80 p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold text-amber-300 border-b border-slate-800 pb-2.5">
               <Award className="w-4 h-4" />
