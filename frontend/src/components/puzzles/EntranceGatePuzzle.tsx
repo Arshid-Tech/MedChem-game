@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { CheckCircle2, RotateCcw, ShieldCheck, AlertTriangle, Sparkles } from 'lucide-react';
+import { ShieldCheck, RotateCcw, CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
+import { SteroidMoleculeSVG } from '../molecules/SteroidMoleculeSVG';
 
 interface Piece {
   id: string;
@@ -12,28 +13,28 @@ interface Piece {
 const AVAILABLE_PIECES: Piece[] = [
   {
     id: 'ring_a',
-    label: 'حلقه A (سیکلوهگزنون Δ4)',
+    label: 'حلقه الف (سیکلوهگزنون Δ۴)',
     chemName: '3-Keto-Δ4 Ring A',
     formula: 'C6H7O',
     isValid: true,
   },
   {
     id: 'ring_b',
-    label: 'حلقه B (سیکلوهگزان C5-C10)',
+    label: 'حلقه ب (سیکلوهگزان C5-C10)',
     chemName: 'Ring B + C19 Methyl',
     formula: 'C6H10',
     isValid: true,
   },
   {
     id: 'ring_c',
-    label: 'حلقه C (سیکلوهگزان C8-C14)',
+    label: 'حلقه ج (سیکلوهگزان C8-C14)',
     chemName: 'Ring C (11β-OH)',
     formula: 'C6H10O',
     isValid: true,
   },
   {
     id: 'ring_d',
-    label: 'حلقه D (سیکلوپنتان)',
+    label: 'حلقه د (سیکلوپنتان)',
     chemName: 'Cyclopentane Ring D',
     formula: 'C5H8',
     isValid: true,
@@ -107,6 +108,15 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
   const hasRingD = selectedIds.includes('ring_d');
   const hasC17 = selectedIds.includes('c17_sidechain');
 
+  // بررسی خودکار زمانی که ۵ قطعه صحیح کامل انتخاب شوند
+  const isCompleteMatch =
+    selectedIds.length === 5 &&
+    selectedIds.includes('ring_a') &&
+    selectedIds.includes('ring_b') &&
+    selectedIds.includes('ring_c') &&
+    selectedIds.includes('ring_d') &&
+    selectedIds.includes('c17_sidechain');
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-cyan-500/30 bg-slate-900/80 p-5">
@@ -116,8 +126,8 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
         </div>
         <p className="text-slate-300 text-sm leading-7">
           دکتر ارول پیش از خروج، قفل بیومتریک آزمایشگاه مرکزی را روی حالت سنتز مولکولی تنظیم کرده است.
-          برای اثبات هویت خود به عنوان <strong>متخصص ارشد شیمی دارویی</strong>، قطعات صحیح را انتخاب یا به
-          درون راکتور بکشید (Drag & Drop) تا اسکلت پایه استروئیدی (<strong>سیکلوپنتانوپرهیدروفنانترن</strong> همراه با زنجیره کتول C17) ساخته شود.
+          برای اثبات هویت خود به عنوان <strong>متخصص ارشد شیمی دارویی</strong>، ۵ قطعه صحیح را انتخاب یا به
+          درون راکتور بکشید تا اسکلت پایه استروئیدی تکمیل شده و گیت به‌صورت خودکار باز شود.
         </p>
       </div>
 
@@ -125,8 +135,8 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
         {/* بانک قطعات مولکولی */}
         <div className="lg:col-span-5 rounded-2xl border border-slate-700/80 bg-slate-900/70 p-4 space-y-3">
           <h3 className="text-sm font-bold text-slate-200 flex items-center justify-between">
-            <span>بانک قطعات ساختاری (بکشید یا کلیک کنید)</span>
-            <span className="text-xs text-cyan-400">{selectedIds.length} قطعه انتخاب شده</span>
+            <span>بانک قطعات ساختاری (کلیک یا Drag)</span>
+            <span className="text-xs text-cyan-400 font-mono">{selectedIds.length} / ۵ قطعه</span>
           </h3>
 
           <div className="space-y-2">
@@ -145,13 +155,13 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
                   }`}
                 >
                   <div>
-                    <div className="font-semibold">{piece.label}</div>
-                    <div dir="ltr" className="text-xs text-slate-400 font-mono text-right">
+                    <div className="font-semibold text-xs sm:text-sm">{piece.label}</div>
+                    <div dir="ltr" className="text-[11px] text-slate-400 font-mono text-right">
                       {piece.chemName} ({piece.formula})
                     </div>
                   </div>
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-md ${
+                    className={`text-xs px-2 py-0.5 rounded-md shrink-0 ${
                       active ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-700 text-slate-300'
                     }`}
                   >
@@ -191,7 +201,6 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
 
           <div dir="ltr" className="my-2 flex items-center justify-center bg-slate-950/80 rounded-xl p-4 border border-slate-800">
             <svg viewBox="0 0 330 200" className="w-full max-w-[340px] h-52">
-              {/* راهنمای کمرنگ حلقه‌ها */}
               <polygon points="55,110 89,90 123,110 123,148 89,168 55,148" fill="none" stroke="#1e293b" strokeWidth="2" strokeDasharray="4,4" />
               <polygon points="123,110 157,90 191,110 191,148 157,168 123,148" fill="none" stroke="#1e293b" strokeWidth="2" strokeDasharray="4,4" />
               <polygon points="157,90 191,70 225,90 225,128 191,148 191,110" fill="none" stroke="#1e293b" strokeWidth="2" strokeDasharray="4,4" />
@@ -202,7 +211,7 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
                   <polygon points="55,110 89,90 123,110 123,148 89,168 55,148" fill="rgba(6,182,212,0.12)" stroke="#22d3ee" strokeWidth="2.5" />
                   <line x1="35" y1="158" x2="55" y2="148" stroke="#f87171" strokeWidth="2.5" />
                   <text x="20" y="166" fill="#f87171" fontSize="13" fontWeight="bold">O</text>
-                  <text x="83" y="133" fill="#22d3ee" fontSize="13" fontWeight="bold">A</text>
+                  <text x="83" y="133" fill="#22d3ee" fontSize="13" fontWeight="bold">الف</text>
                 </g>
               )}
 
@@ -211,7 +220,7 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
                   <polygon points="123,110 157,90 191,110 191,148 157,168 123,148" fill="rgba(16,185,129,0.12)" stroke="#34d399" strokeWidth="2.5" />
                   <line x1="123" y1="110" x2="123" y2="82" stroke="#34d399" strokeWidth="2.5" />
                   <text x="114" y="77" fill="#34d399" fontSize="11">CH3</text>
-                  <text x="151" y="133" fill="#34d399" fontSize="13" fontWeight="bold">B</text>
+                  <text x="151" y="133" fill="#34d399" fontSize="13" fontWeight="bold">ب</text>
                 </g>
               )}
 
@@ -220,14 +229,14 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
                   <polygon points="157,90 191,70 225,90 225,128 191,148 191,110" fill="rgba(56,189,248,0.12)" stroke="#38bdf8" strokeWidth="2.5" />
                   <line x1="191" y1="70" x2="177" y2="48" stroke="#38bdf8" strokeWidth="2.2" />
                   <text x="160" y="44" fill="#38bdf8" fontSize="11">HO</text>
-                  <text x="186" y="113" fill="#38bdf8" fontSize="13" fontWeight="bold">C</text>
+                  <text x="186" y="113" fill="#38bdf8" fontSize="13" fontWeight="bold">ج</text>
                 </g>
               )}
 
               {hasRingD && (
                 <g>
                   <polygon points="225,90 262,101 271,134 247,152 225,128" fill="rgba(192,132,252,0.14)" stroke="#c084fc" strokeWidth="2.5" />
-                  <text x="242" y="125" fill="#c084fc" fontSize="13" fontWeight="bold">D</text>
+                  <text x="242" y="125" fill="#c084fc" fontSize="13" fontWeight="bold">د</text>
                 </g>
               )}
 
@@ -239,8 +248,8 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
               )}
 
               {(selectedIds.includes('benzene_decoy') || selectedIds.includes('indole_decoy')) && (
-                <text x="70" y="30" fill="#f43f5e" fontSize="12" fontWeight="bold">
-                  ! هشدار: ناخالصی آروماتیک/هتروسیکل در راکتور !
+                <text x="60" y="30" fill="#f43f5e" fontSize="11" fontWeight="bold">
+                  ! هشدار: ناخالصی در راکتور !
                 </text>
               )}
             </svg>
@@ -275,9 +284,9 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
               <button
                 disabled={loading || selectedIds.length === 0}
                 onClick={handleVerify}
-                className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
+                className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold px-6 py-2.5 text-sm transition shadow-lg"
               >
-                {loading ? 'در حال بررسی ساختار...' : 'تایید سنتز و باز کردن گیت'}
+                {loading ? 'در حال بررسی ساختار...' : isCompleteMatch ? 'تایید و باز کردن گیت (ارسال نهایی)' : 'بررسی ساختار انتخاب‌شده'}
               </button>
             )}
           </div>
