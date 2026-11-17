@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Dna, CheckCircle2, AlertTriangle, RotateCcw, Cpu } from 'lucide-react';
+import { Dna, CheckCircle2, AlertTriangle, RotateCcw, Cpu, ArrowDown, ArrowUp } from 'lucide-react';
 
 interface Props {
+  entryPotencySolved: boolean;
   metaboliteSolved: boolean;
+  sarmSolved: boolean;
+  androgenicitySolved: boolean;
   classificationSolved: boolean;
   enzymeComplexSolved: boolean;
   onSubmitPuzzle: (
@@ -34,12 +37,22 @@ type AndrogenBucket =
   | 'sarms';
 
 export const AndrogenLab: React.FC<Props> = ({
+  entryPotencySolved,
   metaboliteSolved,
+  sarmSolved,
+  androgenicitySolved,
   classificationSolved,
   enzymeComplexSolved,
   onSubmitPuzzle,
   onBackToMap,
 }) => {
+  const [entryOrder, setEntryOrder] = useState<string[]>(
+    entryPotencySolved ? ['3', '2', '1', '4'] : ['1', '2', '3', '4']
+  );
+  const [entryStart] = useState<number>(() => Date.now());
+  const [entryFeedback, setEntryFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [entryLoading, setEntryLoading] = useState(false);
+
   // معمای ۱: متابولیت ماژور فلوتامید
   const [metabolite, setMetabolite] = useState<string>(
     metaboliteSolved ? '2-hydroxyflutamide' : ''
@@ -48,7 +61,21 @@ export const AndrogenLab: React.FC<Props> = ({
   const [metFeedback, setMetFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [metLoading, setMetLoading] = useState(false);
 
-  // معمای ۲: دسته‌بندی ۱۰ ترکیب
+  const [sarmChoice, setSarmChoice] = useState(sarmSolved ? '10' : '');
+  const [sarmStart] = useState<number>(() => Date.now());
+  const [sarmFeedback, setSarmFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [sarmLoading, setSarmLoading] = useState(false);
+
+  const [androgenicityMods, setAndrogenicityMods] = useState<string[]>(
+    androgenicitySolved
+      ? ['remove_androgenic_features', 'add_low_androgenic_features']
+      : []
+  );
+  const [androgenicityStart] = useState<number>(() => Date.now());
+  const [androgenicityFeedback, setAndrogenicityFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [androgenicityLoading, setAndrogenicityLoading] = useState(false);
+
+  // معمای ۵: دسته‌بندی ۱۰ ترکیب
   const [buckets, setBuckets] = useState<Record<AndrogenBucket, string[]>>(
     classificationSolved
       ? {
@@ -71,7 +98,7 @@ export const AndrogenLab: React.FC<Props> = ({
   const [classFeedback, setClassFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [classLoading, setClassLoading] = useState(false);
 
-  // معمای ۳: کمپلکس آنزیم ۵-آلفا ردوکتاز
+  // معمای ۶: کمپلکس آنزیم ۵-آلفا ردوکتاز
   const [complexState, setComplexState] = useState({
     selected_inhibitors: enzymeComplexSolved ? ['3', '9'] : ([] as string[]),
     cofactor_complex: enzymeComplexSolved ? 'nadph_covalent_adduct' : '',
@@ -81,22 +108,83 @@ export const AndrogenLab: React.FC<Props> = ({
   const [compFeedback, setCompFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [compLoading, setCompLoading] = useState(false);
 
+  const moveEntryItem = (index: number, direction: -1 | 1) => {
+    if (entryPotencySolved) return;
+    const target = index + direction;
+    if (target < 0 || target >= entryOrder.length) return;
+    const next = [...entryOrder];
+    [next[index], next[target]] = [next[target], next[index]];
+    setEntryOrder(next);
+  };
+
+  const handleEntrySubmit = async () => {
+    setEntryLoading(true);
+    setEntryFeedback(null);
+    try {
+      const elapsed = Math.max(1, Math.round((Date.now() - entryStart) / 1000));
+      const res = await onSubmitPuzzle('androgen_entry_potency_sort', entryOrder, elapsed);
+      setEntryFeedback({ ok: res.correct, text: res.feedback });
+    } catch (err: unknown) {
+      setEntryFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
+    } finally {
+      setEntryLoading(false);
+    }
+  };
+
   const handleMetSubmit = async () => {
+    if (!entryPotencySolved || !metabolite) return;
     setMetLoading(true);
     setMetFeedback(null);
     const elapsed = Math.max(1, Math.round((Date.now() - metStart) / 1000));
     try {
       const res = await onSubmitPuzzle('flutamide_metabolite', metabolite, elapsed);
       setMetFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setMetFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setMetFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setMetLoading(false);
     }
   };
 
+  const handleSarmSubmit = async () => {
+    if (!metaboliteSolved || !sarmChoice) return;
+    setSarmLoading(true);
+    setSarmFeedback(null);
+    try {
+      const elapsed = Math.max(1, Math.round((Date.now() - sarmStart) / 1000));
+      const res = await onSubmitPuzzle('sarm_alternative', sarmChoice, elapsed);
+      setSarmFeedback({ ok: res.correct, text: res.feedback });
+    } catch (err: unknown) {
+      setSarmFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
+    } finally {
+      setSarmLoading(false);
+    }
+  };
+
+  const toggleAndrogenicityMod = (id: string) => {
+    if (!sarmSolved || androgenicitySolved) return;
+    setAndrogenicityMods((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleAndrogenicitySubmit = async () => {
+    if (!sarmSolved || !androgenicityMods.length) return;
+    setAndrogenicityLoading(true);
+    setAndrogenicityFeedback(null);
+    try {
+      const elapsed = Math.max(1, Math.round((Date.now() - androgenicityStart) / 1000));
+      const res = await onSubmitPuzzle('low_androgenicity_design', androgenicityMods, elapsed);
+      setAndrogenicityFeedback({ ok: res.correct, text: res.feedback });
+    } catch (err: unknown) {
+      setAndrogenicityFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
+    } finally {
+      setAndrogenicityLoading(false);
+    }
+  };
+
   const assignToBucket = (bucket: AndrogenBucket, id: string) => {
-    if (classificationSolved) return;
+    if (!androgenicitySolved || classificationSolved) return;
     setBuckets((prev) => {
       const next: Record<AndrogenBucket, string[]> = {
         steroid_antiandrogen: prev.steroid_antiandrogen.filter((x) => x !== id),
@@ -112,28 +200,29 @@ export const AndrogenLab: React.FC<Props> = ({
   };
 
   const removeFromBucket = (bucket: AndrogenBucket, id: string) => {
-    if (classificationSolved) return;
+    if (!androgenicitySolved || classificationSolved) return;
     setBuckets((prev) => ({ ...prev, [bucket]: prev[bucket].filter((x) => x !== id) }));
   };
 
   const assignedCount = Object.values(buckets).flat().length;
 
   const handleClassSubmit = async () => {
+    if (!androgenicitySolved || assignedCount < 10) return;
     setClassLoading(true);
     setClassFeedback(null);
     const elapsed = Math.max(1, Math.round((Date.now() - classStart) / 1000));
     try {
       const res = await onSubmitPuzzle('antiandrogen_classification', buckets, elapsed);
       setClassFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setClassFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setClassFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setClassLoading(false);
     }
   };
 
   const toggleInhibitor = (id: string) => {
-    if (enzymeComplexSolved) return;
+    if (!classificationSolved || enzymeComplexSolved) return;
     setComplexState((prev) => {
       const exists = prev.selected_inhibitors.includes(id);
       const next = exists
@@ -144,14 +233,20 @@ export const AndrogenLab: React.FC<Props> = ({
   };
 
   const handleComplexSubmit = async () => {
+    if (
+      !classificationSolved ||
+      !complexState.selected_inhibitors.length ||
+      !complexState.cofactor_complex ||
+      !complexState.pharmacophore
+    ) return;
     setCompLoading(true);
     setCompFeedback(null);
     const elapsed = Math.max(1, Math.round((Date.now() - compStart) / 1000));
     try {
       const res = await onSubmitPuzzle('five_alpha_reductase_complex', complexState, elapsed);
       setCompFeedback({ ok: res.correct, text: res.feedback });
-    } catch (err: any) {
-      setCompFeedback({ ok: false, text: err.message });
+    } catch (err: unknown) {
+      setCompFeedback({ ok: false, text: err instanceof Error ? err.message : 'ثبت پاسخ ناموفق بود.' });
     } finally {
       setCompLoading(false);
     }
@@ -177,10 +272,72 @@ export const AndrogenLab: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* معمای ۱: متابولیت ماژور فلوتامید */}
+      {/* ورود به اتاق: رتبه‌بندی قدرت */}
       <div className="rounded-2xl border border-slate-700/80 bg-slate-900/75 p-6 space-y-4">
         <h3 className="font-bold text-base text-slate-100">
-          معمای ۱: شناسایی متابولیت ماژور و فعال داروی فلوتامید (Flutamide)
+          ورود به اتاق: ساختارها را بر اساس قدرت مرتب کنید
+        </h3>
+        <p className="text-xs leading-6 text-slate-300">
+          پاسخ منبع برای ترتیب قدرت: ۳ &gt; ۲ &gt; ۱ &gt; ۴.
+        </p>
+        <div className="space-y-2">
+          {entryOrder.map((id, index) => (
+            <div key={id} className="flex items-center justify-between rounded-xl border border-slate-700 bg-[#081220] p-3">
+              <span className="text-sm font-bold text-cyan-200">
+                رتبه {index + 1} — ساختار {id}
+              </span>
+              {!entryPotencySolved && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={index === 0}
+                    onClick={() => moveEntryItem(index, -1)}
+                    aria-label={`بالا بردن ساختار ${id}`}
+                    className="rounded-lg border border-slate-700 p-2 text-slate-200 disabled:opacity-40"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={index === entryOrder.length - 1}
+                    onClick={() => moveEntryItem(index, 1)}
+                    aria-label={`پایین بردن ساختار ${id}`}
+                    className="rounded-lg border border-slate-700 p-2 text-slate-200 disabled:opacity-40"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        {entryFeedback && (
+          <div className={`rounded-xl border p-3 text-sm ${entryFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200' : 'border-rose-500/40 bg-rose-950/40 text-rose-200'}`}>
+            {entryFeedback.text}
+          </div>
+        )}
+        {!entryPotencySolved && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              disabled={entryLoading}
+              onClick={handleEntrySubmit}
+              className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
+            >
+              {entryLoading ? 'در حال بررسی...' : 'ثبت ترتیب و باز کردن در'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* معمای ۲: متابولیت ماژور فلوتامید */}
+      <div
+        className={`rounded-2xl border p-6 space-y-4 transition ${
+          entryPotencySolved ? 'border-slate-700/80 bg-slate-900/75' : 'border-slate-800 bg-slate-900/30 opacity-60 pointer-events-none'
+        }`}
+      >
+        <h3 className="font-bold text-base text-slate-100">
+          معمای ۲: شناسایی متابولیت ماژور و فعال داروی فلوتامید (Flutamide)
         </h3>
         <p className="text-xs text-slate-300 leading-6">
           فلوتامید یک پیش‌داروی غیر استروئیدی است که در کبد توسط CYP1A2 هیدروکسیله شده و به فرم بسیار قوی‌تر تبدیل می‌شود. کدام گزینه متابولیت فعال آن است؟
@@ -233,17 +390,105 @@ export const AndrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۲: دسته‌بندی ۱۰ ترکیب */}
+      {/* معمای ۳: جایگزین SARM */}
+      <div
+        className={`rounded-2xl border p-6 space-y-4 transition ${
+          metaboliteSolved ? 'border-slate-700/80 bg-slate-900/75' : 'border-slate-800 bg-slate-900/30 opacity-60 pointer-events-none'
+        }`}
+      >
+        <h3 className="font-bold text-base text-slate-100">معمای ۳: پیشنهاد یک SARM به‌جای بیکالوتامید</h3>
+        <p className="text-xs leading-6 text-slate-300">
+          آقای زیگموند به دارویی قوی‌تر و با خطر متابولیزه‌شدن کمتر نیاز دارد. یکی از دو ساختار SARM را انتخاب کنید.
+        </p>
+        <select
+          disabled={!metaboliteSolved || sarmSolved}
+          value={sarmChoice}
+          onChange={(event) => setSarmChoice(event.target.value)}
+          className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-white"
+        >
+          <option value="">انتخاب SARM...</option>
+          <option value="6">ترکیب ۶ — انوبوسارم (Enobosarm)</option>
+          <option value="10">ترکیب ۱۰ — آندارین (Andarine)</option>
+        </select>
+        {sarmFeedback && (
+          <div className={`rounded-xl border p-3 text-sm ${sarmFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200' : 'border-rose-500/40 bg-rose-950/40 text-rose-200'}`}>
+            {sarmFeedback.text}
+          </div>
+        )}
+        {!sarmSolved && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              disabled={!metaboliteSolved || sarmLoading || !sarmChoice}
+              onClick={handleSarmSubmit}
+              className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
+            >
+              {sarmLoading ? 'در حال بررسی...' : 'ثبت انتخاب SARM'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* معمای ۴: کاهش آندروژنیسیته */}
+      <div
+        className={`rounded-2xl border p-6 space-y-4 transition ${
+          sarmSolved ? 'border-slate-700/80 bg-slate-900/75' : 'border-slate-800 bg-slate-900/30 opacity-60 pointer-events-none'
+        }`}
+      >
+        <h3 className="font-bold text-base text-slate-100">معمای ۴: اصلاح ساختار برای کمینه‌کردن آندروژنیسیته</h3>
+        <div className="space-y-2">
+          {[
+            { id: 'remove_androgenic_features', label: 'حذف بخش‌هایی از ساختار که خواص آندروژنی ایجاد می‌کنند' },
+            { id: 'add_low_androgenic_features', label: 'افزودن تغییرات ساختاری کاهنده آندروژنیسیته' },
+            { id: 'add_androgenic_features', label: 'افزودن استخلاف‌های تقویت‌کننده اثر آندروژنی (فریبنده)' },
+          ].map((modification) => {
+            const active = androgenicityMods.includes(modification.id);
+            return (
+              <button
+                key={modification.id}
+                type="button"
+                disabled={!sarmSolved || androgenicitySolved}
+                aria-pressed={active}
+                onClick={() => toggleAndrogenicityMod(modification.id)}
+                className={`w-full rounded-xl border p-3 text-right text-sm transition ${
+                  active ? 'border-cyan-400 bg-cyan-950/50 text-cyan-100' : 'border-slate-700 bg-[#081220] text-slate-300'
+                }`}
+              >
+                {modification.label}
+              </button>
+            );
+          })}
+        </div>
+        {androgenicityFeedback && (
+          <div className={`rounded-xl border p-3 text-sm ${androgenicityFeedback.ok ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200' : 'border-rose-500/40 bg-rose-950/40 text-rose-200'}`}>
+            {androgenicityFeedback.text}
+          </div>
+        )}
+        {!androgenicitySolved && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              disabled={!sarmSolved || androgenicityLoading || !androgenicityMods.length}
+              onClick={handleAndrogenicitySubmit}
+              className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
+            >
+              {androgenicityLoading ? 'در حال بررسی...' : 'تایید اصلاحات آندروژنیسیته'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* معمای ۵: دسته‌بندی ۱۰ ترکیب */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
-          metaboliteSolved
+          androgenicitySolved
             ? 'border-slate-700/80 bg-slate-900/75'
             : 'border-slate-800 bg-slate-900/30 opacity-60 pointer-events-none'
         }`}
       >
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-base text-slate-100">
-            معمای ۲: دسته‌بندی ۱۰ ترکیب دارویی محور آندروژن در ۵ کلاس مکانیسمی
+            معمای ۵: دسته‌بندی ۱۰ ترکیب دارویی محور آندروژن در ۵ کلاس مکانیسمی
           </h3>
           {!classificationSolved && assignedCount > 0 && (
             <button
@@ -256,6 +501,7 @@ export const AndrogenLab: React.FC<Props> = ({
                   sarms: [],
                 })
               }
+              disabled={!androgenicitySolved}
               className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1"
             >
               <RotateCcw className="w-3.5 h-3.5" /> پاکسازی
@@ -267,9 +513,12 @@ export const AndrogenLab: React.FC<Props> = ({
           {ANDROGEN_DRUGS.filter((d) => !Object.values(buckets).flat().includes(d.id)).map((drug) => (
             <div
               key={drug.id}
-              draggable={!classificationSolved}
+              draggable={androgenicitySolved && !classificationSolved}
               onDragStart={(e) => e.dataTransfer.setData('text/plain', drug.id)}
-              onClick={() => setSelectedChip(selectedChip === drug.id ? null : drug.id)}
+              onClick={() => {
+                if (!androgenicitySolved || classificationSolved) return;
+                setSelectedChip(selectedChip === drug.id ? null : drug.id);
+              }}
               className={`rounded-xl border p-3 cursor-pointer transition ${
                 selectedChip === drug.id
                   ? 'border-cyan-400 bg-cyan-950/50'
@@ -342,7 +591,7 @@ export const AndrogenLab: React.FC<Props> = ({
         {!classificationSolved && (
           <div className="flex justify-end">
             <button
-              disabled={classLoading || assignedCount < 10}
+              disabled={!androgenicitySolved || classLoading || assignedCount < 10}
               onClick={handleClassSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
             >
@@ -352,7 +601,7 @@ export const AndrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۳: کمپلکس آنزیم ۵-آلفا ردوکتاز */}
+      {/* معمای ۶: کمپلکس آنزیم ۵-آلفا ردوکتاز */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           classificationSolved
@@ -362,7 +611,7 @@ export const AndrogenLab: React.FC<Props> = ({
       >
         <h3 className="font-bold text-base text-slate-100 flex items-center gap-2">
           <Cpu className="w-5 h-5 text-cyan-400" />
-          <span>معمای ۳: شبیه‌سازی کمپلکس مهارکننده در سایت فعال آنزیم ۵-آلفا ردوکتاز</span>
+          <span>معمای ۶: شبیه‌سازی کمپلکس مهارکننده در سایت فعال آنزیم ۵-آلفا ردوکتاز</span>
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -375,7 +624,7 @@ export const AndrogenLab: React.FC<Props> = ({
                   <button
                     key={num}
                     type="button"
-                    disabled={enzymeComplexSolved}
+                    disabled={!classificationSolved || enzymeComplexSolved}
                     onClick={() => toggleInhibitor(num)}
                     className={`px-3 py-1.5 rounded-lg font-mono text-xs font-bold border ${
                       active
@@ -393,7 +642,7 @@ export const AndrogenLab: React.FC<Props> = ({
           <div className="rounded-xl border border-slate-700 bg-[#081220] p-4 space-y-2">
             <div className="text-xs font-bold text-cyan-300">۲. مکانیسم مهار در سایت فعال:</div>
             <select
-              disabled={enzymeComplexSolved}
+              disabled={!classificationSolved || enzymeComplexSolved}
               value={complexState.cofactor_complex}
               onChange={(e) => setComplexState((p) => ({ ...p, cofactor_complex: e.target.value }))}
               className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-xs text-white"
@@ -408,7 +657,7 @@ export const AndrogenLab: React.FC<Props> = ({
           <div className="rounded-xl border border-slate-700 bg-[#081220] p-4 space-y-2">
             <div className="text-xs font-bold text-cyan-300">۳. فارماکوفور کلیدی حلقه A در ترکیب اهریمن:</div>
             <select
-              disabled={enzymeComplexSolved}
+              disabled={!classificationSolved || enzymeComplexSolved}
               value={complexState.pharmacophore}
               onChange={(e) => setComplexState((p) => ({ ...p, pharmacophore: e.target.value }))}
               className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-xs text-white"
@@ -444,7 +693,13 @@ export const AndrogenLab: React.FC<Props> = ({
             </button>
           ) : (
             <button
-              disabled={compLoading}
+              disabled={
+                compLoading ||
+                !classificationSolved ||
+                !complexState.selected_inhibitors.length ||
+                !complexState.cofactor_complex ||
+                !complexState.pharmacophore
+              }
               onClick={handleComplexSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >

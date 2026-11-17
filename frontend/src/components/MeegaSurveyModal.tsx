@@ -48,17 +48,13 @@ const LIKERT_LABELS = [
 ];
 
 export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
-  const [answers, setAnswers] = useState<Record<string, number>>(() => {
-    const initial: Record<string, number> = {};
-    MEEGA_QUESTIONS.forEach((q) => {
-      initial[q.id] = 5;
-    });
-    return initial;
-  });
+  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [comments, setComments] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [doneData, setDoneData] = useState<any>(null);
+  const answeredCount = MEEGA_QUESTIONS.filter((q) => answers[q.id] !== undefined).length;
+  const unansweredCount = MEEGA_QUESTIONS.length - answeredCount;
 
   const handleSelect = (qId: string, val: number) => {
     setAnswers((prev) => ({ ...prev, [qId]: val }));
@@ -66,6 +62,10 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (unansweredCount > 0) {
+      setError(`لطفاً به همه پرسش‌ها پاسخ دهید. ${unansweredCount} پرسش بی‌پاسخ مانده است.`);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -80,13 +80,18 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="meega-title"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+    >
       <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-cyan-500/40 bg-[#0b1728] p-6 md:p-8 space-y-6">
         <div className="flex items-center justify-between border-b border-slate-800 pb-4 sticky top-0 bg-[#0b1728] z-10">
           <div className="flex items-center gap-2.5">
             <ClipboardCheck className="w-6 h-6 text-emerald-400" />
             <div>
-              <h2 className="font-extrabold text-base md:text-lg text-white">
+              <h2 id="meega-title" className="font-extrabold text-base md:text-lg text-white">
                 پرسشنامه استاندارد ارزیابی کیفیت بازی آموزشی (MEEGA+)
               </h2>
               <p className="text-xs text-slate-400">
@@ -94,7 +99,7 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
+          <button type="button" onClick={onClose} aria-label="بستن پرسشنامه" className="text-slate-400 hover:text-white p-1">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -132,6 +137,9 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <p className="text-xs text-slate-300" aria-live="polite">
+              پاسخ‌داده‌شده: {answeredCount} از {MEEGA_QUESTIONS.length}
+            </p>
             <div className="space-y-3">
               {MEEGA_QUESTIONS.map((q, idx) => (
                 <div
@@ -146,11 +154,13 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
                       {q.domain}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div role="radiogroup" aria-label={`${idx + 1}. ${q.text}`} className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     {LIKERT_LABELS.map((opt) => (
                       <button
                         key={opt.val}
                         type="button"
+                        role="radio"
+                        aria-checked={answers[q.id] === opt.val}
                         onClick={() => handleSelect(q.id, opt.val)}
                         className={`py-2 px-2 rounded-xl text-[11px] font-semibold border transition ${
                           answers[q.id] === opt.val
@@ -196,7 +206,7 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || unansweredCount > 0}
                 className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-6 py-2.5 text-sm flex items-center gap-2"
               >
                 <Sparkles className="w-4 h-4" />
