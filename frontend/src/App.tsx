@@ -13,10 +13,8 @@ import {
   Sparkles,
   Skull,
   ClipboardCheck,
-  CircleHelp,
-  UserRound,
 } from 'lucide-react';
-import { api, ApiError, clearTokens, getAccessToken } from './api';
+import { api, clearTokens, getAccessToken } from './api';
 import { Badge, GameSession, LeaderboardEntry, StudentUser } from './types';
 import { AuthScreen } from './components/AuthScreen';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
@@ -28,8 +26,6 @@ import { ProgestinLab } from './components/puzzles/ProgestinLab';
 import { AndrogenLab } from './components/puzzles/AndrogenLab';
 import { FinalAntidoteLab } from './components/puzzles/FinalAntidoteLab';
 import { MeegaSurveyModal } from './components/MeegaSurveyModal';
-import { UserProfileModal } from './components/UserProfileModal';
-import { GuidedTour, TourStep } from './components/GuidedTour';
 
 type ActiveView =
   | 'map'
@@ -70,34 +66,6 @@ const DEPARTMENTS = [
   },
 ];
 
-const TOUR_STEPS: TourStep[] = [
-  {
-    target: '[data-tour="navigation"]',
-    title: 'نقشه و جابه‌جایی',
-    description: 'از این نوار بین نقشه، پنج آزمایشگاه و اتاق نهایی جابه‌جا شوید. دپارتمان‌ها پس از عبور از گیت ورودی در دسترس هستند.',
-  },
-  {
-    target: '[data-tour="progress"]',
-    title: 'زمان و امتیاز',
-    description: 'زمان بازرسی FDA، امتیاز کل و دسترسی به جدول رده‌بندی را از این قسمت دنبال کنید.',
-  },
-  {
-    target: '[data-tour="workspace"]',
-    title: 'بخش فعال بازی',
-    description: 'معماهای هر بخش به ترتیب نمایش داده می‌شوند. پاسخ‌ها را انتخاب کنید و برای ثبت، از دکمه همان معما استفاده کنید.',
-  },
-  {
-    target: '[data-tour="clues"]',
-    title: 'پرونده سرنخ‌ها و نشان‌ها',
-    description: 'سرنخ‌های کشف‌شده برای شناخت اهریمن و نشان‌های تخصصی خود را اینجا مرور کنید.',
-  },
-  {
-    target: '[data-tour="profile"]',
-    title: 'نمایه و امنیت حساب',
-    description: 'اطلاعات حساب و آمار بازی را ببینید یا از نمایه، رمز عبور خود را به‌روزرسانی کنید.',
-  },
-];
-
 export function App() {
   const [user, setUser] = useState<StudentUser | null>(null);
   const [session, setSession] = useState<GameSession | null>(null);
@@ -106,34 +74,22 @@ export function App() {
   const [activeView, setActiveView] = useState<ActiveView>('map');
   const [timeLeft, setTimeLeft] = useState<number>(3600);
   const [loadingApp, setLoadingApp] = useState<boolean>(true);
-  const [startupError, setStartupError] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showTour, setShowTour] = useState(false);
-  const [tourStarted, setTourStarted] = useState(false);
   const [showMeegaModal, setShowMeegaModal] = useState(false);
-  const [surveyPrompted, setSurveyPrompted] = useState(false);
   const [meegaSubmitted, setMeegaSubmitted] = useState(false);
-  const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const loadInitialData = async () => {
     if (!getAccessToken()) {
       setLoadingApp(false);
       return;
     }
-    setStartupError(null);
     try {
-      const [profile, gameData] = await Promise.all([
+      const [profile, gameData, meegaStatus] = await Promise.all([
         api.getProfile(),
         api.getSession(),
+        api.getMeegaStatus().catch(() => ({ submitted: false })),
       ]);
-      const meegaStatus = await api.getMeegaStatus().catch((err: unknown) => {
-        showNotification(
-          err instanceof Error ? `وضعیت پرسشنامه دریافت نشد: ${err.message}` : 'وضعیت پرسشنامه دریافت نشد.',
-          true
-        );
-        return { submitted: false };
-      });
       setUser(profile);
       setSession(gameData.session);
       setBadges(gameData.badges || []);
@@ -142,13 +98,9 @@ export function App() {
       if (!gameData.session.completed_stages?.includes('entrance')) {
         setActiveView('entrance');
       }
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        clearTokens();
-        setUser(null);
-      } else {
-        setStartupError(err instanceof Error ? err.message : 'راه‌اندازی بازی ناموفق بود.');
-      }
+    } catch {
+      clearTokens();
+      setUser(null);
     } finally {
       setLoadingApp(false);
     }
@@ -157,28 +109,6 @@ export function App() {
   useEffect(() => {
     loadInitialData();
   }, []);
-
-  useEffect(() => {
-    const finished = session?.status === 'completed' || session?.completed_stages?.includes('final');
-    if (
-      user &&
-      session &&
-      !finished &&
-      !tourStarted &&
-      localStorage.getItem('medchem_tour_seen') !== 'true'
-    ) {
-      setShowTour(true);
-      setTourStarted(true);
-    }
-  }, [user, session, tourStarted]);
-
-  useEffect(() => {
-    const completed = session?.status === 'completed' || session?.completed_stages?.includes('final');
-    if (completed && !meegaSubmitted && !surveyPrompted) {
-      setShowMeegaModal(true);
-      setSurveyPrompted(true);
-    }
-  }, [session, meegaSubmitted, surveyPrompted]);
 
   useEffect(() => {
     if (!user || !session || session.status === 'completed') return;
@@ -196,8 +126,8 @@ export function App() {
     return `${m}:${s}`;
   };
 
-  const showNotification = (msg: string, isError = false) => {
-    setToast({ message: msg, isError });
+  const showNotification = (msg: string) => {
+    setToast(msg);
     setTimeout(() => setToast(null), 5000);
   };
 
@@ -234,8 +164,8 @@ export function App() {
     try {
       const res = await api.getLeaderboard();
       setLeaderboard(res.leaderboard);
-    } catch (err) {
-      showNotification(err instanceof Error ? err.message : 'دریافت جدول رده‌بندی ناموفق بود.', true);
+    } catch {
+      // ignore
     }
   };
 
@@ -243,16 +173,6 @@ export function App() {
     clearTokens();
     setUser(null);
     setSession(null);
-    setShowTour(false);
-    setTourStarted(false);
-    setShowProfileModal(false);
-    setSurveyPrompted(false);
-    setStartupError(null);
-  };
-
-  const closeTour = () => {
-    setShowTour(false);
-    localStorage.setItem('medchem_tour_seen', 'true');
   };
 
   if (loadingApp) {
@@ -264,44 +184,12 @@ export function App() {
   }
 
   if (!user) {
-    if (getAccessToken() && startupError) {
-      return (
-        <div className="min-h-screen lab-grid-bg flex items-center justify-center p-4">
-          <section role="alert" className="w-full max-w-lg rounded-2xl border border-rose-500/40 bg-slate-900 p-6 text-center">
-            <AlertOctagon className="mx-auto h-8 w-8 text-rose-400" />
-            <h1 className="mt-3 text-lg font-bold text-white">اتصال به سامانه ممکن نشد</h1>
-            <p className="mt-2 text-sm text-slate-300">{startupError}</p>
-            <div className="mt-5 flex justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setLoadingApp(true);
-                  void loadInitialData();
-                }}
-                className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-bold text-slate-950"
-              >
-                تلاش دوباره
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  clearTokens();
-                  setStartupError(null);
-                }}
-                className="rounded-xl border border-slate-600 px-4 py-2 text-sm text-slate-200"
-              >
-                خروج از حساب
-              </button>
-            </div>
-          </section>
-        </div>
-      );
-    }
     return (
       <AuthScreen
-        onSuccess={() => {
+        onSuccess={(loggedInUser) => {
+          setUser(loggedInUser);
           setLoadingApp(true);
-          void loadInitialData();
+          loadInitialData();
         }}
       />
     );
@@ -312,24 +200,14 @@ export function App() {
     (d) => session?.completed_stages?.includes(d)
   );
   const gameCompleted = session?.status === 'completed' || session?.completed_stages?.includes('final');
-  const currentSection =
-    activeView === 'map'
-      ? 'نقشه دپارتمان‌ها'
-      : activeView === 'leaderboard'
-        ? 'جدول رده‌بندی'
-        : activeView === 'entrance'
-          ? 'گیت امنیتی ورودی'
-          : activeView === 'final'
-            ? 'سنتز پادزهر'
-            : DEPARTMENTS.find((department) => department.code === activeView)?.title ?? 'بازی';
 
   return (
-    <div className="min-h-screen lab-grid-bg flex flex-col">
+    <div className="min-h-screen lab-grid-bg flex flex-col overflow-x-hidden">
       {/* نوار وضعیت بالای صفحه (HUD) */}
       <header className="sticky top-0 z-40 border-b border-slate-800 bg-[#07111f]/95 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
               <FlaskConical className="w-5 h-5" />
             </div>
             <div>
@@ -351,7 +229,7 @@ export function App() {
             </div>
           </div>
 
-          <div data-tour="progress" className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <div
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold ${
                 gameCompleted
@@ -375,9 +253,7 @@ export function App() {
 
             <button
               onClick={() => setShowMeegaModal(true)}
-              disabled={!gameCompleted}
-              title={gameCompleted ? 'پرسشنامه MEEGA+' : 'پس از تکمیل بازی در دسترس خواهد بود'}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition ${
                 meegaSubmitted
                   ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
                   : 'border-cyan-500/40 bg-cyan-950/30 text-cyan-200 hover:border-cyan-400'
@@ -388,31 +264,18 @@ export function App() {
             </button>
 
             <button
-              data-tour="profile"
-              onClick={() => setShowProfileModal(true)}
-              title="نمایه کاربری و آمار بازی"
-              aria-label="نمایه کاربری"
-              className="flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 p-2 text-slate-300 transition hover:border-cyan-400 hover:text-cyan-200"
+              onClick={openLeaderboard}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 hover:border-cyan-400 bg-slate-900 text-xs font-semibold text-slate-200 transition"
             >
-              <UserRound className="h-4 w-4" />
-              <span className="hidden text-xs font-semibold sm:inline">نمایه</span>
-            </button>
-
-            <button
-              onClick={() => setShowTour(true)}
-              title="راهنمای بازی"
-              aria-label="راهنمای بازی"
-              className="p-2 rounded-xl border border-slate-700 hover:border-cyan-400 bg-slate-900 text-slate-300 transition"
-            >
-              <CircleHelp className="w-4 h-4" />
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <span>رده‌بندی</span>
             </button>
 
             <button
               onClick={() => setShowPasswordModal(true)}
-              title="تغییر رمز عبور"
-              className="p-2 rounded-xl border border-slate-700 hover:border-cyan-400 bg-slate-900 text-slate-300 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700 hover:border-cyan-400 bg-slate-900 text-xs font-semibold text-slate-200 transition"
             >
-              <KeyRound className="w-4 h-4" />
+              <span>پروفایل</span>
             </button>
 
             <button
@@ -424,100 +287,17 @@ export function App() {
             </button>
           </div>
         </div>
-        <nav
-          data-tour="navigation"
-          aria-label="ناوبری بازی"
-          className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-4 pb-3"
-        >
-          <button
-            type="button"
-            disabled={!entranceSolved}
-            aria-current={activeView === 'map' ? 'page' : undefined}
-            onClick={() => setActiveView('map')}
-            className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-              activeView === 'map'
-                ? 'border-cyan-400 bg-cyan-500 text-slate-950'
-                : 'border-slate-700 bg-slate-900/80 text-slate-300 hover:border-cyan-500/60'
-            }`}
-          >
-            نقشه شرکت
-          </button>
-          {DEPARTMENTS.map((department, index) => {
-            const active = activeView === department.code;
-            const completed = session?.completed_stages?.includes(department.code);
-            return (
-              <button
-                key={department.code}
-                type="button"
-                disabled={!entranceSolved}
-                aria-current={active ? 'page' : undefined}
-                onClick={() => setActiveView(department.code as ActiveView)}
-                className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                  active
-                    ? 'border-cyan-400 bg-cyan-500 text-slate-950'
-                    : completed
-                      ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-200 hover:border-emerald-400'
-                      : 'border-slate-700 bg-slate-900/80 text-slate-300 hover:border-cyan-500/60'
-                }`}
-              >
-                {index + 1}. {department.title.replace(/^دپارتمان \d+:\s*/, '')}
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            disabled={!allFiveDepartmentsDone}
-            aria-current={activeView === 'final' ? 'page' : undefined}
-            onClick={() => setActiveView('final')}
-            className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-              activeView === 'final'
-                ? 'border-rose-400 bg-rose-500 text-white'
-                : 'border-slate-700 bg-slate-900/80 text-slate-300 hover:border-rose-400/70'
-            }`}
-          >
-            مرحله نهایی
-          </button>
-          <button
-            type="button"
-            aria-current={activeView === 'leaderboard' ? 'page' : undefined}
-            onClick={openLeaderboard}
-            className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold transition ${
-              activeView === 'leaderboard'
-                ? 'border-amber-400 bg-amber-400 text-slate-950'
-                : 'border-slate-700 bg-slate-900/80 text-slate-300 hover:border-amber-400/70'
-            }`}
-          >
-            رده‌بندی
-          </button>
-        </nav>
       </header>
 
       {toast && (
-        <div
-          role={toast.isError ? 'alert' : 'status'}
-          className={`fixed bottom-5 left-5 z-50 flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm shadow-xl ${
-            toast.isError
-              ? 'border-rose-400/50 bg-rose-950/95 text-rose-100'
-              : 'border-emerald-400/50 bg-emerald-950/95 text-emerald-100'
-          }`}
-        >
-          {toast.isError
-            ? <AlertOctagon className="h-5 w-5 shrink-0 text-rose-400" />
-            : <Award className="h-5 w-5 shrink-0 text-emerald-400" />}
-          <span>{toast.message}</span>
+        <div className="fixed bottom-5 left-5 z-50 rounded-2xl border border-emerald-400/50 bg-emerald-950/95 px-4 py-3 text-sm text-emerald-100 shadow-xl flex items-center gap-2">
+          <Award className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span>{toast}</span>
         </div>
       )}
 
-      <div className="mx-auto w-full max-w-7xl px-4 pt-4">
-        <nav aria-label="مسیر صفحه" className="text-xs text-slate-400">
-          <span>بحران در فارماکوکم</span>
-          <span className="mx-2 text-slate-600">/</span>
-          <span className="font-semibold text-cyan-200" aria-current="page">{currentSection}</span>
-        </nav>
-      </div>
-
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div data-tour="workspace" className="lg:col-span-9">
+        <div className="lg:col-span-9">
           {activeView === 'entrance' && (
             <EntranceGatePuzzle
               isSolved={entranceSolved}
@@ -552,10 +332,6 @@ export function App() {
             <EstrogenLab
               metabolismSolved={isPuzzleSolved('estrogen', 'metabolism_enzymes')}
               dockingSolved={isPuzzleSolved('estrogen', 'receptor_docking_and_class')}
-              oralDesignSolved={isPuzzleSolved('estrogen', 'oral_long_acting_design')}
-              potencySolved={isPuzzleSolved('estrogen', 'estrogen_potency_sort')}
-              metaboliteSolved={isPuzzleSolved('estrogen', 'active_metabolite_prevention')}
-              classificationSolved={isPuzzleSolved('estrogen', 'estrogen_drug_classification')}
               onSubmitPuzzle={(pCode, ans, elapsed) =>
                 handlePuzzleSubmit('estrogen', pCode, ans, elapsed)
               }
@@ -577,9 +353,6 @@ export function App() {
           {activeView === 'androgen' && (
             <AndrogenLab
               metaboliteSolved={isPuzzleSolved('androgen', 'flutamide_metabolite')}
-              entryPotencySolved={isPuzzleSolved('androgen', 'androgen_entry_potency_sort')}
-              sarmSolved={isPuzzleSolved('androgen', 'sarm_alternative')}
-              androgenicitySolved={isPuzzleSolved('androgen', 'low_androgenicity_design')}
               classificationSolved={isPuzzleSolved('androgen', 'antiandrogen_classification')}
               enzymeComplexSolved={isPuzzleSolved('androgen', 'five_alpha_reductase_complex')}
               onSubmitPuzzle={(pCode, ans, elapsed) =>
@@ -591,7 +364,6 @@ export function App() {
 
           {activeView === 'final' && (
             <FinalAntidoteLab
-              mappingSolved={isPuzzleSolved('final', 'hidden_room_classification')}
               vaultSolved={isPuzzleSolved('final', 'biosynthesis_vault')}
               antidoteSolved={isPuzzleSolved('final', 'antidote_synthesis')}
               onSubmitPuzzle={(pCode, ans, elapsed) =>
@@ -727,8 +499,10 @@ export function App() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {DEPARTMENTS.map((dept) => {
+                {DEPARTMENTS.map((dept, index) => {
                   const isCompleted = session?.completed_stages?.includes(dept.code);
+                  const persianNumbers = ['۱', '۲', '۳', '۴', '۵'];
+                  const titleFormatted = dept.title.replace(/^[۰-۹0-9]+/, persianNumbers[index] || '');
                   return (
                     <div
                       key={dept.code}
@@ -740,7 +514,7 @@ export function App() {
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="font-bold text-sm text-white">{dept.title}</span>
+                          <span className="font-bold text-sm text-white">{titleFormatted}</span>
                           {isCompleted && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
                         </div>
                         <p className="text-xs text-slate-400 leading-6">{dept.subtitle}</p>
@@ -770,7 +544,7 @@ export function App() {
         </div>
 
         {/* ستون کناری: پرونده سرنخ‌های کشف‌شده و نشان‌ها */}
-        <aside data-tour="clues" className="lg:col-span-3 space-y-5">
+        <aside className="lg:col-span-3 space-y-5">
           <div className="rounded-2xl border border-slate-700/80 bg-slate-900/80 p-4 space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold text-cyan-300 border-b border-slate-800 pb-2.5">
               <FileSearch className="w-4 h-4" />
@@ -821,18 +595,6 @@ export function App() {
         </aside>
       </main>
 
-      {showProfileModal && user && (
-        <UserProfileModal
-          user={user}
-          session={session}
-          badgeCount={badges.length}
-          onClose={() => setShowProfileModal(false)}
-          onChangePassword={() => {
-            setShowProfileModal(false);
-            setShowPasswordModal(true);
-          }}
-        />
-      )}
       {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
       {showMeegaModal && (
         <MeegaSurveyModal
@@ -843,7 +605,6 @@ export function App() {
           }}
         />
       )}
-      {showTour && <GuidedTour steps={TOUR_STEPS} onClose={closeTour} />}
     </div>
   );
 }
