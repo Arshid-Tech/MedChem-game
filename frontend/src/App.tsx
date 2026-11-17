@@ -325,7 +325,7 @@ export function App() {
               <span className="hidden md:inline">رده‌بندی</span>
             </button>
 
-            {/* پروفایل (شامل تغییر رمز عبور و اطلاعات دانشجو) */}
+            {/* پروفایل */}
             <button
               type="button"
               onClick={() => setShowProfileModal(true)}
@@ -367,7 +367,7 @@ export function App() {
           </div>
         </div>
 
-        {/* نوار دسترسی سریع به اتاق‌ها (بدون نوار اسکرول افقی مزاحم) */}
+        {/* نوار دسترسی سریع به اتاق‌ها */}
         {entranceSolved && (
           <div className="border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-100/70 dark:bg-[#050c17]">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
@@ -766,13 +766,13 @@ export function App() {
         <UserProfileModal
           user={user}
           onClose={() => setShowProfileModal(false)}
-          onUserUpdated={(updatedUser) => setUser(updatedUser)}
+          onProfileUpdated={(updatedUser: StudentUser) => setUser(updatedUser)}
         />
       )}
 
       {showTour && (
         <GuidedTour
-          onComplete={() => {
+          onClose={() => {
             localStorage.setItem('medchem_tour_seen', 'true');
             setShowTour(false);
           }}

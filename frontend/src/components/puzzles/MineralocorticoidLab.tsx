@@ -9,6 +9,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { SteroidMoleculeSVG } from '../molecules/SteroidMoleculeSVG';
+import { toPersianDigits } from '../../utils/persian';
 
 interface RouteCompound {
   id: string;
@@ -37,8 +38,8 @@ const ROUTE_COMPOUNDS: RouteCompound[] = [
 type BucketKey = 'systemic' | 'topical' | 'inhalation';
 
 interface Props {
-  entryPotencySolved: boolean;
-  sarmSolved: boolean;
+  arrowsSolved: boolean;
+  routesSolved: boolean;
   onSubmitPuzzle: (
     puzzleCode: string,
     answer: unknown,
@@ -48,18 +49,17 @@ interface Props {
 }
 
 export const MineralocorticoidLab: React.FC<Props> = ({
-  entryPotencySolved,
-  sarmSolved,
+  arrowsSolved,
+  routesSolved,
   onSubmitPuzzle,
   onBackToMap,
 }) => {
-  // معمای ۱: فلش‌های مقایسه ترکیب ۱ نسبت به ۲
   const [arrows, setArrows] = useState<{
     anti_inflammatory: 'up' | 'down' | '';
     half_life: 'up' | 'down' | '';
     mineralocorticoid: 'up' | 'down' | '';
   }>(
-    entryPotencySolved
+    arrowsSolved
       ? { anti_inflammatory: 'up', half_life: 'up', mineralocorticoid: 'down' }
       : { anti_inflammatory: '', half_life: '', mineralocorticoid: '' }
   );
@@ -67,9 +67,8 @@ export const MineralocorticoidLab: React.FC<Props> = ({
   const [arrowFeedback, setArrowFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [arrowLoading, setArrowLoading] = useState(false);
 
-  // معمای ۲: دسته‌بندی ۹ ترکیب در ۳ سبد
   const [buckets, setBuckets] = useState<Record<BucketKey, string[]>>(
-    sarmSolved
+    routesSolved
       ? { systemic: ['1', '5', '8'], topical: ['2', '6', '7'], inhalation: ['3', '4', '9'] }
       : { systemic: [], topical: [], inhalation: [] }
   );
@@ -93,7 +92,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
   };
 
   const assignToBucket = (bucket: BucketKey, id: string) => {
-    if (sarmSolved) return;
+    if (routesSolved) return;
     setBuckets((prev) => {
       const cleaned: Record<BucketKey, string[]> = {
         systemic: prev.systemic.filter((x) => x !== id),
@@ -107,7 +106,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
   };
 
   const removeFromBucket = (bucket: BucketKey, id: string) => {
-    if (sarmSolved) return;
+    if (routesSolved) return;
     setBuckets((prev) => ({
       ...prev,
       [bucket]: prev[bucket].filter((x) => x !== id),
@@ -132,28 +131,28 @@ export const MineralocorticoidLab: React.FC<Props> = ({
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-cyan-500/30 bg-slate-900/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="rounded-2xl border border-cyan-500/30 bg-white dark:bg-slate-900/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div>
-          <div className="flex items-center gap-2 text-cyan-400 font-bold text-lg">
+          <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold text-lg">
             <Droplets className="w-6 h-6" />
             <span>دپارتمان دوم: بخش مینرالوکورتیکوئیدها و فارماکوکینتیک موضعی</span>
           </div>
-          <p className="text-slate-300 text-sm mt-1 leading-6">
+          <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
             یادداشت رمزگشایی‌شده: <em>«اثر احتباس آب و سدیم را به حداقل برسان؛ اهریمن قرار نیست کل بدن را درگیر کند، فقط یک بافت هدف موضعی...»</em>
           </p>
         </div>
         <button
           onClick={onBackToMap}
-          className="self-start md:self-center rounded-xl border border-slate-600 hover:border-cyan-400 px-4 py-2 text-xs font-semibold text-slate-200 transition"
+          className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
         >
           بازگشت به نقشه شرکت
         </button>
       </div>
 
       {/* معمای ۱: مقایسه ترکیب ۱ و ۲ */}
-      <div className="rounded-2xl border border-slate-700/80 bg-slate-900/75 p-6 space-y-5">
-        <h3 className="font-bold text-base text-slate-100">
-          معمای ۱: مقایسه فارماکولوژیک ترکیب ۱ (دارای Δ1 و متیل 6α) نسبت به ترکیب ۲ (کورتیزول)
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
+        <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
+          معمای {toPersianDigits(1)}: مقایسه فارماکولوژیک ترکیب ۱ (دارای Δ1 و متیل 6α) نسبت به ترکیب ۲ (کورتیزول)
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -175,27 +174,29 @@ export const MineralocorticoidLab: React.FC<Props> = ({
             { key: 'half_life' as const, label: 'نیمه‌عمر پلاسمایی ترکیب ۱ نسبت به ۲' },
             { key: 'mineralocorticoid' as const, label: 'اثر مینرالوکورتیکوئیدی ترکیب ۱ نسبت به ۲' },
           ].map((item) => (
-            <div key={item.key} className="rounded-xl border border-slate-700 bg-[#081220] p-4 space-y-3">
-              <div className="text-xs font-semibold text-slate-200">{item.label}</div>
+            <div key={item.key} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-3">
+              <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">{item.label}</div>
               <div className="flex gap-2">
                 <button
-                  disabled={entryPotencySolved}
+                  type="button"
+                  disabled={arrowsSolved}
                   onClick={() => setArrows((p) => ({ ...p, [item.key]: 'up' }))}
                   className={`flex-1 py-2 rounded-lg text-xs font-bold border flex items-center justify-center gap-1 transition ${
                     arrows[item.key] === 'up'
-                      ? 'border-emerald-400 bg-emerald-500/20 text-emerald-200'
-                      : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                      ? 'border-emerald-500 bg-emerald-500/20 text-emerald-700 dark:text-emerald-200'
+                      : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   <ArrowUp className="w-4 h-4" /> افزایش (↑)
                 </button>
                 <button
-                  disabled={entryPotencySolved}
+                  type="button"
+                  disabled={arrowsSolved}
                   onClick={() => setArrows((p) => ({ ...p, [item.key]: 'down' }))}
                   className={`flex-1 py-2 rounded-lg text-xs font-bold border flex items-center justify-center gap-1 transition ${
                     arrows[item.key] === 'down'
-                      ? 'border-rose-400 bg-rose-500/20 text-rose-200'
-                      : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                      ? 'border-rose-500 bg-rose-500/20 text-rose-700 dark:text-rose-200'
+                      : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   <ArrowDown className="w-4 h-4" /> کاهش (↓)
@@ -209,8 +210,8 @@ export const MineralocorticoidLab: React.FC<Props> = ({
           <div
             className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
               arrowFeedback.ok
-                ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200'
-                : 'border-rose-500/40 bg-rose-950/40 text-rose-200'
+                ? 'border-emerald-500/40 bg-emerald-950/80 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/80 text-rose-200'
             }`}
           >
             {arrowFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
@@ -218,9 +219,10 @@ export const MineralocorticoidLab: React.FC<Props> = ({
           </div>
         )}
 
-        {!entryPotencySolved && (
+        {!arrowsSolved && (
           <div className="flex justify-end">
             <button
+              type="button"
               disabled={arrowLoading || !arrows.anti_inflammatory || !arrows.half_life || !arrows.mineralocorticoid}
               onClick={handleArrowSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
@@ -234,51 +236,50 @@ export const MineralocorticoidLab: React.FC<Props> = ({
       {/* معمای ۲: دسته‌بندی مسیر تجویز ۹ ترکیب */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
-          entryPotencySolved
-            ? 'border-slate-700/80 bg-slate-900/75'
-            : 'border-slate-800 bg-slate-900/30 opacity-60 pointer-events-none'
+          arrowsSolved
+            ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
         }`}
       >
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-base text-slate-100 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-cyan-400" />
-            <span>معمای ۲: تفکیک ترکیبات بر اساس مسیر تجویز (سیستمیک، موضعی، استنشاقی)</span>
+          <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <Layers className="w-5 h-5 text-cyan-500" />
+            <span>معمای {toPersianDigits(2)}: تفکیک ترکیبات بر اساس مسیر تجویز (سیستمیک، موضعی، استنشاقی)</span>
           </h3>
-          {!sarmSolved && assignedIds.length > 0 && (
+          {!routesSolved && assignedIds.length > 0 && (
             <button
+              type="button"
               onClick={() => setBuckets({ systemic: [], topical: [], inhalation: [] })}
-              className="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1"
+              className="text-xs text-slate-500 hover:text-rose-500 flex items-center gap-1"
             >
               <RotateCcw className="w-3.5 h-3.5" /> بازنشانی سبدها
             </button>
           )}
         </div>
 
-        <p className="text-xs text-slate-300 leading-6">
-          هر یک از ۹ ترکیب زیر را با <strong>Drag & Drop</strong> (یا کلیک روی کارت و سپس کلیک روی سبد مقصد) در دسته دارویی مناسب قرار دهید:
+        <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
+          هر یک از {toPersianDigits(9)} ترکیب زیر را با <strong>Drag & Drop</strong> (یا کلیک روی کارت و سپس کلیک روی سبد مقصد) در دسته دارویی مناسب قرار دهید:
         </p>
 
-        {/* کارت‌های دسته‌بندی نشده */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {ROUTE_COMPOUNDS.filter((c) => !assignedIds.includes(c.id)).map((comp) => (
             <div
               key={comp.id}
-              draggable={!sarmSolved}
+              draggable={!routesSolved}
               onDragStart={(e) => e.dataTransfer.setData('text/plain', comp.id)}
               onClick={() => setSelectedChip(selectedChip === comp.id ? null : comp.id)}
               className={`rounded-xl border p-3 cursor-pointer transition ${
                 selectedChip === comp.id
-                  ? 'border-cyan-400 bg-cyan-950/50'
-                  : 'border-slate-700 bg-[#081220] hover:border-slate-500'
+                  ? 'border-cyan-500 bg-cyan-50 dark:border-cyan-400 dark:bg-cyan-950/50'
+                  : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220]'
               }`}
             >
-              <div className="font-bold text-xs text-cyan-300">{comp.label}</div>
-              <div className="text-[11px] text-slate-400 mt-1">{comp.hint}</div>
+              <div className="font-bold text-xs text-cyan-700 dark:text-cyan-300">{comp.label}</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{comp.hint}</div>
             </div>
           ))}
         </div>
 
-        {/* سه سبد مقصد */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
           {(
             [
@@ -298,9 +299,9 @@ export const MineralocorticoidLab: React.FC<Props> = ({
               onClick={() => {
                 if (selectedChip) assignToBucket(b.key, selectedChip);
               }}
-              className={`min-h-[160px] rounded-2xl border-2 border-dashed ${b.color} bg-slate-950/70 p-4 space-y-2.5`}
+              className={`min-h-[160px] rounded-2xl border-2 border-dashed ${b.color} bg-slate-100/70 dark:bg-slate-950/70 p-4 space-y-2.5`}
             >
-              <div className="text-xs font-bold text-slate-200">{b.title}</div>
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">{b.title}</div>
               <div className="space-y-1.5">
                 {buckets[b.key].map((id) => {
                   const item = ROUTE_COMPOUNDS.find((c) => c.id === id)!;
@@ -311,15 +312,15 @@ export const MineralocorticoidLab: React.FC<Props> = ({
                         e.stopPropagation();
                         removeFromBucket(b.key, id);
                       }}
-                      className="flex items-center justify-between rounded-lg bg-slate-800/90 border border-slate-700 px-3 py-1.5 text-xs text-slate-100 cursor-pointer hover:border-rose-400"
+                      className="flex items-center justify-between rounded-lg bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 cursor-pointer hover:border-rose-400"
                     >
                       <span>{item.label}</span>
-                      {!sarmSolved && <span className="text-rose-400 text-[11px]">×</span>}
+                      {!routesSolved && <span className="text-rose-500 text-[11px]">×</span>}
                     </div>
                   );
                 })}
                 {buckets[b.key].length === 0 && (
-                  <div className="text-[11px] text-slate-500 pt-4 text-center">
+                  <div className="text-[11px] text-slate-400 pt-4 text-center">
                     ترکیبات را اینجا رها کنید
                   </div>
                 )}
@@ -332,8 +333,8 @@ export const MineralocorticoidLab: React.FC<Props> = ({
           <div
             className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
               routeFeedback.ok
-                ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-200'
-                : 'border-rose-500/40 bg-rose-950/40 text-rose-200'
+                ? 'border-emerald-500/40 bg-emerald-950/80 text-emerald-200'
+                : 'border-rose-500/40 bg-rose-950/80 text-rose-200'
             }`}
           >
             {routeFeedback.ok ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
@@ -342,8 +343,9 @@ export const MineralocorticoidLab: React.FC<Props> = ({
         )}
 
         <div className="flex justify-end">
-          {sarmSolved ? (
+          {routesSolved ? (
             <button
+              type="button"
               onClick={onBackToMap}
               className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
@@ -351,6 +353,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
             </button>
           ) : (
             <button
+              type="button"
               disabled={routeLoading || assignedIds.length < 9}
               onClick={handleRouteSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
