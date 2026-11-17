@@ -11,6 +11,8 @@ import {
   AlertOctagon,
   FileSearch,
   Sparkles,
+  Skull,
+  ClipboardCheck,
 } from 'lucide-react';
 import { api, clearTokens, getAccessToken } from './api';
 import { Badge, GameSession, LeaderboardEntry, StudentUser } from './types';
@@ -22,6 +24,8 @@ import { MineralocorticoidLab } from './components/puzzles/MineralocorticoidLab'
 import { EstrogenLab } from './components/puzzles/EstrogenLab';
 import { ProgestinLab } from './components/puzzles/ProgestinLab';
 import { AndrogenLab } from './components/puzzles/AndrogenLab';
+import { FinalAntidoteLab } from './components/puzzles/FinalAntidoteLab';
+import { MeegaSurveyModal } from './components/MeegaSurveyModal';
 
 type ActiveView =
   | 'map'
@@ -31,6 +35,7 @@ type ActiveView =
   | 'estrogen'
   | 'progestin'
   | 'androgen'
+  | 'final'
   | 'leaderboard';
 
 const DEPARTMENTS = [
@@ -38,31 +43,26 @@ const DEPARTMENTS = [
     code: 'glucocorticoid',
     title: 'دپارتمان ۱: آزمایشگاه گلوکوکورتیکوئیدها',
     subtitle: 'کانفورماسیون حلقه‌ها و تحلیل SAR ضدالتهابی',
-    available: true,
   },
   {
     code: 'mineralocorticoid',
     title: 'دپارتمان ۲: بخش مینرالوکورتیکوئیدها',
     subtitle: 'احتباس آب و الکترولیت و تشخیص مسیر تجویز موضعی',
-    available: true,
   },
   {
     code: 'estrogen',
     title: 'دپارتمان ۳: آزمایشگاه استروژن‌ها',
     subtitle: 'مسیر متابولیسم و داکینگ سه‌بعدی در گیرنده (Glu353/Arg394)',
-    available: true,
   },
   {
     code: 'progestin',
     title: 'دپارتمان ۴: بخش پروژستین‌ها',
     subtitle: 'مشتقات ۱۹-نورآندروستان و فراهمی زیستی خوراکی',
-    available: true,
   },
   {
     code: 'androgen',
     title: 'دپارتمان ۵: آندروژن‌ها و مهارکننده‌های آنزیمی',
     subtitle: 'متابولیسم فلوتامید، SARMs و کمپلکس ۵-آلفا ردوکتاز',
-    available: true,
   },
 ];
 
@@ -75,6 +75,8 @@ export function App() {
   const [timeLeft, setTimeLeft] = useState<number>(3600);
   const [loadingApp, setLoadingApp] = useState<boolean>(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showMeegaModal, setShowMeegaModal] = useState(false);
+  const [meegaSubmitted, setMeegaSubmitted] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const loadInitialData = async () => {
@@ -83,10 +85,15 @@ export function App() {
       return;
     }
     try {
-      const [profile, gameData] = await Promise.all([api.getProfile(), api.getSession()]);
+      const [profile, gameData, meegaStatus] = await Promise.all([
+        api.getProfile(),
+        api.getSession(),
+        api.getMeegaStatus().catch(() => ({ submitted: false })),
+      ]);
       setUser(profile);
       setSession(gameData.session);
       setBadges(gameData.badges || []);
+      setMeegaSubmitted(Boolean(meegaStatus?.submitted));
       setTimeLeft(gameData.session.time_remaining_seconds ?? 3600);
       if (!gameData.session.completed_stages?.includes('entrance')) {
         setActiveView('entrance');
@@ -104,7 +111,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!user || !session) return;
+    if (!user || !session || session.status === 'completed') return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
@@ -189,10 +196,10 @@ export function App() {
   }
 
   const entranceSolved = session?.completed_stages?.includes('entrance') ?? false;
-  const allFiveDepartmentsDone =
-    ['glucocorticoid', 'mineralocorticoid', 'estrogen', 'progestin', 'androgen'].every((d) =>
-      session?.completed_stages?.includes(d)
-    );
+  const allFiveDepartmentsDone = ['glucocorticoid', 'mineralocorticoid', 'estrogen', 'progestin', 'androgen'].every(
+    (d) => session?.completed_stages?.includes(d)
+  );
+  const gameCompleted = session?.status === 'completed' || session?.completed_stages?.includes('final');
 
   return (
     <div className="min-h-screen lab-grid-bg flex flex-col">
@@ -206,8 +213,14 @@ export function App() {
             <div>
               <div className="font-extrabold text-sm text-white flex items-center gap-2">
                 <span>بحران در فارماکوکم</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                  پروژه اهریمن
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                    gameCompleted
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                  }`}
+                >
+                  {gameCompleted ? 'بحران مهار شد ✓' : 'پروژه اهریمن'}
                 </span>
               </div>
               <div className="text-xs text-slate-400">
@@ -219,13 +232,15 @@ export function App() {
           <div className="flex flex-wrap items-center gap-2.5">
             <div
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold ${
-                timeLeft < 600
+                gameCompleted
+                  ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
+                  : timeLeft < 600
                   ? 'border-rose-500/50 bg-rose-950/50 text-rose-300 animate-pulse'
                   : 'border-amber-500/40 bg-amber-950/30 text-amber-300'
               }`}
             >
               <Clock className="w-4 h-4" />
-              <span>بازرسی FDA:</span>
+              <span>{gameCompleted ? 'زمان باقی‌مانده:' : 'بازرسی FDA:'}</span>
               <span dir="ltr" className="font-mono text-sm">
                 {formatTime(timeLeft)}
               </span>
@@ -235,6 +250,18 @@ export function App() {
               <Sparkles className="w-4 h-4" />
               <span>امتیاز: {session?.total_score ?? 0}</span>
             </div>
+
+            <button
+              onClick={() => setShowMeegaModal(true)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition ${
+                meegaSubmitted
+                  ? 'border-emerald-500/40 bg-emerald-950/30 text-emerald-300'
+                  : 'border-cyan-500/40 bg-cyan-950/30 text-cyan-200 hover:border-cyan-400'
+              }`}
+            >
+              <ClipboardCheck className="w-4 h-4" />
+              <span>{meegaSubmitted ? 'MEEGA+ ثبت شد ✓' : 'پرسشنامه MEEGA+'}</span>
+            </button>
 
             <button
               onClick={openLeaderboard}
@@ -336,6 +363,18 @@ export function App() {
             />
           )}
 
+          {activeView === 'final' && (
+            <FinalAntidoteLab
+              vaultSolved={isPuzzleSolved('final', 'biosynthesis_vault')}
+              antidoteSolved={isPuzzleSolved('final', 'antidote_synthesis')}
+              onSubmitPuzzle={(pCode, ans, elapsed) =>
+                handlePuzzleSubmit('final', pCode, ans, elapsed)
+              }
+              onOpenSurvey={() => setShowMeegaModal(true)}
+              onBackToMap={() => setActiveView('map')}
+            />
+          )}
+
           {activeView === 'leaderboard' && (
             <div className="rounded-2xl border border-slate-700/80 bg-slate-900/80 p-6 space-y-4">
               <div className="flex items-center justify-between">
@@ -390,31 +429,75 @@ export function App() {
 
           {activeView === 'map' && (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-rose-500/30 bg-gradient-to-l from-rose-950/30 via-slate-900/90 to-slate-900/90 p-5 flex items-start gap-3">
-                <AlertOctagon className="w-6 h-6 text-rose-400 shrink-0 mt-0.5" />
-                <div>
-                  <h2 className="font-bold text-base text-rose-200">
-                    هشدار امنیتی سطح ۱: فرمول «اهریمن» در سرور R&D فعال است
-                  </h2>
-                  <p className="text-xs text-slate-300 mt-1 leading-6">
-                    هر یک از ۵ دپارتمان تحقیقاتی شرکت Apex Pharma سرنخی از ساختار شیمیایی ترکیب اهریمن را در خود پنهان کرده است.
-                    همه ۵ دپارتمان را بررسی کنید تا قفل اتاق مخفی سنتز پادزهر باز شود.
-                  </p>
+              {gameCompleted ? (
+                <div className="rounded-2xl border border-emerald-400/50 bg-gradient-to-l from-emerald-950/50 via-slate-900 to-slate-900 p-6 flex flex-wrap items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h2 className="font-extrabold text-base text-emerald-300">
+                      ماموریت با موفقیت کامل شد! پادزهر اهریمن سنتز گردید.
+                    </h2>
+                    <p className="text-xs text-slate-300 leading-6">
+                      امتیاز نهایی شما: <strong>{session?.total_score}</strong> | تعداد خطاها: <strong>{session?.total_errors}</strong>.
+                      لطفاً برای تکمیل ارزیابی پژوهشی، فرم کوتاه MEEGA+ را ثبت کنید.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowMeegaModal(true)}
+                    className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-5 py-2.5 text-xs transition flex items-center gap-2"
+                  >
+                    <ClipboardCheck className="w-4 h-4" />
+                    <span>{meegaSubmitted ? 'مشاهده / ویرایش پرسشنامه MEEGA+' : 'تکمیل پرسشنامه MEEGA+'}</span>
+                  </button>
                 </div>
-              </div>
-
-              {allFiveDepartmentsDone && (
-                <div className="rounded-2xl border border-emerald-400/50 bg-emerald-950/40 p-5 flex flex-wrap items-center justify-between gap-4">
+              ) : (
+                <div className="rounded-2xl border border-rose-500/30 bg-gradient-to-l from-rose-950/30 via-slate-900/90 to-slate-900/90 p-5 flex items-start gap-3">
+                  <AlertOctagon className="w-6 h-6 text-rose-400 shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-extrabold text-sm text-emerald-300">
-                      هر ۵ سرنخ ساختاری اهریمن کشف شد! درِ اتاق مخفی دکتر ارول آماده بازگشایی است.
-                    </div>
-                    <div className="text-xs text-slate-300 mt-1">
-                      در فاز ۳: حل مسیر بیوسنتز کلسترول، سنتز پادزهر اهریمن و تکمیل فرم پژوهشی MEEGA+ اضافه می‌شود.
-                    </div>
+                    <h2 className="font-bold text-base text-rose-200">
+                      هشدار امنیتی سطح ۱: فرمول «اهریمن» در سرور R&D فعال است
+                    </h2>
+                    <p className="text-xs text-slate-300 mt-1 leading-6">
+                      هر یک از ۵ دپارتمان تحقیقاتی شرکت Apex Pharma سرنخی از ساختار شیمیایی ترکیب اهریمن را در خود پنهان کرده است.
+                      پس از کشف هر ۵ سرنخ، درِ اتاق مخفی دکتر ارول برای سنتز پادزهر باز می‌شود.
+                    </p>
                   </div>
                 </div>
               )}
+
+              {/* کارت مرحله نهایی: اتاق مخفی ارول */}
+              <div
+                className={`rounded-2xl border p-5 flex flex-wrap items-center justify-between gap-4 transition ${
+                  allFiveDepartmentsDone
+                    ? 'border-rose-400/60 bg-gradient-to-l from-rose-950/40 to-slate-900 shadow-lg shadow-rose-950/30'
+                    : 'border-slate-800 bg-slate-900/40 opacity-75'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      allFiveDepartmentsDone ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-500'
+                    }`}
+                  >
+                    {allFiveDepartmentsDone ? <Skull className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-sm text-white">
+                      مرحله نهایی: اتاق مخفی دکتر ارول و سنتز پادزهر اهریمن
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      {allFiveDepartmentsDone
+                        ? 'قفل امنیتی ۵ دپارتمان باز شد! وارد اتاق مخفی شوید و پادزهر را سنتز کنید.'
+                        : `نیازمند کشف هر ۵ سرنخ از دپارتمان‌های تحقیقاتی (${session?.unlocked_clues?.length ?? 0}/۵ سرنخ کشف شده)`}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  disabled={!allFiveDepartmentsDone}
+                  onClick={() => setActiveView('final')}
+                  className="rounded-xl bg-rose-500 hover:bg-rose-400 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold px-5 py-2 text-xs transition"
+                >
+                  {gameCompleted ? 'مرور اتاق مخفی' : 'ورود به اتاق مخفی'}
+                </button>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {DEPARTMENTS.map((dept) => {
@@ -431,11 +514,7 @@ export function App() {
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2">
                           <span className="font-bold text-sm text-white">{dept.title}</span>
-                          {isCompleted ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                          ) : !dept.available ? (
-                            <Lock className="w-4 h-4 text-slate-500 shrink-0" />
-                          ) : null}
+                          {isCompleted && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
                         </div>
                         <p className="text-xs text-slate-400 leading-6">{dept.subtitle}</p>
                       </div>
@@ -516,6 +595,15 @@ export function App() {
       </main>
 
       {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
+      {showMeegaModal && (
+        <MeegaSurveyModal
+          onClose={() => setShowMeegaModal(false)}
+          onSubmitted={() => {
+            setMeegaSubmitted(true);
+            showNotification('پرسشنامه پژوهشی MEEGA+ با موفقیت ثبت شد.');
+          }}
+        />
+      )}
     </div>
   );
 }

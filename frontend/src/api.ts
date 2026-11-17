@@ -53,10 +53,11 @@ export const api = {
     age?: number;
     gender?: string;
     gaming_frequency?: number;
-  }) => request<{ user: any; tokens: { access: string; refresh: string } }>('/auth/register/', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }),
+  }) =>
+    request<{ user: any; tokens: { access: string; refresh: string } }>('/auth/register/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   login: (payload: { student_id: string; password: string }) =>
     request<{ user: any; tokens: { access: string; refresh: string } }>('/auth/login/', {
@@ -99,4 +100,12 @@ export const api = {
     }),
 
   getLeaderboard: () => request<{ leaderboard: any[] }>('/game/leaderboard/'),
+
+  getMeegaStatus: () => request<{ submitted: boolean; data: any }>('/analytics/meega/'),
+
+  submitMeega: (payload: { answers: Record<string, number>; comments?: string }) =>
+    request<{ submitted: boolean; data: any }>('/analytics/meega/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 };
