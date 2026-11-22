@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
 import { SteroidSandbox } from '../molecules/SteroidSandbox';
+import { ProgressiveHintBox } from './ProgressiveHintBox';
+import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -80,7 +82,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
     '4': mappingSolved ? 'progesterone' : '',
     '5': mappingSolved ? 'estrogen' : '',
   });
-  const [mappingStart] = useState<number>(() => Date.now());
+  const mappingTimer = usePuzzleTimer(true, mappingSolved);
   const [mappingFeedback, setMappingFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [mappingLoading, setMappingLoading] = useState(false);
 
@@ -90,7 +92,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
     step_3: vaultSolved ? 'Testosterone' : '',
     vault_password: vaultSolved ? 'CORTICOSTEROID' : '',
   });
-  const [vaultStart] = useState<number>(() => Date.now());
+  const vaultTimer = usePuzzleTimer(mappingSolved, vaultSolved);
   const [vaultFeedback, setVaultFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [vaultLoading, setVaultLoading] = useState(false);
 
@@ -105,7 +107,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
       : []
   );
   const [climaxTimer, setClimaxTimer] = useState<number>(60);
-  const [antidoteStart] = useState<number>(() => Date.now());
+  const antidoteTimer = usePuzzleTimer(vaultSolved, antidoteSolved);
   const [antidoteFeedback, setAntidoteFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [antidoteLoading, setAntidoteLoading] = useState(false);
 
@@ -122,7 +124,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
     if (mappingSolved || Object.values(structureClasses).some((value) => !value)) return;
     setMappingLoading(true);
     setMappingFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - mappingStart) / 1000));
+    const elapsed = mappingTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('hidden_room_classification', structureClasses, elapsed);
       setMappingFeedback({ ok: res.correct, text: res.feedback });
@@ -138,7 +140,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
     if (!mappingSolved) return;
     setVaultLoading(true);
     setVaultFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - vaultStart) / 1000));
+    const elapsed = vaultTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('biosynthesis_vault', biosynthesis, elapsed);
       setVaultFeedback({ ok: res.correct, text: res.feedback });
@@ -153,7 +155,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
     if (!vaultSolved || !selectedTools.length) return;
     setAntidoteLoading(true);
     setAntidoteFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - antidoteStart) / 1000));
+    const elapsed = antidoteTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('antidote_synthesis', selectedTools, elapsed);
       setAntidoteFeedback({ ok: res.correct, text: res.feedback });
@@ -233,6 +235,15 @@ export const FinalAntidoteLab: React.FC<Props> = ({
             </div>
           ))}
         </div>
+
+        <ProgressiveHintBox
+          solved={mappingSolved}
+          hints={[
+            'حلقه A آروماتیک (ساختار ۵) متعلق به استروژن‌هاست و ساختار ۱۹ کربنه بدون زنجیره دوکربنه C17 (ساختار ۳) یک آندروژن است.',
+            'بین سه ساختار ۲۱ کربنه، وجود 9α-F بدون Δ1 (ساختار ۲) شاخص مینرالوکورتیکوئید، نبود 11β-OH و 21-OH (ساختار ۴) شاخص پروژسترون، و Δ1,4 با 11β-OH (ساختار ۱) گلوکوکورتیکوئید است.',
+          ]}
+        />
+
         {mappingFeedback && (
           <div
             role="status"

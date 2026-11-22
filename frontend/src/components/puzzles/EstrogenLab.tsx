@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Atom, RotateCw, CheckCircle2, AlertTriangle, ArrowDown, ArrowUp } from 'lucide-react';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
 import { SteroidSandbox } from '../molecules/SteroidSandbox';
+import { ProgressiveHintBox } from './ProgressiveHintBox';
+import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -143,21 +145,21 @@ export const EstrogenLab: React.FC<Props> = ({
     estriol: metabolismSolved ? '3' : '',
     hydroxyestrone: metabolismSolved ? '4' : '',
   });
-  const [metStart] = useState<number>(() => Date.now());
+  const metTimer = usePuzzleTimer(true, metabolismSolved);
   const [metFeedback, setMetFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [metLoading, setMetLoading] = useState(false);
 
   const [oralMods, setOralMods] = useState<string[]>(
     oralDesignSolved ? ['add_17alpha_ethynyl', 'methylate_3_hydroxyl'] : []
   );
-  const [oralStart] = useState<number>(() => Date.now());
+  const oralTimer = usePuzzleTimer(metabolismSolved, oralDesignSolved);
   const [oralFeedback, setOralFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [oralLoading, setOralLoading] = useState(false);
 
   const [potencyOrder, setPotencyOrder] = useState<string[]>(
     potencySolved ? ['3', '1', '2', '4'] : ['1', '2', '3', '4']
   );
-  const [potencyStart] = useState<number>(() => Date.now());
+  const potencyTimer = usePuzzleTimer(oralDesignSolved, potencySolved);
   const [potencyFeedback, setPotencyFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [potencyLoading, setPotencyLoading] = useState(false);
 
@@ -165,14 +167,14 @@ export const EstrogenLab: React.FC<Props> = ({
   const [hasRotated, setHasRotated] = useState(dockingSolved);
   const [escapeSeconds, setEscapeSeconds] = useState(10);
   const [escapeStarted, setEscapeStarted] = useState(false);
-  const [dockStart] = useState<number>(() => Date.now());
+  const dockTimer = usePuzzleTimer(potencySolved, dockingSolved);
   const [dockFeedback, setDockFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [dockLoading, setDockLoading] = useState(false);
 
   const [metabolitePath, setMetabolitePath] = useState(
     metaboliteSolved ? 'prevent_active_metabolite' : ''
   );
-  const [metaboliteStart] = useState<number>(() => Date.now());
+  const metaboliteTimer = usePuzzleTimer(dockingSolved, metaboliteSolved);
   const [metaboliteFeedback, setMetaboliteFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [metaboliteLoading, setMetaboliteLoading] = useState(false);
 
@@ -182,7 +184,7 @@ export const EstrogenLab: React.FC<Props> = ({
     steroid_aromatase_inhibitor: classificationSolved ? 'A' : '',
     non_steroid_aromatase_inhibitor: classificationSolved ? 'D' : '',
   });
-  const [classificationStart] = useState<number>(() => Date.now());
+  const classificationTimer = usePuzzleTimer(metaboliteSolved, classificationSolved);
   const [classificationFeedback, setClassificationFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [classificationLoading, setClassificationLoading] = useState(false);
 
@@ -209,7 +211,7 @@ export const EstrogenLab: React.FC<Props> = ({
       return;
     setMetLoading(true);
     setMetFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - metStart) / 1000));
+    const elapsed = metTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle(
         'metabolism_enzymes',
@@ -229,7 +231,7 @@ export const EstrogenLab: React.FC<Props> = ({
     setOralLoading(true);
     setOralFeedback(null);
     try {
-      const elapsed = Math.max(1, Math.round((Date.now() - oralStart) / 1000));
+      const elapsed = oralTimer.consumeElapsedSeconds();
       const res = await onSubmitPuzzle('oral_long_acting_design', oralMods, elapsed);
       setOralFeedback({ ok: res.correct, text: res.feedback });
     } catch (err: unknown) {
@@ -253,7 +255,7 @@ export const EstrogenLab: React.FC<Props> = ({
     setPotencyLoading(true);
     setPotencyFeedback(null);
     try {
-      const elapsed = Math.max(1, Math.round((Date.now() - potencyStart) / 1000));
+      const elapsed = potencyTimer.consumeElapsedSeconds();
       const res = await onSubmitPuzzle('estrogen_potency_sort', potencyOrder, elapsed);
       setPotencyFeedback({ ok: res.correct, text: res.feedback });
     } catch (err: unknown) {
@@ -267,7 +269,7 @@ export const EstrogenLab: React.FC<Props> = ({
     if (!potencySolved || !hasRotated || escapeSeconds === 0) return;
     setDockLoading(true);
     setDockFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - dockStart) / 1000));
+    const elapsed = dockTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle(
         'receptor_docking_and_class',
@@ -287,7 +289,7 @@ export const EstrogenLab: React.FC<Props> = ({
     setMetaboliteLoading(true);
     setMetaboliteFeedback(null);
     try {
-      const elapsed = Math.max(1, Math.round((Date.now() - metaboliteStart) / 1000));
+      const elapsed = metaboliteTimer.consumeElapsedSeconds();
       const res = await onSubmitPuzzle('active_metabolite_prevention', metabolitePath, elapsed);
       setMetaboliteFeedback({ ok: res.correct, text: res.feedback });
     } catch (err: unknown) {
@@ -302,7 +304,7 @@ export const EstrogenLab: React.FC<Props> = ({
     setClassificationLoading(true);
     setClassificationFeedback(null);
     try {
-      const elapsed = Math.max(1, Math.round((Date.now() - classificationStart) / 1000));
+      const elapsed = classificationTimer.consumeElapsedSeconds();
       const res = await onSubmitPuzzle('estrogen_drug_classification', classifications, elapsed);
       setClassificationFeedback({ ok: res.correct, text: res.feedback });
     } catch (err: unknown) {
@@ -497,6 +499,14 @@ export const EstrogenLab: React.FC<Props> = ({
           </div>
         </div>
 
+        <ProgressiveHintBox
+          solved={metabolismSolved}
+          hints={[
+            'پسوند -diol به معنای دو گروه OH (ساختار ۱)، -one به معنای گروه کتون C17=O (ساختار ۲) و -triol به معنای سه گروه OH (ساختار ۳) است.',
+            'تبدیل برگشت‌پذیر الکل و کتون در C17 توسط Estradiol dehydrogenase و افزودن OH به کربن ۱۶ توسط 16a-hydroxylase انجام می‌شود.',
+          ]}
+        />
+
         {metFeedback && (
           <div
             className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
@@ -638,6 +648,16 @@ export const EstrogenLab: React.FC<Props> = ({
             );
           })}
         </div>
+
+        <ProgressiveHintBox
+          solved={potencySolved}
+          disabled={!oralDesignSolved}
+          hints={[
+            'ساختار غیراستروئیدی ترانس با دو حلقه فنولی (فاصله حدود ۱۰.۹ آنگستروم) بالاترین میل اتصال به گیرنده استروژن را دارد.',
+            'افزودن 16α-OH (ساختار ۴) قطبیت را بالا برده و کمترین قدرت را ایجاد می‌کند؛ ترکیب ۱ و ۲ هم‌تراز هستند.',
+          ]}
+        />
+
         {potencyFeedback && (
           <div
             className={`rounded-xl border p-3 text-sm ${
@@ -892,6 +912,16 @@ export const EstrogenLab: React.FC<Props> = ({
             </label>
           ))}
         </div>
+
+        <ProgressiveHintBox
+          solved={classificationSolved}
+          disabled={!metaboliteSolved}
+          hints={[
+            'مهارکننده استروئیدی آروماتاز اسکلت چهارحلقه‌ای استروئیدی دارد، اما مهارکننده غیراستروئیدی آروماتاز دارای حلقه تری‌آزول و گروه‌های سیانید (-C≡N) است.',
+            'آنتی‌استروژن خالص (فولوسترانت) زنجیره آلکیل بسیار بلند فلوئوره روی کربن 7α استرادیول دارد و SERM دارای داربست بنزوتیوفن و زنجیره آمینی است.',
+          ]}
+        />
+
         {classificationFeedback && (
           <div
             className={`rounded-xl border p-3 text-sm ${

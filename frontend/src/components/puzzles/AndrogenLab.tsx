@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Dna, CheckCircle2, AlertTriangle, RotateCcw, Cpu, ArrowDown, ArrowUp } from 'lucide-react';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
+import { ProgressiveHintBox } from './ProgressiveHintBox';
+import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -168,19 +170,19 @@ export const AndrogenLab: React.FC<Props> = ({
   const [entryOrder, setEntryOrder] = useState<string[]>(
     entryPotencySolved ? ['3', '2', '1', '4'] : ['1', '2', '3', '4']
   );
-  const [entryStart] = useState<number>(() => Date.now());
+  const entryTimer = usePuzzleTimer(true, entryPotencySolved);
   const [entryFeedback, setEntryFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [entryLoading, setEntryLoading] = useState(false);
 
   const [metabolite, setMetabolite] = useState<string>(
     metaboliteSolved ? '2-hydroxyflutamide' : ''
   );
-  const [metStart] = useState<number>(() => Date.now());
+  const metTimer = usePuzzleTimer(entryPotencySolved, metaboliteSolved);
   const [metFeedback, setMetFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [metLoading, setMetLoading] = useState(false);
 
   const [sarmChoice, setSarmChoice] = useState(sarmSolved ? '10' : '');
-  const [sarmStart] = useState<number>(() => Date.now());
+  const sarmTimer = usePuzzleTimer(metaboliteSolved, sarmSolved);
   const [sarmFeedback, setSarmFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [sarmLoading, setSarmLoading] = useState(false);
 
@@ -189,7 +191,7 @@ export const AndrogenLab: React.FC<Props> = ({
       ? ['remove_androgenic_features', 'add_low_androgenic_features']
       : []
   );
-  const [androgenicityStart] = useState<number>(() => Date.now());
+  const androgenicityTimer = usePuzzleTimer(sarmSolved, androgenicitySolved);
   const [androgenicityFeedback, setAndrogenicityFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [androgenicityLoading, setAndrogenicityLoading] = useState(false);
 
@@ -211,7 +213,7 @@ export const AndrogenLab: React.FC<Props> = ({
         }
   );
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
-  const [classStart] = useState<number>(() => Date.now());
+  const classTimer = usePuzzleTimer(androgenicitySolved, classificationSolved);
   const [classFeedback, setClassFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [classLoading, setClassLoading] = useState(false);
 
@@ -220,7 +222,7 @@ export const AndrogenLab: React.FC<Props> = ({
     cofactor_complex: enzymeComplexSolved ? 'nadph_covalent_adduct' : '',
     pharmacophore: enzymeComplexSolved ? 'keto_enol_lactam' : '',
   });
-  const [compStart] = useState<number>(() => Date.now());
+  const compTimer = usePuzzleTimer(classificationSolved, enzymeComplexSolved);
   const [compFeedback, setCompFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [compLoading, setCompLoading] = useState(false);
 
@@ -237,7 +239,7 @@ export const AndrogenLab: React.FC<Props> = ({
     setEntryLoading(true);
     setEntryFeedback(null);
     try {
-      const elapsed = Math.max(1, Math.round((Date.now() - entryStart) / 1000));
+      const elapsed = entryTimer.consumeElapsedSeconds();
       const res = await onSubmitPuzzle('androgen_entry_potency_sort', entryOrder, elapsed);
       setEntryFeedback({ ok: res.correct, text: res.feedback });
     } catch (err: unknown) {
@@ -251,7 +253,7 @@ export const AndrogenLab: React.FC<Props> = ({
     if (!entryPotencySolved || !metabolite) return;
     setMetLoading(true);
     setMetFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - metStart) / 1000));
+    const elapsed = metTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('flutamide_metabolite', metabolite, elapsed);
       setMetFeedback({ ok: res.correct, text: res.feedback });
@@ -267,7 +269,7 @@ export const AndrogenLab: React.FC<Props> = ({
     setSarmLoading(true);
     setSarmFeedback(null);
     try {
-      const elapsed = Math.max(1, Math.round((Date.now() - sarmStart) / 1000));
+      const elapsed = sarmTimer.consumeElapsedSeconds();
       const res = await onSubmitPuzzle('sarm_alternative', sarmChoice, elapsed);
       setSarmFeedback({ ok: res.correct, text: res.feedback });
     } catch (err: unknown) {
@@ -289,7 +291,7 @@ export const AndrogenLab: React.FC<Props> = ({
     setAndrogenicityLoading(true);
     setAndrogenicityFeedback(null);
     try {
-      const elapsed = Math.max(1, Math.round((Date.now() - androgenicityStart) / 1000));
+      const elapsed = androgenicityTimer.consumeElapsedSeconds();
       const res = await onSubmitPuzzle('low_androgenicity_design', androgenicityMods, elapsed);
       setAndrogenicityFeedback({ ok: res.correct, text: res.feedback });
     } catch (err: unknown) {
@@ -326,7 +328,7 @@ export const AndrogenLab: React.FC<Props> = ({
     if (!androgenicitySolved || assignedCount < 10) return;
     setClassLoading(true);
     setClassFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - classStart) / 1000));
+    const elapsed = classTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('antiandrogen_classification', buckets, elapsed);
       setClassFeedback({ ok: res.correct, text: res.feedback });
@@ -358,7 +360,7 @@ export const AndrogenLab: React.FC<Props> = ({
       return;
     setCompLoading(true);
     setCompFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - compStart) / 1000));
+    const elapsed = compTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('five_alpha_reductase_complex', complexState, elapsed);
       setCompFeedback({ ok: res.correct, text: res.feedback });
@@ -449,6 +451,15 @@ export const AndrogenLab: React.FC<Props> = ({
             );
           })}
         </div>
+
+        <ProgressiveHintBox
+          solved={entryPotencySolved}
+          hints={[
+            'مشتق ۱۹-نور دارای متیل 7α و 17α (ساختار ۳) بالاترین قدرت و مقاومت متابولیک را دارد.',
+            'افزودن حلقه پیرازول به حلقه A (ساختار ۲) قوی‌تر از گروه هیدروکسی‌متیلن (ساختار ۱) است و ترکیب فلوئوره/11β-OH (ساختار ۴) کمترین قدرت را در این مجموعه دارد.',
+          ]}
+        />
+
         {entryFeedback && (
           <div
             className={`rounded-xl border p-3 text-sm ${
@@ -474,7 +485,7 @@ export const AndrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۲: متابولیت ماژور فلوتامید با ساختار داروی مادر و ۳ کاندیدا */}
+      {/* معمای ۲: متابولیت ماژور فلوتامید */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           entryPotencySolved
@@ -547,7 +558,7 @@ export const AndrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۳: جایگزین SARM با نمایش ساختار شیمیایی (بدون لو دادن SARM در متن) */}
+      {/* معمای ۳: جایگزین SARM */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           metaboliteSolved
@@ -781,6 +792,15 @@ export const AndrogenLab: React.FC<Props> = ({
             </div>
           ))}
         </div>
+
+        <ProgressiveHintBox
+          solved={classificationSolved}
+          disabled={!androgenicitySolved}
+          hints={[
+            'مهارکننده‌های ۵-آلفا ردوکتاز (۳ و ۹) دارای حلقه A لاکتامی ۴-آزااستروئیدی هستند؛ مهارکننده‌های CYP17 (۴ و ۵) حلقه ایمیدازول یا پیریدین برای کلاته کردن آهن Heme دارند.',
+            'SARMها (۶ و ۱۰) پل اتری (-O-) دارند، در حالی که آنتی‌آندروژن‌های غیراستروئیدی (۲ و ۸) حلقه ایمیدازولیدین‌دیون یا پل سولفونیل (-SO2-) دارند.',
+          ]}
+        />
 
         {classFeedback && (
           <div
