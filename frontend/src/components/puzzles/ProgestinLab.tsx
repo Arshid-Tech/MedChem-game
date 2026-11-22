@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { Shield, Lock, Unlock, CheckCircle2, AlertTriangle, Wrench } from 'lucide-react';
+import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
+import { SteroidSandbox } from '../molecules/SteroidSandbox';
+import { ProgressiveHintBox } from './ProgressiveHintBox';
+import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -14,32 +18,33 @@ interface Props {
 }
 
 const PROGESTIN_STRUCTURES = [
-  { id: '1', name: 'ترکیب ۱ (مژسترول استات)', note: 'مشتق پرگنان با متیل C6 و استات C17α (بدون اکسیم C3)' },
-  { id: '2', name: 'ترکیب ۲ (نورژستیمات)', note: 'مشتق ۱۹-نورآندروستان دارای اکسیم C3، اتینیل 17α و استات 17β' },
-  { id: '3', name: 'ترکیب ۳ (پیش‌داروی اکسیم-استر 6α-متیل)', note: 'دارای اکسیم C3، استات C17α و متیل ممانعت‌کننده در C6α' },
-  { id: '4', name: 'ترکیب ۴ (اتینودیول دی‌استات)', note: 'دارای استرهای 3β و 17β-دی‌استات و اتینیل 17α (بدون اکسیم C3)' },
-];
-
-const DESIGN_MODIFICATIONS = [
   {
-    id: 'remove_c19_methyl',
-    title: 'حذف گروه متیل زاویه‌ای C19 (تبدیل به اسکلت ۱۹-نورآندروستان)',
-    effect: 'کاهش شدید خواص آندروژنی و تقویت انتخاب‌پذیری گیرنده پروژسترون',
+    id: '1',
+    blindLabel: 'ساختار ۱',
+    revealedName: 'مژسترول استات (Megestrol Acetate)',
+    revealedNote: 'مشتق پرگنان با متیل C6 و استات C17α (کاهش عوارض آندروژنی)',
+    smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C=C(C)C4=CC(=O)CC[C@]4(C)[C@H]3CC[C@@]12C',
   },
   {
-    id: 'c17_alpha_ethynyl',
-    title: 'افزودن گروه اتینیل (-C≡CH) در موقعیت 17α',
-    effect: 'جلوگیری از اکسیداسیون کبدی C17-OH و ایجاد فعالیت خوراکی (Oral Activity)',
+    id: '2',
+    blindLabel: 'ساختار ۲',
+    revealedName: 'نورژستیمات (Norgestimate)',
+    revealedNote: 'مشتق ۱۹-نورآندروستان دارای اکسیم C3، اتینیل 17α و استات 17β (افزایش نیمه‌عمر و کاهش آندروژنیسیته)',
+    smiles: 'C#C[C@]1(OC(C)=O)CC[C@H]2[C@@H]3CCC4=CC(=NO)CC[C@@H]4[C@H]3CC[C@@]12CC',
   },
   {
-    id: 'c3_oxime_or_ester',
-    title: 'استریفیکاسیون 17β یا تبدیل C3 به اکسیم (=N-OH)',
-    effect: 'افزایش لیپوفیلیته و طولانی‌تر شدن نیمه‌عمر و طول اثر دارو',
+    id: '3',
+    blindLabel: 'ساختار ۳',
+    revealedName: 'پیش‌داروی اکسیم-استر 6α-متیل',
+    revealedNote: 'دارای اکسیم C3، استات C17α و متیل ممانعت‌کننده در C6α (بهبود فراهمی زیستی، نیمه‌عمر و کاهش آندروژنیسیته)',
+    smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C[C@H](C)C4=CC(=NO)CC[C@]4(C)[C@H]3CC[C@@]12C',
   },
   {
-    id: 'aromatize_ring_a',
-    title: 'آروماتیک کردن حلقه A مشابه استروژن‌ها',
-    effect: 'ایجاد پیوند هیدروژنی فنولیک با Glu 353 و Arg 394',
+    id: '4',
+    blindLabel: 'ساختار ۴',
+    revealedName: 'اتینودیول دی‌استات (Ethynodiol Diacetate)',
+    revealedNote: 'دارای دی‌استات 3β,17β و اتینیل 17α (افزایش فراهمی زیستی خوراکی و نیمه‌عمر)',
+    smiles: 'C#C[C@]1(OC(C)=O)CC[C@H]2[C@@H]3CCC4=C[C@@H](OC(C)=O)CC[C@@H]4[C@H]3CC[C@@]12C',
   },
 ];
 
@@ -58,14 +63,14 @@ export const ProgestinLab: React.FC<Props> = ({
       ? { bioavailability: ['3', '4'], half_life: ['2', '3', '4'], low_androgen: ['1', '2', '3'] }
       : { bioavailability: [], half_life: [], low_androgen: [] }
   );
-  const [codeStart] = useState<number>(() => Date.now());
+  const codeTimer = usePuzzleTimer(true, codeSolved);
   const [codeFeedback, setCodeFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [codeLoading, setCodeLoading] = useState(false);
 
   const [selectedMods, setSelectedMods] = useState<string[]>(
     designSolved ? ['remove_c19_methyl', 'c17_alpha_ethynyl', 'c3_oxime_or_ester'] : []
   );
-  const [designStart] = useState<number>(() => Date.now());
+  const designTimer = usePuzzleTimer(codeSolved, designSolved);
   const [designFeedback, setDesignFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [designLoading, setDesignLoading] = useState(false);
 
@@ -83,7 +88,7 @@ export const ProgestinLab: React.FC<Props> = ({
   const handleCodeSubmit = async () => {
     setCodeLoading(true);
     setCodeFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - codeStart) / 1000));
+    const elapsed = codeTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('pk_safe_code', checks, elapsed);
       setCodeFeedback({ ok: res.correct, text: res.feedback });
@@ -94,15 +99,10 @@ export const ProgestinLab: React.FC<Props> = ({
     }
   };
 
-  const toggleMod = (id: string) => {
-    if (designSolved) return;
-    setSelectedMods((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-
   const handleDesignSubmit = async () => {
     setDesignLoading(true);
     setDesignFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - designStart) / 1000));
+    const elapsed = designTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('norandrostane_design', selectedMods, elapsed);
       setDesignFeedback({ ok: res.correct, text: res.feedback });
@@ -134,12 +134,12 @@ export const ProgestinLab: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* معمای ۱: رمزگشایی کد گاوصندوق */}
+      {/* معمای ۱: رمزگشایی کد گاوصندوق با تحلیل ۴ ساختار واقعی */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
             {codeSolved ? <Unlock className="w-5 h-5 text-emerald-500" /> : <Lock className="w-5 h-5 text-amber-500" />}
-            <span>معمای {toPersianDigits(1)}: رمزگشایی کد دیجیتال گاوصندوق بر اساس ویژگی‌های فارماکوکینتیک</span>
+            <span>معمای {toPersianDigits(1)}: رمزگشایی کد دیجیتال گاوصندوق بر اساس تحلیل ساختاری</span>
           </h3>
           <div
             dir="ltr"
@@ -150,12 +150,20 @@ export const ProgestinLab: React.FC<Props> = ({
           </div>
         </div>
 
+        <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
+          چهار ساختار زیر را بررسی کرده و برای هر ویژگی فارماکوکینتیک یا فارماکودینامیک، شماره ساختارهایی که آن ویژگی را دارند انتخاب کنید:
+        </p>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {PROGESTIN_STRUCTURES.map((s) => (
-            <div key={s.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-3">
-              <div className="font-bold text-xs text-cyan-700 dark:text-cyan-300">{s.name}</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{s.note}</div>
-            </div>
+            <MoleculeStructureCard
+              key={s.id}
+              smiles={s.smiles}
+              label={s.blindLabel}
+              revealed={codeSolved}
+              revealedName={s.revealedName}
+              revealedNote={s.revealedNote}
+            />
           ))}
         </div>
 
@@ -196,6 +204,14 @@ export const ProgestinLab: React.FC<Props> = ({
           ))}
         </div>
 
+        <ProgressiveHintBox
+          solved={codeSolved}
+          hints={[
+            'گروه‌های محافظت‌کننده روی C3 (اکسیم یا استر 3β) و ممانعت فضایی C6 متابولیسم عبور اول را کاهش داده و نیمه‌عمر را بالا می‌برند.',
+            'ساختارهای ۳ و ۴ بیشترین بهبود فراهمی زیستی را دارند؛ ساختارهای ۲، ۳ و ۴ نیمه‌عمر طولانی‌تر و ساختارهای ۱، ۲ و ۳ عوارض آندروژنی کمتری نشان می‌دهند.',
+          ]}
+        />
+
         {codeFeedback && (
           <div
             className={`rounded-xl border p-3 text-sm flex items-start gap-2 ${
@@ -228,7 +244,7 @@ export const ProgestinLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۲: طراحی پروژستین خوراکی طولانی‌اثر */}
+      {/* معمای ۲: طراحی تعاملی پروژستین ۱۹-نورآندروستان با SteroidSandbox */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           codeSolved
@@ -238,39 +254,19 @@ export const ProgestinLab: React.FC<Props> = ({
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
           <Wrench className="w-5 h-5 text-cyan-500" />
-          <span>معمای {toPersianDigits(2)}: اعمال اصلاحات ساختاری برای تولید پروژستین خوراکی و طولانی‌اثر</span>
+          <span>معمای {toPersianDigits(2)}: سنتز تعاملی پروژستین خوراکی و طولانی‌اثر (مشتق ۱۹-نورآندروستان)</span>
         </h3>
 
-        <div className="space-y-2.5">
-          {DESIGN_MODIFICATIONS.map((mod) => {
-            const active = selectedMods.includes(mod.id);
-            return (
-              <div
-                key={mod.id}
-                onClick={() => toggleMod(mod.id)}
-                className={`rounded-xl border p-4 cursor-pointer transition flex items-start justify-between gap-3 ${
-                  active
-                    ? 'border-cyan-500 bg-cyan-50 dark:border-cyan-400 dark:bg-cyan-950/45'
-                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220]'
-                }`}
-              >
-                <div>
-                  <div className="font-bold text-xs text-slate-900 dark:text-slate-100">{mod.title}</div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{mod.effect}</div>
-                </div>
-                <span
-                  className={`text-xs px-2.5 py-1 rounded-md shrink-0 ${
-                    active
-                      ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-bold'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  {active ? 'اعمال شد ✓' : 'انتخاب'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
+          روی اسکلت پایه زیر، گروه‌های عاملی را تغییر دهید تا عوارض آندروژنی به حداقل برسد، فعالیت خوراکی فعال شود و نیمه‌عمر دارو افزایش یابد:
+        </p>
+
+        <SteroidSandbox
+          mode="progestin_nor"
+          disabled={!codeSolved}
+          solved={designSolved}
+          onTokensChange={setSelectedMods}
+        />
 
         {designFeedback && (
           <div
@@ -301,7 +297,7 @@ export const ProgestinLab: React.FC<Props> = ({
               onClick={handleDesignSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
-              {designLoading ? 'در حال سنتز...' : 'تایید اصلاحات ساختاری'}
+              {designLoading ? 'در حال سنتز...' : 'تایید ساختار سنتزشده'}
             </button>
           )}
         </div>

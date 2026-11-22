@@ -104,7 +104,7 @@ PUZZLE_SOLUTIONS = {
         "base_score": 150,
         "clue": None,
         "feedback_ok": "ترتیب قدرت صحیح است: ترکیب ۳ > ترکیب‌های ۱ و ۲ (برابر) > ترکیب ۴.",
-        "feedback_err": "ترتیب قدرت صحیح نیست. پاسخ منبع: ۳ > ۱ = ۲ > ۴.",
+        "feedback_err": "ترتیب قدرت صحیح نیست. به نقش فاصله گروه‌های فنولی در DES، ممانعت فضایی اتینیل و قطبیت استریول دقت کنید.",
     },
     ("estrogen", "receptor_docking_and_class"): {
         "type": "exact_dict",
@@ -139,7 +139,7 @@ PUZZLE_SOLUTIONS = {
             "detail": "ساختار نهایی اهریمن همانند مهارکننده‌های غیر استروئیدی آروماتاز (لتروزول/آناستروزول) دارای گروه سیانید است.",
         },
         "feedback_ok": "چهار ساختار به‌درستی به SERM، آنتی‌استروژن خالص و مهارکننده‌های استروئیدی و غیراستروئیدی آروماتاز متصل شدند.",
-        "feedback_err": "دسته‌ها را مطابق ساختارها تطبیق دهید: SERM (B)، آنتی‌استروژن خالص (C)، مهارکننده استروئیدی (A) و غیراستروئیدی آروماتاز (D).",
+        "feedback_err": "دسته‌ها را مطابق ویژگی‌های ساختاری (حلقه بنزوتیوفن، زنجیره C7α، هسته استروئیدی و گروه تری‌آزول/سیانید) تطبیق دهید.",
     },
     # دپارتمان ۴: پروژستین‌ها
     ("progestin", "pk_safe_code"): {
@@ -151,7 +151,7 @@ PUZZLE_SOLUTIONS = {
         },
         "base_score": 200,
         "clue": None,
-        "feedback_ok": "کد گاوصندوق باز شد! رمز ۹ / ۶ / ۷ (جمع اعداد ویژگی‌ها) تایید گردید.",
+        "feedback_ok": "کد گاوصندوق باز شد! رمز ۷ / ۹ / ۶ (جمع اعداد ویژگی‌های فراهمی زیستی، نیمه‌عمر و کاهش آندروژنیسیته) تایید گردید.",
         "feedback_err": "انتخاب ترکیبات در ویژگی‌های فراهمی زیستی، نیمه‌عمر یا کاهش اثر آندروژنی دقیق نیست.",
     },
     ("progestin", "norandrostane_design"): {
@@ -173,7 +173,7 @@ PUZZLE_SOLUTIONS = {
         "base_score": 150,
         "clue": None,
         "feedback_ok": "ترتیب قدرت ترکیبات برای ورود به اتاق صحیح است: ۳ > ۲ > ۱ > ۴.",
-        "feedback_err": "ترتیب قدرت نادرست است. پاسخ منبع: ۳ > ۲ > ۱ > ۴.",
+        "feedback_err": "ترتیب قدرت نادرست است. به نقش ممانعت فضایی 17α-متیل، حلقه پیرازول و استخلاف‌های حلقه A/B دقت کنید.",
     },
     ("androgen", "flutamide_metabolite"): {
         "type": "exact_str",
@@ -189,7 +189,7 @@ PUZZLE_SOLUTIONS = {
         "base_score": 150,
         "clue": None,
         "feedback_ok": "یک تعدیل‌کننده انتخابی گیرنده آندروژن (SARM) به‌عنوان جایگزین انتخاب شد.",
-        "feedback_err": "جایگزین باید از گروه تعدیل‌کننده‌های انتخابی گیرنده آندروژن (SARM) باشد.",
+        "feedback_err": "جایگزین باید از گروه تعدیل‌کننده‌های انتخابی گیرنده آندروژن (SARM) با پل اتری (-O-) باشد.",
     },
     ("androgen", "low_androgenicity_design"): {
         "type": "set_match",
@@ -292,6 +292,19 @@ DEPARTMENT_BADGES = {
 }
 
 
+def _normalize_dict_value(key, value):
+    """نرمال‌سازی مقادیر دیکشنری: حذف وابستگی به ترتیب برای لیست‌های چندانتخابی و استانداردسازی رشته‌ها."""
+    if key == "vault_password" and isinstance(value, str):
+        return value.strip().upper()
+    if isinstance(value, list):
+        return sorted(str(x).strip() for x in value)
+    if isinstance(value, dict):
+        return {k: _normalize_dict_value(k, v) for k, v in value.items()}
+    if isinstance(value, str):
+        return value.strip()
+    return value
+
+
 def evaluate_answer(puzzle_key, submitted):
     rule = PUZZLE_SOLUTIONS.get(puzzle_key)
     if not rule:
@@ -301,16 +314,18 @@ def evaluate_answer(puzzle_key, submitted):
     expected = rule["expected"]
 
     if p_type == "set_match":
-        is_ok = isinstance(submitted, list) and set(submitted) == set(expected) and len(submitted) == len(expected)
+        is_ok = (
+            isinstance(submitted, list)
+            and set(str(x) for x in submitted) == set(expected)
+            and len(submitted) == len(expected)
+        )
     elif p_type == "exact_dict":
         if not isinstance(submitted, dict):
             is_ok = False
         else:
-            normalized_sub = {
-                k: (v.strip().upper() if k == "vault_password" and isinstance(v, str) else v)
-                for k, v in submitted.items()
-            }
-            is_ok = normalized_sub == expected
+            normalized_sub = {k: _normalize_dict_value(k, v) for k, v in submitted.items()}
+            normalized_exp = {k: _normalize_dict_value(k, v) for k, v in expected.items()}
+            is_ok = normalized_sub == normalized_exp
     elif p_type == "exact_list":
         is_ok = isinstance(submitted, list) and [str(x) for x in submitted] == expected
     elif p_type == "rank_tiers":
@@ -326,7 +341,7 @@ def evaluate_answer(puzzle_key, submitted):
                     break
                 offset += len(tier)
     elif p_type == "one_of":
-        is_ok = isinstance(submitted, str) and submitted in expected
+        is_ok = isinstance(submitted, str) and submitted.strip() in expected
     elif p_type == "exact_str":
         is_ok = isinstance(submitted, str) and submitted.strip() == expected
     elif p_type == "bucket_sets":
@@ -408,50 +423,83 @@ class SubmitPuzzleView(APIView):
         )
 
         is_correct, feedback = evaluate_answer(puzzle_key, data["answer"])
+
+        # اگر معما قبلاً با موفقیت حل شده، آمار خطا و زمان آن را مجدداً تغییر نده
+        if attempt.is_solved:
+            return Response(
+                {
+                    "correct": is_correct,
+                    "feedback": feedback,
+                    "score_earned": attempt.score_earned,
+                    "unlocked_clue": None,
+                    "new_badge": None,
+                    "session": GameSessionSerializer(session).data,
+                }
+            )
+
+        elapsed_clamped = max(0, min(3600, int(data["time_spent_seconds"])))
+        remaining_clamped = max(0, min(3600, int(data["time_remaining_seconds"])))
+
         attempt.attempts_count += 1
-        attempt.time_spent_seconds += data["time_spent_seconds"]
+        attempt.time_spent_seconds += elapsed_clamped
         attempt.submitted_answer = {"value": data["answer"]}
 
-        session.time_remaining_seconds = data["time_remaining_seconds"]
-        session.total_time_spent_seconds += data["time_spent_seconds"]
+        session.time_remaining_seconds = remaining_clamped
+        session.total_time_spent_seconds += elapsed_clamped
 
         new_badge = None
         unlocked_clue = None
 
         if is_correct:
-            if not attempt.is_solved:
-                rule = PUZZLE_SOLUTIONS[puzzle_key]
-                penalty = attempt.errors_count * 25
-                earned = max(50, rule["base_score"] - penalty)
-                attempt.is_solved = True
-                attempt.score_earned = earned
-                attempt.solved_at = timezone.now()
-                session.total_score += earned
+            rule = PUZZLE_SOLUTIONS[puzzle_key]
+            penalty = attempt.errors_count * 25
+            earned = max(50, rule["base_score"] - penalty)
+            attempt.is_solved = True
+            attempt.score_earned = earned
+            attempt.solved_at = timezone.now()
+            session.total_score += earned
 
-                if rule["clue"]:
-                    unlocked_clue = rule["clue"]
-                    clues = list(session.unlocked_clues)
-                    if not any(c.get("id") == unlocked_clue["id"] for c in clues):
-                        clues.append(unlocked_clue)
-                        session.unlocked_clues = clues
+            if rule["clue"]:
+                unlocked_clue = rule["clue"]
+                clues = list(session.unlocked_clues)
+                if not any(c.get("id") == unlocked_clue["id"] for c in clues):
+                    clues.append(unlocked_clue)
+                    session.unlocked_clues = clues
 
-                required_count = DEPARTMENT_REQUIRED_COUNT.get(stage_code, 1)
-                solved_in_stage = PuzzleAttempt.objects.filter(
-                    session=session,
-                    stage_code=stage_code,
-                    is_solved=True,
-                ).count()
+            attempt.save()
 
-                if solved_in_stage >= required_count:
-                    completed = list(session.completed_stages)
-                    if stage_code not in completed:
-                        completed.append(stage_code)
-                        session.completed_stages = completed
+            required_count = DEPARTMENT_REQUIRED_COUNT.get(stage_code, 1)
+            solved_in_stage = PuzzleAttempt.objects.filter(
+                session=session,
+                stage_code=stage_code,
+                is_solved=True,
+            ).count()
 
-                    if stage_code == "final":
-                        session.status = "completed"
-                        session.completed_at = timezone.now()
-                        b_code, b_title, b_desc = DEPARTMENT_BADGES["final"]
+            if solved_in_stage >= required_count:
+                completed = list(session.completed_stages)
+                if stage_code not in completed:
+                    completed.append(stage_code)
+                    session.completed_stages = completed
+
+                if stage_code == "final":
+                    session.status = "completed"
+                    session.completed_at = timezone.now()
+                    b_code, b_title, b_desc = DEPARTMENT_BADGES["final"]
+                    badge, created = StudentBadge.objects.get_or_create(
+                        student=request.user,
+                        badge_code=b_code,
+                        defaults={"title": b_title, "description": b_desc},
+                    )
+                    if created:
+                        new_badge = StudentBadgeSerializer(badge).data
+                elif stage_code in DEPARTMENT_BADGES:
+                    total_stage_errors = sum(
+                        PuzzleAttempt.objects.filter(
+                            session=session, stage_code=stage_code
+                        ).values_list("errors_count", flat=True)
+                    )
+                    if total_stage_errors == 0:
+                        b_code, b_title, b_desc = DEPARTMENT_BADGES[stage_code]
                         badge, created = StudentBadge.objects.get_or_create(
                             student=request.user,
                             badge_code=b_code,
@@ -459,26 +507,11 @@ class SubmitPuzzleView(APIView):
                         )
                         if created:
                             new_badge = StudentBadgeSerializer(badge).data
-                    elif stage_code in DEPARTMENT_BADGES:
-                        total_stage_errors = sum(
-                            PuzzleAttempt.objects.filter(
-                                session=session, stage_code=stage_code
-                            ).values_list("errors_count", flat=True)
-                        )
-                        if total_stage_errors == 0:
-                            b_code, b_title, b_desc = DEPARTMENT_BADGES[stage_code]
-                            badge, created = StudentBadge.objects.get_or_create(
-                                student=request.user,
-                                badge_code=b_code,
-                                defaults={"title": b_title, "description": b_desc},
-                            )
-                            if created:
-                                new_badge = StudentBadgeSerializer(badge).data
         else:
             attempt.errors_count += 1
             session.total_errors += 1
+            attempt.save()
 
-        attempt.save()
         session.save()
 
         return Response(
@@ -497,20 +530,28 @@ class LeaderboardView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        top_sessions = (
+        ordered_sessions = (
             GameSession.objects.select_related("student")
-            .order_by("-total_score", "total_errors", "total_time_spent_seconds")[:20]
+            .order_by("-total_score", "total_errors", "total_time_spent_seconds")
         )
-        results = [
-            {
-                "rank": idx + 1,
-                "student_id": s.student.student_id,
-                "full_name": s.student.full_name,
-                "total_score": s.total_score,
-                "total_errors": s.total_errors,
-                "time_spent_seconds": s.total_time_spent_seconds,
-                "completed_stages_count": len(s.completed_stages),
-            }
-            for idx, s in enumerate(top_sessions)
-        ]
+        # نمایش تنها بهترین جلسه برای هر دانشجو (جلوگیری از تکرار نام در جدول رده‌بندی)
+        seen_students = set()
+        results = []
+        for s in ordered_sessions:
+            if s.student_id in seen_students:
+                continue
+            seen_students.add(s.student_id)
+            results.append(
+                {
+                    "rank": len(results) + 1,
+                    "student_id": s.student.student_id,
+                    "full_name": s.student.full_name,
+                    "total_score": s.total_score,
+                    "total_errors": s.total_errors,
+                    "time_spent_seconds": s.total_time_spent_seconds,
+                    "completed_stages_count": len(s.completed_stages),
+                }
+            )
+            if len(results) >= 20:
+                break
         return Response({"leaderboard": results})

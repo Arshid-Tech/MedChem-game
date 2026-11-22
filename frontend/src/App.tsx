@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Clock,
   Trophy,
@@ -12,13 +12,14 @@ import {
   Sparkles,
   Skull,
   ClipboardCheck,
+  BookOpenCheck,
   UserRound,
   CircleHelp,
   ChevronLeft,
   Sun,
   Moon,
 } from 'lucide-react';
-import { api, clearTokens, getAccessToken } from './api';
+import { api, ApiError, clearTokens, getAccessToken } from './api';
 import { Badge, GameSession, LeaderboardEntry, StudentUser } from './types';
 import { AuthScreen } from './components/AuthScreen';
 import { UserProfileModal } from './components/UserProfileModal';
@@ -32,6 +33,7 @@ import { ProgestinLab } from './components/puzzles/ProgestinLab';
 import { AndrogenLab } from './components/puzzles/AndrogenLab';
 import { FinalAntidoteLab } from './components/puzzles/FinalAntidoteLab';
 import { MeegaSurveyModal } from './components/MeegaSurveyModal';
+import { KnowledgeQuizModal } from './components/KnowledgeQuizModal';
 import { toPersianDigits } from './utils/persian';
 
 type ActiveView =
@@ -50,7 +52,7 @@ const DEPARTMENTS = [
     code: 'glucocorticoid',
     title: 'دپارتمان ۱: آزمایشگاه گلوکوکورتیکوئیدها',
     shortTitle: '۱. گلوکوکورتیکوئیدها',
-    subtitle: 'کانفورماسیون حلقه‌ها و تحلیل SAR ضدالتهابی',
+    subtitle: 'کانفورماسیون حلقه‌ها، میز کار آزاد SAR و تحلیل قدرت ضدالتهابی',
   },
   {
     code: 'mineralocorticoid',
@@ -62,13 +64,13 @@ const DEPARTMENTS = [
     code: 'estrogen',
     title: 'دپارتمان ۳: آزمایشگاه استروژن‌ها',
     shortTitle: '۳. استروژن‌ها',
-    subtitle: 'مسیر متابولیسم، طراحی خوراکی، داکینگ گیرنده و کلاس‌های دارویی',
+    subtitle: 'مسیر متابولیسم، سنتز خوراکی، داکینگ گیرنده و کلاس‌های دارویی',
   },
   {
     code: 'progestin',
     title: 'دپارتمان ۴: بخش پروژستین‌ها',
     shortTitle: '۴. پروژستین‌ها',
-    subtitle: 'مشتقات ۱۹-نورآندروستان و فراهمی زیستی خوراکی',
+    subtitle: 'مشتقات ۱۹-نورآندروستان و سنتز خوراکی طولانی‌اثر',
   },
   {
     code: 'androgen',
@@ -87,15 +89,15 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     target: '[data-tour="progress"]',
-    title: 'زمان بازرسی FDA و امتیاز',
+    title: 'زمان بازرسی FDA، آزمون‌ها و امتیاز',
     description:
-      'زمان باقی‌مانده تا بازرسی FDA، امتیاز کل شما و وضعیت پرسشنامه ارزیابی پژوهشی را از این بخش دنبال کنید.',
+      'زمان باقی‌مانده تا بازرسی FDA، امتیاز کل، پیش‌آزمون/پس‌آزمون شیمی دارویی و پرسشنامه MEEGA+ را از این بخش دنبال کنید.',
   },
   {
     target: '[data-tour="workspace"]',
-    title: 'محیط تعاملی حل معماها',
+    title: 'محیط تعاملی حل معماها و سنتز مولکول',
     description:
-      'معماهای هر دپارتمان به ترتیب باز می‌شوند. ساختارها یا گزینه‌ها را انتخاب کنید و برای ثبت، دکمه تایید همان معما را بزنید.',
+      'معماهای هر دپارتمان به ترتیب باز می‌شوند. ساختارهای شیمیایی را تحلیل کنید، گروه‌های عاملی را روی اسکلت استروئید بکشید و در صورت نیاز از راهنمای پله‌ای مدیر R&D کمک بگیرید.',
   },
   {
     target: '[data-tour="clues"]',
@@ -107,7 +109,7 @@ const TOUR_STEPS: TourStep[] = [
     target: '[data-tour="profile"]',
     title: 'پروفایل کاربری و تغییر رمز عبور',
     description:
-      'اطلاعات دانشجویی، آمار عملکرد و گزینه تغییر رمز عبور از طریق دکمه «پروفایل» در دسترس است.',
+      'اطلاعات دانشجویی، ویرایش مشخصات پژوهشی، آمار عملکرد و گزینه تغییر رمز عبور از طریق دکمه «پروفایل» در دسترس است.',
   },
 ];
 
@@ -119,6 +121,7 @@ export function App() {
   const [activeView, setActiveView] = useState<ActiveView>('map');
   const [timeLeft, setTimeLeft] = useState<number>(3600);
   const [loadingApp, setLoadingApp] = useState<boolean>(true);
+  const [startupError, setStartupError] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showTour, setShowTour] = useState(false);
@@ -126,50 +129,85 @@ export function App() {
   const [showMeegaModal, setShowMeegaModal] = useState(false);
   const [surveyPrompted, setSurveyPrompted] = useState(false);
   const [meegaSubmitted, setMeegaSubmitted] = useState(false);
+  const [quizModalPhase, setQuizModalPhase] = useState<'pre' | 'post' | null>(null);
+  const [preAssessment, setPreAssessment] = useState<any | null>(null);
+  const [postAssessment, setPostAssessment] = useState<any | null>(null);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('medchem_theme') !== 'light';
   });
 
   useEffect(() => {
+    const root = document.documentElement;
     if (darkMode) {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
       localStorage.setItem('medchem_theme', 'dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
       localStorage.setItem('medchem_theme', 'light');
     }
   }, [darkMode]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showNotification = (msg: string, isError = false) => {
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+    setToast({ message: msg, isError });
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 5000);
+  };
 
   const loadInitialData = async () => {
     if (!getAccessToken()) {
       setLoadingApp(false);
       return;
     }
+    setStartupError(null);
     try {
-      const [profile, gameData, meegaStatus] = await Promise.all([
-        api.getProfile(),
-        api.getSession(),
+      const [profile, gameData] = await Promise.all([api.getProfile(), api.getSession()]);
+      const [meegaStatus, assessmentStatus] = await Promise.all([
         api.getMeegaStatus().catch(() => ({ submitted: false })),
+        api.getAssessmentStatus().catch(() => ({ pre: null, post: null })),
       ]);
       setUser(profile);
       setSession(gameData.session);
       setBadges(gameData.badges || []);
       setMeegaSubmitted(Boolean(meegaStatus?.submitted));
+      setPreAssessment(assessmentStatus?.pre ?? null);
+      setPostAssessment(assessmentStatus?.post ?? null);
       setTimeLeft(gameData.session.time_remaining_seconds ?? 3600);
       if (!gameData.session.completed_stages?.includes('entrance')) {
         setActiveView('entrance');
       }
-    } catch {
-      clearTokens();
-      setUser(null);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        clearTokens();
+        setUser(null);
+      } else {
+        setStartupError(
+          err instanceof Error
+            ? err.message
+            : 'ارتباط با سرور آزمایشگاه برقرار نشد. لطفاً دوباره تلاش کنید.'
+        );
+      }
     } finally {
       setLoadingApp(false);
     }
   };
 
   useEffect(() => {
-    loadInitialData();
+    void loadInitialData();
   }, []);
 
   useEffect(() => {
@@ -210,16 +248,6 @@ export function App() {
     return toPersianDigits(`${m}:${s}`);
   };
 
-  const showNotification = (msg: string, isError = false) => {
-    setToast({ message: msg, isError });
-    setTimeout(() => setToast(null), 5000);
-  };
-
-  const isPuzzleSolved = (stage: string, puzzle: string) =>
-    session?.puzzle_attempts?.some(
-      (a) => a.stage_code === stage && a.puzzle_code === puzzle && a.is_solved
-    ) ?? false;
-
   const handlePuzzleSubmit = async (
     stageCode: string,
     puzzleCode: string,
@@ -243,6 +271,14 @@ export function App() {
     return { correct: res.correct, feedback: res.feedback };
   };
 
+  const isPuzzleSolved = (stageCode: string, puzzleCode: string): boolean => {
+    return (
+      session?.puzzle_attempts?.some(
+        (a) => a.stage_code === stageCode && a.puzzle_code === puzzleCode && a.is_solved
+      ) ?? false
+    );
+  };
+
   const openLeaderboard = async () => {
     setActiveView('leaderboard');
     try {
@@ -262,6 +298,10 @@ export function App() {
     setShowProfileModal(false);
     setShowPasswordModal(false);
     setSurveyPrompted(false);
+    setQuizModalPhase(null);
+    setPreAssessment(null);
+    setPostAssessment(null);
+    setStartupError(null);
   };
 
   const closeTour = () => {
@@ -278,21 +318,63 @@ export function App() {
   }
 
   if (!user) {
+    if (getAccessToken() && startupError) {
+      return (
+        <div className="min-h-screen bg-slate-50 dark:bg-[#060d18] lab-grid-bg flex items-center justify-center p-4">
+          <section
+            role="alert"
+            className="w-full max-w-lg rounded-2xl border border-rose-500/40 bg-white dark:bg-slate-900 p-6 text-center shadow-xl space-y-4"
+          >
+            <AlertOctagon className="mx-auto h-9 w-9 text-rose-500" />
+            <h1 className="text-lg font-extrabold text-slate-900 dark:text-white">
+              اتصال به سرور آزمایشگاه برقرار نشد
+            </h1>
+            <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">{startupError}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              نکته: در پلن رایگان سرور، بیدار شدن سرویس پس از وقفه ممکن است ۳۰ تا ۵۰ ثانیه زمان ببرد.
+            </p>
+            <div className="flex justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setLoadingApp(true);
+                  void loadInitialData();
+                }}
+                className="rounded-xl bg-cyan-500 hover:bg-cyan-400 px-5 py-2 text-xs font-bold text-slate-950 transition"
+              >
+                تلاش دوباره
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-xs text-slate-700 dark:text-slate-200"
+              >
+                خروج از حساب
+              </button>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
     return (
       <AuthScreen
-        onSuccess={(loggedInUser) => {
-          setUser(loggedInUser);
+        onSuccess={() => {
           setLoadingApp(true);
-          loadInitialData();
+          void loadInitialData();
         }}
       />
     );
   }
 
   const entranceSolved = session?.completed_stages?.includes('entrance') ?? false;
-  const allFiveDepartmentsDone = ['glucocorticoid', 'mineralocorticoid', 'estrogen', 'progestin', 'androgen'].every(
-    (d) => session?.completed_stages?.includes(d)
-  );
+  const allFiveDepartmentsDone = [
+    'glucocorticoid',
+    'mineralocorticoid',
+    'estrogen',
+    'progestin',
+    'androgen',
+  ].every((d) => session?.completed_stages?.includes(d));
   const gameCompleted = session?.status === 'completed' || session?.completed_stages?.includes('final');
 
   const currentViewLabel =
@@ -303,6 +385,9 @@ export function App() {
       : activeView === 'leaderboard'
       ? 'جدول رده‌بندی'
       : DEPARTMENTS.find((d) => d.code === activeView)?.title || 'نقشه دپارتمان‌ها';
+
+  const activeQuizPhase: 'pre' | 'post' = gameCompleted ? 'post' : 'pre';
+  const activeQuizDone = activeQuizPhase === 'post' ? Boolean(postAssessment) : Boolean(preAssessment);
 
   return (
     <div
@@ -362,6 +447,28 @@ export function App() {
               <span>امتیاز: {toPersianDigits(session?.total_score ?? 0)}</span>
             </div>
 
+            {/* پیش‌آزمون / پس‌آزمون */}
+            <button
+              type="button"
+              onClick={() => setQuizModalPhase(activeQuizPhase)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition ${
+                activeQuizDone
+                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                  : 'border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-200 hover:border-purple-400'
+              }`}
+            >
+              <BookOpenCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>
+                {activeQuizPhase === 'post'
+                  ? postAssessment
+                    ? `پس‌آزمون (${toPersianDigits(postAssessment.percentage)}٪) ✓`
+                    : 'پس‌آزمون یادگیری'
+                  : preAssessment
+                  ? `پیش‌آزمون (${toPersianDigits(preAssessment.percentage)}٪) ✓`
+                  : 'پیش‌آزمون کوتاه'}
+              </span>
+            </button>
+
             {/* پرسشنامه MEEGA+ */}
             <button
               type="button"
@@ -376,7 +483,7 @@ export function App() {
               <span>{meegaSubmitted ? 'MEEGA+ ثبت شد ✓' : 'پرسشنامه MEEGA+'}</span>
             </button>
 
-            {/* پروفایل (شامل آمار و تغییر رمز عبور) */}
+            {/* پروفایل */}
             <button
               type="button"
               data-tour="profile"
@@ -422,7 +529,7 @@ export function App() {
           </div>
         </div>
 
-        {/* نوار دسترسی سریع به اتاق‌ها (بدون اسکرول‌بار افقی سفید) */}
+        {/* نوار دسترسی سریع به اتاق‌ها */}
         <nav
           data-tour="navigation"
           aria-label="ناوبری بازی"
@@ -682,17 +789,27 @@ export function App() {
                     </h2>
                     <p className="text-xs text-slate-700 dark:text-slate-300 leading-6">
                       امتیاز نهایی شما: <strong>{toPersianDigits(session?.total_score ?? 0)}</strong> | تعداد خطاها:{' '}
-                      <strong>{toPersianDigits(session?.total_errors ?? 0)}</strong>. لطفاً برای تکمیل ارزیابی پژوهشی، فرم کوتاه MEEGA+ را ثبت کنید.
+                      <strong>{toPersianDigits(session?.total_errors ?? 0)}</strong>. لطفاً پس‌آزمون ۵ سوالی و فرم MEEGA+ را تکمیل کنید.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowMeegaModal(true)}
-                    className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-5 py-2.5 text-xs transition flex items-center gap-2"
-                  >
-                    <ClipboardCheck className="w-4 h-4" />
-                    <span>{meegaSubmitted ? 'مشاهده / ویرایش پرسشنامه MEEGA+' : 'تکمیل پرسشنامه MEEGA+'}</span>
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setQuizModalPhase('post')}
+                      className="rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-extrabold px-4 py-2.5 text-xs transition flex items-center gap-1.5"
+                    >
+                      <BookOpenCheck className="w-4 h-4" />
+                      <span>{postAssessment ? 'مشاهده پس‌آزمون ✓' : 'انجام پس‌آزمون'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowMeegaModal(true)}
+                      className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-4 py-2.5 text-xs transition flex items-center gap-1.5"
+                    >
+                      <ClipboardCheck className="w-4 h-4" />
+                      <span>{meegaSubmitted ? 'مشاهده MEEGA+ ✓' : 'تکمیل MEEGA+'}</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-rose-500/30 bg-rose-50/90 dark:bg-gradient-to-l dark:from-rose-950/30 dark:via-slate-900/90 dark:to-slate-900/90 p-5 flex items-start gap-3 shadow-sm">
@@ -852,6 +969,7 @@ export function App() {
           session={session}
           badgeCount={badges.length}
           onClose={() => setShowProfileModal(false)}
+          onProfileUpdated={(updatedUser) => setUser(updatedUser)}
           onChangePassword={() => {
             setShowProfileModal(false);
             setShowPasswordModal(true);
@@ -862,6 +980,23 @@ export function App() {
       {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
 
       {showTour && <GuidedTour steps={TOUR_STEPS} onClose={closeTour} />}
+
+      {quizModalPhase && (
+        <KnowledgeQuizModal
+          phase={quizModalPhase}
+          preScorePercent={preAssessment?.percentage ?? null}
+          onClose={() => setQuizModalPhase(null)}
+          onSubmitted={(p, assessment) => {
+            if (p === 'pre') {
+              setPreAssessment(assessment);
+              showNotification('پیش‌آزمون با موفقیت ثبت شد.');
+            } else {
+              setPostAssessment(assessment);
+              showNotification('پس‌آزمون با موفقیت ثبت شد.');
+            }
+          }}
+        />
+      )}
 
       {showMeegaModal && (
         <MeegaSurveyModal

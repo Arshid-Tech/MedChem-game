@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -53,3 +52,35 @@ class MeegaResponse(models.Model):
 
     def __str__(self):
         return f"MEEGA+ | {self.student.full_name} ({self.student.student_id})"
+
+
+class KnowledgeAssessment(models.Model):
+    """
+    ماژول پیش‌آزمون و پس‌آزمون (Pre-test / Post-test) برای اندازه‌گیری دقیق رشد یادگیری
+    مباحث شیمی دارویی استروئیدها پیش و پس از انجام بازی.
+    """
+
+    PHASE_CHOICES = (
+        ("pre", "پیش‌آزمون"),
+        ("post", "پس‌آزمون"),
+    )
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="knowledge_assessments",
+    )
+    phase = models.CharField("مرحله آزمون", max_length=10, choices=PHASE_CHOICES)
+    answers = models.JSONField(default=dict)
+    score = models.PositiveSmallIntegerField(default=0)
+    total_questions = models.PositiveSmallIntegerField(default=5)
+    percentage = models.FloatField(default=0.0)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "ارزیابی دانش (پیش/پس‌آزمون)"
+        verbose_name_plural = "ارزیابی‌های دانش (پیش/پس‌آزمون)"
+        unique_together = ("student", "phase")
+
+    def __str__(self):
+        return f"{self.get_phase_display()} | {self.student.full_name} ({self.score}/{self.total_questions})"

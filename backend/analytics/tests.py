@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from .serializers import MeegaResponseSerializer
+from .serializers import MeegaResponseSerializer, KnowledgeAssessmentSerializer
 
 
 class MeegaResponseSerializerTests(SimpleTestCase):
@@ -22,4 +22,22 @@ class MeegaResponseSerializerTests(SimpleTestCase):
         answers = {f"q{i}": 3 for i in range(1, 28)}
         serializer = MeegaResponseSerializer(data={"answers": answers})
 
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+
+class KnowledgeAssessmentSerializerTests(SimpleTestCase):
+    def test_requires_all_five_questions(self):
+        serializer = KnowledgeAssessmentSerializer(
+            data={"phase": "pre", "answers": {"k1": "b"}}
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("answers", serializer.errors)
+
+    def test_accepts_valid_pre_and_post_assessment(self):
+        serializer = KnowledgeAssessmentSerializer(
+            data={
+                "phase": "post",
+                "answers": {"k1": "b", "k2": "c", "k3": "a", "k4": "d", "k5": "b"},
+            }
+        )
         self.assertTrue(serializer.is_valid(), serializer.errors)
