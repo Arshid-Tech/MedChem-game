@@ -37,6 +37,7 @@ import { FinalAntidoteLab } from './components/puzzles/FinalAntidoteLab';
 import { MeegaSurveyModal } from './components/MeegaSurveyModal';
 import { KnowledgeQuizModal } from './components/KnowledgeQuizModal';
 import { StoryCommsModal } from './components/StoryCommsModal';
+import { FloatingLabBench } from './components/FloatingLabBench';
 import { STORY_BEATS, StoryBeat } from './data/storyData';
 import { toPersianDigits } from './utils/persian';
 
@@ -116,7 +117,7 @@ const TOUR_STEPS: TourStep[] = [
     target: '[data-tour="workspace"]',
     title: 'محیط تعاملی حل معماها و ساخت مولکول',
     description:
-      'ساختارهای شیمیایی را تحلیل کنید، قطعات و گروه‌های عاملی را آزادانه روی اسکلت مولکول بچینید و در صورت نیاز از راهنمای پله‌ای کمک بگیرید.',
+      'ساختارهای شیمیایی را تحلیل کنید، قطعات و گروه‌های عاملی را آزادانه روی اسکلت مولکول بچینید و در هر صفحه از دکمه شناور «میز کار مولکول‌سازی» استفاده کنید.',
   },
   {
     target: '[data-tour="clues"]',
@@ -261,7 +262,6 @@ export function App() {
     void loadInitialData();
   }, []);
 
-  // نمایش خودکار داستان مرتبط هنگام ورود به هر بخش برای اولین بار
   useEffect(() => {
     if (!user || !session || showTour) return;
     if (activeView === 'entrance') {
@@ -466,7 +466,7 @@ export function App() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col overflow-x-hidden transition-colors duration-200 ${
+      className={`min-h-screen flex flex-col overflow-x-hidden pb-16 transition-colors duration-200 ${
         darkMode
           ? 'bg-[#060d18] text-slate-100 lab-grid-bg'
           : 'bg-slate-50 text-slate-800 lab-grid-light-bg'
@@ -614,7 +614,7 @@ export function App() {
           </div>
         </div>
 
-        {/* نوار دسترسی سریع به تمام مراحل (شامل ورودی کارخانه برای مرور همیشگی) */}
+        {/* نوار دسترسی سریع به تمام مراحل */}
         <nav
           data-tour="navigation"
           aria-label="ناوبری بازی"
@@ -698,7 +698,7 @@ export function App() {
         </nav>
       </header>
 
-      {/* مسیر راهنمای صفحه (Breadcrumb) + بنر حالت مرور پس از اتمام */}
+      {/* مسیر راهنمای صفحه (Breadcrumb) + بنر حالت مرور */}
       <div className="max-w-7xl w-full mx-auto px-4 pt-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
           <button
@@ -931,7 +931,7 @@ export function App() {
                 </div>
               )}
 
-              {/* کارت مرحله نهایی: اتاق مخفی ارول */}
+              {/* کارت مرحله نهایی */}
               <div
                 className={`rounded-2xl border p-5 flex flex-wrap items-center justify-between gap-4 transition shadow-sm ${
                   allFiveDepartmentsDone
@@ -1079,6 +1079,9 @@ export function App() {
           </div>
         </aside>
       </main>
+
+      {/* دکمه شناور میز کار آزاد مولکول‌سازی در تمام صفحات */}
+      <FloatingLabBench />
 
       {showProfileModal && user && (
         <UserProfileModal

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CheckCircle2,
   RotateCcw,
@@ -145,7 +145,6 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
   const addPieceToCanvas = (pieceId: string) => {
     if (isLocked) return;
     if (placed.some((p) => p.id === pieceId)) return;
-    // قرار دادن قطعه در موقعیت آزاد و قابل جابه‌جایی روی بوم
     const offset = (placed.length % 4) * 32;
     setPlaced((prev) => [
       ...prev,
@@ -267,7 +266,6 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* پالت قطعات تصویری (با ترتیب تصادفی) */}
         <div className="lg:col-span-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/70 p-4 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
@@ -306,7 +304,6 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
           </div>
         </div>
 
-        {/* بوم آزاد چیدمان قطعات با ماوس و لمس */}
         <div className="lg:col-span-8 rounded-2xl border-2 border-dashed border-cyan-500/40 bg-white dark:bg-[#07111f] p-5 flex flex-col justify-between shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <span className="text-xs sm:text-sm font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5">
@@ -340,7 +337,6 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
               onPointerUp={() => setDraggingId(null)}
               onPointerLeave={() => setDraggingId(null)}
             >
-              {/* شبکه راهنمای ملایم آزمایشگاهی */}
               <defs>
                 <pattern id="canvasGrid" width="24" height="24" patternUnits="userSpaceOnUse">
                   <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(56,189,248,0.08)" strokeWidth="1" />
@@ -348,7 +344,6 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
               </defs>
               <rect width="420" height="240" fill="url(#canvasGrid)" />
 
-              {/* سایه خیلی کمرنگ جایگاه کلید در قفل در (بدون لو دادن قطعه) */}
               <circle cx="90" cy="145" r="4" fill="rgba(148,163,184,0.22)" />
               <circle cx="158" cy="145" r="4" fill="rgba(148,163,184,0.22)" />
               <circle cx="192" cy="88" r="4" fill="rgba(148,163,184,0.22)" />
