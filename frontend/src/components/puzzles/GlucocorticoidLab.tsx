@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { SteroidMoleculeSVG, SteroidRenderProps } from '../molecules/SteroidMoleculeSVG';
 import { SteroidSandbox } from '../molecules/SteroidSandbox';
+import { ProgressiveHintBox } from './ProgressiveHintBox';
+import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
 import { toPersianDigits } from '../../utils/persian';
 
 interface CompoundCard {
@@ -89,14 +91,14 @@ export const GlucocorticoidLab: React.FC<Props> = ({
       ? { H8: 'beta', H9: 'alpha', H14: 'alpha' }
       : { H8: '', H9: '', H14: '' }
   );
-  const [confStart] = useState<number>(() => Date.now());
+  const confTimer = usePuzzleTimer(true, conformationSolved);
   const [confFeedback, setConfFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [confLoading, setConfLoading] = useState(false);
 
   const [order, setOrder] = useState<string[]>(
     sarSolved ? ['5', '3', '4', '6', '2', '1'] : ['1', '2', '3', '4', '5', '6']
   );
-  const [sarStart] = useState<number>(() => Date.now());
+  const sarTimer = usePuzzleTimer(conformationSolved, sarSolved);
   const [sarFeedback, setSarFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [sarLoading, setSarLoading] = useState(false);
   const [showSandbox, setShowSandbox] = useState(false);
@@ -104,7 +106,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
   const handleConfSubmit = async () => {
     setConfLoading(true);
     setConfFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - confStart) / 1000));
+    const elapsed = confTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('conformation_lock', conf, elapsed);
       setConfFeedback({ ok: res.correct, text: res.feedback });
@@ -127,7 +129,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
   const handleSarSubmit = async () => {
     setSarLoading(true);
     setSarFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - sarStart) / 1000));
+    const elapsed = sarTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('sar_potency_sort', order, elapsed);
       setSarFeedback({ ok: res.correct, text: res.feedback });
@@ -169,7 +171,6 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* میز کار آزاد تعاملی SAR کورتیکواستروئیدها */}
       {showSandbox && <SteroidSandbox mode="free" />}
 
       {/* معمای ۱: قفل کانفورماسیون استریوشیمیایی */}
@@ -237,6 +238,14 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             </div>
           ))}
         </div>
+
+        <ProgressiveHintBox
+          solved={conformationSolved}
+          hints={[
+            'در تمام هورمون‌های استروئیدی طبیعی و گلوکوکورتیکوئیدهای فعال، اتصالات حلقه‌های B/C و C/D به شکل ترانس (trans-anti-trans) هستند تا اسکلت مسطح باقی بماند.',
+            'برای ایجاد اتصال ترانس، H8 هم‌جهت با متیل‌های زاویه‌ای C18/C19 (یعنی β) است، در حالی که H9 و H14 در جهت مخالف (α) قرار می‌گیرند.',
+          ]}
+        />
 
         {confFeedback && (
           <div
@@ -353,6 +362,15 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             );
           })}
         </div>
+
+        <ProgressiveHintBox
+          solved={sarSolved}
+          disabled={!conformationSolved}
+          hints={[
+            'حضور پیوند دوگانه Δ1 (C1=C2) قدرت را حدود ۴ برابر و افزودن اتم فلوئور 9α قدرت را بسیار بیشتر می‌کند. همچنین ترکیب دارای 11=O پیش‌داروست و ضعیف‌ترین رتبه را دارد.',
+            'بین دو ترکیب دارای فلوئور 9α (شماره ۳ و ۵)، متیل روی C16 (شماره ۵) قدرت ضدالتهابی بسیار بالاتری نسبت به هیدروکسیل 16α (شماره ۳) ایجاد می‌کند.',
+          ]}
+        />
 
         {sarFeedback && (
           <div

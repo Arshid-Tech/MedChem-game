@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Shield, Lock, Unlock, CheckCircle2, AlertTriangle, Wrench } from 'lucide-react';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
 import { SteroidSandbox } from '../molecules/SteroidSandbox';
+import { ProgressiveHintBox } from './ProgressiveHintBox';
+import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -61,14 +63,14 @@ export const ProgestinLab: React.FC<Props> = ({
       ? { bioavailability: ['3', '4'], half_life: ['2', '3', '4'], low_androgen: ['1', '2', '3'] }
       : { bioavailability: [], half_life: [], low_androgen: [] }
   );
-  const [codeStart] = useState<number>(() => Date.now());
+  const codeTimer = usePuzzleTimer(true, codeSolved);
   const [codeFeedback, setCodeFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [codeLoading, setCodeLoading] = useState(false);
 
   const [selectedMods, setSelectedMods] = useState<string[]>(
     designSolved ? ['remove_c19_methyl', 'c17_alpha_ethynyl', 'c3_oxime_or_ester'] : []
   );
-  const [designStart] = useState<number>(() => Date.now());
+  const designTimer = usePuzzleTimer(codeSolved, designSolved);
   const [designFeedback, setDesignFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [designLoading, setDesignLoading] = useState(false);
 
@@ -86,7 +88,7 @@ export const ProgestinLab: React.FC<Props> = ({
   const handleCodeSubmit = async () => {
     setCodeLoading(true);
     setCodeFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - codeStart) / 1000));
+    const elapsed = codeTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('pk_safe_code', checks, elapsed);
       setCodeFeedback({ ok: res.correct, text: res.feedback });
@@ -100,7 +102,7 @@ export const ProgestinLab: React.FC<Props> = ({
   const handleDesignSubmit = async () => {
     setDesignLoading(true);
     setDesignFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - designStart) / 1000));
+    const elapsed = designTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('norandrostane_design', selectedMods, elapsed);
       setDesignFeedback({ ok: res.correct, text: res.feedback });
@@ -201,6 +203,14 @@ export const ProgestinLab: React.FC<Props> = ({
             </div>
           ))}
         </div>
+
+        <ProgressiveHintBox
+          solved={codeSolved}
+          hints={[
+            'گروه‌های محافظت‌کننده روی C3 (اکسیم یا استر 3β) و ممانعت فضایی C6 متابولیسم عبور اول را کاهش داده و نیمه‌عمر را بالا می‌برند.',
+            'ساختارهای ۳ و ۴ بیشترین بهبود فراهمی زیستی را دارند؛ ساختارهای ۲، ۳ و ۴ نیمه‌عمر طولانی‌تر و ساختارهای ۱، ۲ و ۳ عوارض آندروژنی کمتری نشان می‌دهند.',
+          ]}
+        />
 
         {codeFeedback && (
           <div

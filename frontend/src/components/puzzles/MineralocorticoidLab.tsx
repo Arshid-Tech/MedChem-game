@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { SteroidMoleculeSVG } from '../molecules/SteroidMoleculeSVG';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
+import { ProgressiveHintBox } from './ProgressiveHintBox';
+import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
 import { toPersianDigits } from '../../utils/persian';
 
 interface RouteCompound {
@@ -114,7 +116,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
       ? { anti_inflammatory: 'up', half_life: 'up', mineralocorticoid: 'down' }
       : { anti_inflammatory: '', half_life: '', mineralocorticoid: '' }
   );
-  const [arrowStart] = useState<number>(() => Date.now());
+  const arrowTimer = usePuzzleTimer(true, arrowsSolved);
   const [arrowFeedback, setArrowFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [arrowLoading, setArrowLoading] = useState(false);
 
@@ -124,14 +126,14 @@ export const MineralocorticoidLab: React.FC<Props> = ({
       : { systemic: [], topical: [], inhalation: [] }
   );
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
-  const [routeStart] = useState<number>(() => Date.now());
+  const routeTimer = usePuzzleTimer(arrowsSolved, routesSolved);
   const [routeFeedback, setRouteFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
 
   const handleArrowSubmit = async () => {
     setArrowLoading(true);
     setArrowFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - arrowStart) / 1000));
+    const elapsed = arrowTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('effect_arrows', arrows, elapsed);
       setArrowFeedback({ ok: res.correct, text: res.feedback });
@@ -169,7 +171,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
   const handleRouteSubmit = async () => {
     setRouteLoading(true);
     setRouteFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - routeStart) / 1000));
+    const elapsed = routeTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('route_classification', buckets, elapsed);
       setRouteFeedback({ ok: res.correct, text: res.feedback });
@@ -257,6 +259,14 @@ export const MineralocorticoidLab: React.FC<Props> = ({
             </div>
           ))}
         </div>
+
+        <ProgressiveHintBox
+          solved={arrowsSolved}
+          hints={[
+            'ساختار ۱ نسبت به ساختار ۲ دو تغییر کلیدی دارد: پیوند دوگانه Δ1 در حلقه A و گروه متیل 6α در حلقه B.',
+            'Δ1 و متیل 6α متابولیسم کبدی حلقه A را کند می‌کنند (افزایش نیمه‌عمر و اثر ضدالتهابی) و هم‌زمان اثر احتباس سدیم را کاهش می‌دهند.',
+          ]}
+        />
 
         {arrowFeedback && (
           <div
@@ -396,6 +406,15 @@ export const MineralocorticoidLab: React.FC<Props> = ({
             </div>
           ))}
         </div>
+
+        <ProgressiveHintBox
+          solved={routesSolved}
+          disabled={!arrowsSolved}
+          hints={[
+            'ترکیبات دارای گروه‌های یونی/قطبی (فسفات، همی‌سوکسینات) یا هیدروکسیل آزاد بدون استر لیپوفیل برای مصرف سیستمیک هستند.',
+            'کتال‌های 16,17-استونید متقارن و والرات C17 (۲، ۶، ۷) موضعی‌اند؛ در حالی که تیواستر فلوئورومتیل (۳)، استال نامتقارن بوتیرآلدهید (۴) و فوروئات کلردار (۹) استنشاقی هستند.',
+          ]}
+        />
 
         {routeFeedback && (
           <div
