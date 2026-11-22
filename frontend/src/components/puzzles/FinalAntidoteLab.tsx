@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   Skull,
-  ShieldCheck,
   KeyRound,
+  ShieldCheck,
   CheckCircle2,
   AlertTriangle,
   Sparkles,
@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   Layers,
 } from 'lucide-react';
+import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -28,23 +29,23 @@ interface Props {
 const ANTIDOTE_TOOLS = [
   {
     id: 'remove_9alpha_f',
-    title: 'حذف اتم فلوئور 9α (-F)',
-    desc: 'کاهش میل ترکیبی فوق‌العاده بالا به گیرنده گلوکوکورتیکوئید و توقف سمیت سیستمیک',
+    title: 'حذف اتم فلوئور از موقعیت 9α (Defluorination)',
+    desc: 'کاهش شدید سمیت گلوکوکورتیکوئیدی و میل اتصال مهارناپذیر به گیرنده GR',
   },
   {
     id: 'remove_cyanide',
-    title: 'حذف گروه‌های سیانید (-C≡N)',
-    desc: 'جلوگیری از مهار برگشت‌ناپذیر آنزیم‌های سیتوکروم و حذف سمیت سلولی',
+    title: 'حذف گروه سیانید (-C≡N) متصل به حلقه',
+    desc: 'رفع مهار غیرانتخابی سیتوکروم P450 و سمیت متابولیک',
   },
   {
     id: 'add_11beta_antagonist_aryl',
     title: 'افزودن گروه حجیم 11β-(4-دی‌متیل‌آمینوفنیل) مشابه میفپریستون',
-    desc: 'ایجاد ممانعت فضایی روی هلیکس ۱۲ گیرنده و تبدیل آگونیست به آنتاگونیست خالص',
+    desc: 'ممانعت فضایی در جابه‌جایی هلیکس ۱۲ گیرنده هسته‌ای و تبدیل آگونیست به آنتاگونیست قوی (پادزهر)',
   },
   {
     id: 'hydrolyze_lipophilic_ester',
-    title: 'هیدرولیز زنجیره استری لیپوفیل C17β',
-    desc: 'افزایش قطبیت مولکول برای دفع سریع کلیوی و جلوگیری از تجمع در بافت چربی',
+    title: 'هیدرولیز استر لیپوفیل موضعی (تبدیل به فرم قطبی قابل دفع)',
+    desc: 'کاهش ماندگاری بافتی و تسهیل دفع کلیوی ترکیب سمی',
   },
   {
     id: 'add_extra_fluorine_decoy',
@@ -54,11 +55,41 @@ const ANTIDOTE_TOOLS = [
 ];
 
 const HIDDEN_STRUCTURES = [
-  { id: '1', label: 'ساختار ۱: هسته پرگنان با پیوند دوگانه Δ1,4، گروه 11-کتو/OH و زنجیره کتول C17' },
-  { id: '2', label: 'ساختار ۲: هسته پرگنان دارای فلوئور 9α، هیدروکسیل 11β و استات C21 (بدون 17α-OH)' },
-  { id: '3', label: 'ساختار ۳: هسته آندروستان (19 کربنه) با گروه 2-هیدروکسی‌متیلن و 17β-OH' },
-  { id: '4', label: 'ساختار ۴: هسته پرگنان (21 کربنه) با استات C17α و متیل C6' },
-  { id: '5', label: 'ساختار ۵: هسته استران (18 کربنه) با حلقه A آروماتیک، 3-OCH3 و 17α-اتینیل' },
+  {
+    id: '1',
+    blindLabel: 'ساختار ۱',
+    revealedName: 'پردنیزولون — خانواده گلوکوکورتیکوئید',
+    revealedNote: 'هسته پرگنان ۲۱ کربنه با Δ1,4، هیدروکسیل 11β و کتول C17',
+    smiles: 'C[C@]12C=CC(=O)C=C1CC[C@@H]3[C@@H]2[C@@H](O)C[C@]4(C)[C@H]3CC[C@]4(O)C(=O)CO',
+  },
+  {
+    id: '2',
+    blindLabel: 'ساختار ۲',
+    revealedName: 'فلودروکورتیزون استات — خانواده مینرالوکورتیکوئید',
+    revealedNote: 'دارای فلوئور 9α و استات C21 با قدرت بسیار بالای احتباس سدیم',
+    smiles: 'CC(=O)OCC(=O)[C@@]1(O)CC[C@H]2[C@@H]3CCC4=CC(=O)CC[C@]4(C)[C@@]3(F)[C@@H](O)C[C@@]12C',
+  },
+  {
+    id: '3',
+    blindLabel: 'ساختار ۳',
+    revealedName: 'اکسی‌متولون — خانواده آندروژن',
+    revealedNote: 'هسته آندروستان ۱۹ کربنه با 17β-OH و 17α-متیل',
+    smiles: 'C[C@]12CC[C@H]3[C@@H](CC[C@@H]4CC(=O)C(=CO)C[C@]34C)[C@@H]1CC[C@]2(C)O',
+  },
+  {
+    id: '4',
+    blindLabel: 'ساختار ۴',
+    revealedName: 'مدروکسی‌پروژسترون استات — خانواده پروژسترون',
+    revealedNote: 'هسته پرگنان ۲۱ کربنه با 6α-متیل و استات 17α (بدون هیدروکسیل C11 و C21)',
+    smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C[C@H](C)C4=CC(=O)CC[C@]4(C)[C@H]3CC[C@@]12C',
+  },
+  {
+    id: '5',
+    blindLabel: 'ساختار ۵',
+    revealedName: 'مسترانول — خانواده استروژن',
+    revealedNote: 'هسته استران ۱۸ کربنه با حلقه A آروماتیک، اتر C3-OCH3 و اتینیل 17α',
+    smiles: 'C#C[C@]1(O)CC[C@H]2[C@@H]3CCc4cc(OC)ccc4[C@H]3CC[C@@]12C',
+  },
 ] as const;
 
 export const FinalAntidoteLab: React.FC<Props> = ({
@@ -69,8 +100,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
   onOpenSurvey,
   onBackToMap,
 }) => {
-  // گام ۱: تطبیق ۵ ساختار استروئیدی با دسته‌های دارویی برای باز کردن در اتاق مخفی
-  const [structureClasses, setStructureClasses] = useState({
+  const [structureClasses, setStructureClasses] = useState<Record<string, string>>({
     '1': mappingSolved ? 'glucocorticoid' : '',
     '2': mappingSolved ? 'mineralocorticoid' : '',
     '3': mappingSolved ? 'androgen' : '',
@@ -81,7 +111,6 @@ export const FinalAntidoteLab: React.FC<Props> = ({
   const [mappingFeedback, setMappingFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [mappingLoading, setMappingLoading] = useState(false);
 
-  // گام ۲: مسیر بیوسنتز کلسترول + رمز CORTICOSTEROID
   const [biosynthesis, setBiosynthesis] = useState({
     step_1: vaultSolved ? 'Pregnenolone' : '',
     step_2: vaultSolved ? 'Progesterone' : '',
@@ -92,7 +121,6 @@ export const FinalAntidoteLab: React.FC<Props> = ({
   const [vaultFeedback, setVaultFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [vaultLoading, setVaultLoading] = useState(false);
 
-  // گام ۳: چالش ۶۰ ثانیه‌ای سنتز پادزهر
   const [selectedTools, setSelectedTools] = useState<string[]>(
     antidoteSolved
       ? [
@@ -111,7 +139,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
   useEffect(() => {
     if (!vaultSolved || antidoteSolved) return;
     const t = setInterval(() => {
-      setClimaxTimer((prev) => (prev > 0 ? prev - 1 : 60));
+      setClimaxTimer((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(t);
   }, [vaultSolved, antidoteSolved]);
@@ -168,22 +196,21 @@ export const FinalAntidoteLab: React.FC<Props> = ({
     }
   };
 
-  const hasRemovedF = selectedTools.includes('remove_9alpha_f');
-  const hasRemovedCN = selectedTools.includes('remove_cyanide');
-  const hasAddedAryl = selectedTools.includes('add_11beta_antagonist_aryl');
-  const hasHydrolyzedEster = selectedTools.includes('hydrolyze_lipophilic_ester');
+  const hasDefluor = selectedTools.includes('remove_9alpha_f');
+  const hasNoCn = selectedTools.includes('remove_cyanide');
+  const hasAryl = selectedTools.includes('add_11beta_antagonist_aryl');
+  const hasHydrolysis = selectedTools.includes('hydrolyze_lipophilic_ester');
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-rose-500/40 bg-white dark:bg-gradient-to-l dark:from-rose-950/40 dark:via-slate-900 dark:to-slate-900 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+      <div className="rounded-2xl border border-rose-500/40 bg-rose-50/60 dark:bg-gradient-to-l dark:from-rose-950/60 dark:to-slate-900/90 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-lg">
             <Skull className="w-6 h-6" />
-            <span>مرحله نهایی: اتاق مخفی دکتر ارول و سنتز پادزهر «پروژه اهریمن»</span>
+            <span>مرحله نهایی: اتاق مخفی دکتر ارول و سنتز پادزهر «اهریمن»</span>
           </div>
-          <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
-            تمام {toPersianDigits(5)} سرنخ جمع‌آوری شدند: گلوکوکورتیکوئید فلوئوردار (9α-F)، موضعی، دارای سیانید (-C≡N)،
-            خواص پروژسترونی و مهارکننده 5α-reductase. اکنون قفل اتاق مخفی و گاوصندوق را باز کرده و مولکول را خنثی کنید!
+          <p className="text-slate-700 dark:text-slate-200 text-sm mt-1 leading-6">
+            تمام ۵ سرنخ جمع‌آوری شده‌اند. اکنون باید قفل اتاق مخفی و گاوصندوق بیوسنتز را بشکنید و پیش از ورود بازرسان FDA، ساختار سمی اهریمن را به آنتاگونیست بی‌خطر تبدیل نمایید!
           </p>
         </div>
         <button
@@ -195,25 +222,32 @@ export const FinalAntidoteLab: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* گام ۱: قفل اتاق مخفی */}
+      {/* گام ۱: قفل اتاق مخفی با ۵ ساختار واقعی */}
       <form
         onSubmit={handleMappingSubmit}
         className="rounded-2xl border border-slate-200 dark:border-cyan-500/30 bg-white dark:bg-slate-900/80 p-6 space-y-5 shadow-sm"
       >
         <div className="flex items-center gap-2 font-bold text-base text-cyan-700 dark:text-cyan-300">
           <Layers className="w-5 h-5" />
-          <span>گام {toPersianDigits(1)}: باز کردن قفل اتاق مخفی (تطبیق ۵ خانواده استروئیدی)</span>
+          <span>گام {toPersianDigits(1)}: باز کردن قفل اتاق مخفی (تطبیق ۵ ساختار با خانواده‌های استروئیدی)</span>
         </div>
         <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-          هر ساختار شماره‌گذاری‌شده را به خانواده هورمونی مربوط متصل کنید تا به گاوصندوق دسترسی پیدا کنید:
+          هر ساختار زیر را تحلیل کرده و به خانواده هورمونی مربوط متصل کنید تا به گاوصندوق دسترسی پیدا کنید:
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {HIDDEN_STRUCTURES.map((structure) => (
-            <label
+            <div
               key={structure.id}
-              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-800 dark:text-slate-200"
+              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-3 space-y-2.5 flex flex-col justify-between"
             >
-              <span className="font-semibold">{structure.label}</span>
+              <MoleculeStructureCard
+                smiles={structure.smiles}
+                label={structure.blindLabel}
+                revealed={mappingSolved}
+                revealedName={structure.revealedName}
+                revealedNote={structure.revealedNote}
+                compact
+              />
               <select
                 required
                 disabled={mappingSolved}
@@ -224,16 +258,16 @@ export const FinalAntidoteLab: React.FC<Props> = ({
                     [structure.id]: event.target.value,
                   }))
                 }
-                className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs text-slate-900 dark:text-white shrink-0"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
               >
-                <option value="">انتخاب خانواده...</option>
+                <option value="">انتخاب خانواده هورمونی...</option>
                 <option value="glucocorticoid">گلوکوکورتیکوئید</option>
                 <option value="mineralocorticoid">مینرالوکورتیکوئید</option>
                 <option value="androgen">آندروژن</option>
                 <option value="progesterone">پروژسترون</option>
                 <option value="estrogen">استروژن</option>
               </select>
-            </label>
+            </div>
           ))}
         </div>
         {mappingFeedback && (
@@ -290,10 +324,10 @@ export const FinalAntidoteLab: React.FC<Props> = ({
               dir="ltr"
               className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
             >
-              <option value="">انتخاب ترکیب ۱...</option>
+              <option value="">Select intermediate...</option>
               <option value="Pregnenolone">Pregnenolone</option>
               <option value="Aldosterone">Aldosterone</option>
-              <option value="Estrone">Estrone</option>
+              <option value="Estradiol">Estradiol</option>
             </select>
           </div>
 
@@ -307,10 +341,10 @@ export const FinalAntidoteLab: React.FC<Props> = ({
               dir="ltr"
               className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
             >
-              <option value="">انتخاب ترکیب ۲...</option>
+              <option value="">Select intermediate...</option>
               <option value="Progesterone">Progesterone</option>
+              <option value="Cortisone">Cortisone</option>
               <option value="Estriol">Estriol</option>
-              <option value="Finasteride">Finasteride</option>
             </select>
           </div>
 
@@ -324,10 +358,10 @@ export const FinalAntidoteLab: React.FC<Props> = ({
               dir="ltr"
               className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
             >
-              <option value="">انتخاب ترکیب ۳...</option>
+              <option value="">Select intermediate...</option>
               <option value="Testosterone">Testosterone</option>
-              <option value="Cortisone">Cortisone</option>
-              <option value="Spironolactone">Spironolactone</option>
+              <option value="Cholesterol">Cholesterol</option>
+              <option value="Flutamide">Flutamide</option>
             </select>
           </div>
         </div>
@@ -349,7 +383,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
             placeholder="CORTICO......."
             value={biosynthesis.vault_password}
             onChange={(e) => setBiosynthesis((p) => ({ ...p, vault_password: e.target.value.toUpperCase() }))}
-            className="rounded-xl border border-amber-500/50 bg-white dark:bg-slate-950 px-4 py-2 text-sm font-mono font-bold text-amber-700 dark:text-amber-300 tracking-widest focus:outline-none"
+            className="w-full sm:w-56 rounded-xl border border-amber-500/50 bg-white dark:bg-slate-950 px-4 py-2 font-mono text-sm tracking-widest text-amber-700 dark:text-amber-300 uppercase focus:outline-none focus:border-amber-400"
           />
         </div>
 
@@ -400,100 +434,89 @@ export const FinalAntidoteLab: React.FC<Props> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          <div dir="ltr" className="lg:col-span-6 rounded-2xl border border-slate-700 bg-[#07111f] p-4 flex flex-col items-center">
-            <svg viewBox="0 0 360 225" className="w-full max-w-[360px] h-56">
-              <polygon points="55,115 89,95 123,115 123,153 89,173 55,153" fill="none" stroke="#cbd5e1" strokeWidth="2.2" />
-              <line x1="35" y1="163" x2="55" y2="153" stroke="#f87171" strokeWidth="2.2" />
-              <text x="20" y="170" fill="#f87171" fontSize="12" fontWeight="bold">O</text>
-              <line x1="61" y1="118" x2="87" y2="103" stroke="#a3e635" strokeWidth="2.2" />
-              <line x1="89" y1="173" x2="89" y2="195" stroke="#a3e635" strokeWidth="2" />
-              <text x="80" y="208" fill="#a3e635" fontSize="11" fontWeight="bold">OH</text>
+        {/* پیش‌نمایش زنده مولکول اهریمن در حال خنثی‌سازی */}
+        <div className="rounded-2xl border border-slate-700 bg-[#06101e] p-5 flex flex-col items-center">
+          <div className="text-xs font-bold text-slate-300 mb-2">
+            {antidoteSolved ? 'ساختار پادزهر آنتاگونیست نهایی (خنثی و ایمن ✓)' : 'ساختار فعال پروژه اهریمن (Project Leviathan)'}
+          </div>
+          <div dir="ltr" className="w-full flex justify-center">
+            <svg viewBox="0 0 380 215" className="w-full max-w-[400px] h-48">
+              <polygon points="58,114 91,95 124,114 124,152 91,171 58,152" fill="none" stroke="#cbd5e1" strokeWidth="2.3" />
+              <polygon points="124,114 157,95 190,114 190,152 157,171 124,152" fill="none" stroke="#cbd5e1" strokeWidth="2.3" />
+              <polygon points="157,95 157,57 190,38 223,57 223,95 190,114" fill="none" stroke="#cbd5e1" strokeWidth="2.3" />
+              <polygon points="223,57 259,46 281,76 259,106 223,95" fill="none" stroke="#cbd5e1" strokeWidth="2.3" />
 
-              <polygon points="123,115 157,95 191,115 191,153 157,173 123,153" fill="none" stroke="#cbd5e1" strokeWidth="2.2" />
-              <polygon points="157,95 191,75 225,95 225,133 191,153 191,115" fill="none" stroke="#cbd5e1" strokeWidth="2.2" />
-              <polygon points="225,95 262,106 271,139 247,157 225,133" fill="none" stroke="#cbd5e1" strokeWidth="2.2" />
+              <line x1="36" y1="162" x2="57" y2="150" stroke="#f87171" strokeWidth="2.2" />
+              <line x1="39" y1="167" x2="60" y2="155" stroke="#f87171" strokeWidth="2.2" />
+              <text x="19" y="172" fill="#f87171" fontSize="12" fontWeight="bold">O</text>
 
-              {!hasRemovedF && (
-                <>
-                  <line x1="157" y1="115" x2="157" y2="140" stroke="#22d3ee" strokeWidth="2.5" strokeDasharray="3,2" />
-                  <text x="152" y="153" fill="#22d3ee" fontSize="13" fontWeight="bold">F</text>
-                </>
-              )}
-
-              {!hasRemovedCN && (
-                <>
-                  <line x1="191" y1="153" x2="205" y2="178" stroke="#fbbf24" strokeWidth="2.4" />
-                  <text x="202" y="191" fill="#fbbf24" fontSize="12" fontWeight="bold">C≡N</text>
-                  <line x1="271" y1="139" x2="292" y2="156" stroke="#fbbf24" strokeWidth="2.4" />
-                  <text x="292" y="166" fill="#fbbf24" fontSize="12" fontWeight="bold">C≡N</text>
-                </>
-              )}
-
-              {hasAddedAryl ? (
+              {!hasDefluor && (
                 <g>
-                  <polygon points="191,75 173,50 181,46" fill="#34d399" />
-                  <polygon points="152,24 172,24 180,40 172,56 152,56 144,40" fill="rgba(52,211,153,0.2)" stroke="#34d399" strokeWidth="2" />
-                  <text x="95" y="38" fill="#34d399" fontSize="10" fontWeight="bold">(CH3)2N-Ar</text>
+                  <line x1="157" y1="95" x2="157" y2="124" stroke="#f43f5e" strokeWidth="2.5" strokeDasharray="3,2" />
+                  <text x="152" y="138" fill="#f43f5e" fontSize="13" fontWeight="bold">9α-F</text>
+                </g>
+              )}
+
+              {!hasNoCn && (
+                <g>
+                  <line x1="281" y1="76" x2="314" y2="88" stroke="#f43f5e" strokeWidth="2.5" />
+                  <text x="317" y="92" fill="#f43f5e" fontSize="12" fontWeight="bold">-C≡N</text>
+                </g>
+              )}
+
+              {hasAryl && (
+                <g>
+                  <polygon points="157,57 137,43 142,37" fill="#34d399" />
+                  <polygon points="110,18 130,18 140,34 130,50 110,50 100,34" fill="rgba(52,211,153,0.18)" stroke="#34d399" strokeWidth="2" />
+                  <text x="48" y="37" fill="#34d399" fontSize="10" fontWeight="bold">11β-Aryl-N(Me)2</text>
+                </g>
+              )}
+
+              {!hasHydrolysis ? (
+                <g>
+                  <line x1="259" y1="46" x2="288" y2="30" stroke="#fbbf24" strokeWidth="2.3" />
+                  <text x="291" y="33" fill="#fbbf24" fontSize="10" fontWeight="bold">Lipophilic Ester</text>
                 </g>
               ) : (
-                <>
-                  <polygon points="191,75 177,52 183,49" fill="#94a3b8" />
-                  <text x="163" y="46" fill="#94a3b8" fontSize="11">HO</text>
-                </>
-              )}
-
-              <line x1="262" y1="106" x2="288" y2="85" stroke="#c084fc" strokeWidth="2.2" />
-              <text x="285" y="79" fill="#c084fc" fontSize="11" fontWeight="bold">C≡CH</text>
-              {hasHydrolyzedEster ? (
-                <text x="278" y="114" fill="#34d399" fontSize="11" fontWeight="bold">-COOH (قطبی)</text>
-              ) : (
-                <text x="275" y="114" fill="#f43f5e" fontSize="10" fontWeight="bold">-COO-R-CN</text>
+                <g>
+                  <line x1="259" y1="46" x2="285" y2="32" stroke="#34d399" strokeWidth="2.3" />
+                  <text x="288" y="35" fill="#34d399" fontSize="11" fontWeight="bold">-OH (Polar)</text>
+                </g>
               )}
             </svg>
-
-            <div dir="rtl" className="text-xs font-bold mt-1">
-              {hasRemovedF && hasRemovedCN && hasAddedAryl && hasHydrolyzedEster ? (
-                <span className="text-emerald-400">وضعیت مولکول: آنتاگونیست بی‌خطر و محلول (پادزهر آماده)</span>
-              ) : (
-                <span className="text-rose-400">وضعیت مولکول: ترکیب سمی فعال (پروژه اهریمن)</span>
-              )}
-            </div>
           </div>
+        </div>
 
-          <div className="lg:col-span-6 space-y-2.5">
-            <div className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
-              ابزارهای اصلاح شیمیایی را برای خنثی‌سازی فارماکوفورهای سمی انتخاب کنید:
-            </div>
-            {ANTIDOTE_TOOLS.map((tool) => {
-              const active = selectedTools.includes(tool.id);
-              return (
-                <div
-                  key={tool.id}
-                  onClick={() => toggleTool(tool.id)}
-                  className={`rounded-xl border p-3.5 cursor-pointer transition flex items-start justify-between gap-3 ${
+        {/* ابزارهای ویرایش شیمیایی */}
+        <div className="space-y-2.5">
+          {ANTIDOTE_TOOLS.map((tool) => {
+            const active = selectedTools.includes(tool.id);
+            return (
+              <div
+                key={tool.id}
+                onClick={() => toggleTool(tool.id)}
+                className={`rounded-xl border p-4 cursor-pointer transition flex items-start justify-between gap-3 ${
+                  active
+                    ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/40'
+                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] hover:border-slate-400 dark:hover:border-slate-500'
+                }`}
+              >
+                <div>
+                  <div className="font-bold text-xs text-slate-900 dark:text-slate-100">{tool.title}</div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{tool.desc}</div>
+                </div>
+                <span
+                  className={`text-xs px-2.5 py-1 rounded-md shrink-0 ${
                     active
-                      ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/35'
-                      : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220]'
+                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  <div>
-                    <div className="font-bold text-xs text-slate-900 dark:text-slate-100">{tool.title}</div>
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{tool.desc}</div>
-                  </div>
-                  <span
-                    className={`text-xs px-2.5 py-1 rounded-md shrink-0 ${
-                      active
-                        ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}
-                  >
-                    {active ? 'اعمال شد ✓' : 'اجرا'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                  {active ? 'اعمال شد ✓' : 'اجرا'}
+                </span>
+              </div>
+            );
+          })}
         </div>
 
         {antidoteFeedback && (
@@ -521,7 +544,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
               className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-6 py-3 text-sm transition flex items-center gap-2 shadow-lg"
             >
               <ClipboardCheck className="w-5 h-5" />
-              <span>تکمیل پرسشنامه پژوهشی MEEGA+ و ثبت نهایی ماموریت</span>
+              تکمیل پرسشنامه پژوهشی MEEGA+ و دریافت کارنامه
             </button>
           ) : (
             <button
