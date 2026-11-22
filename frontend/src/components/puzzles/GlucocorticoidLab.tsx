@@ -8,52 +8,63 @@ import {
   CheckCircle2,
   AlertTriangle,
   KeyRound,
+  Sparkles,
 } from 'lucide-react';
 import { SteroidMoleculeSVG, SteroidRenderProps } from '../molecules/SteroidMoleculeSVG';
+import { SteroidSandbox } from '../molecules/SteroidSandbox';
+import { ProgressiveHintBox } from './ProgressiveHintBox';
+import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
 import { toPersianDigits } from '../../utils/persian';
 
 interface CompoundCard {
   id: string;
-  codeName: string;
-  subtitle: string;
+  blindLabel: string;
+  revealedName: string;
+  revealedNote: string;
   props: SteroidRenderProps;
 }
 
 const COMPOUNDS: CompoundCard[] = [
   {
     id: '1',
-    codeName: 'ترکیب شماره ۱ (کورتیزون)',
-    subtitle: 'دارای گروه 11-کتو (پیش‌دارو، نیازمند احیا به 11β-OH)',
+    blindLabel: 'ترکیب شماره ۱',
+    revealedName: 'کورتیزون (Cortisone)',
+    revealedNote: 'دارای گروه 11-کتو (پیش‌دارو، نیازمند احیا به 11β-OH در کبد)',
     props: { has11BetaOH: false, has11Keto: true, hasDelta1: false, has9AlphaF: false },
   },
   {
     id: '2',
-    codeName: 'ترکیب شماره ۲ (هیدروکورتیزون)',
-    subtitle: 'دارای گروه فعال 11β-OH بدون پیوند دوگانه Δ1',
+    blindLabel: 'ترکیب شماره ۲',
+    revealedName: 'هیدروکورتیزون (Hydrocortisone)',
+    revealedNote: 'دارای گروه فعال 11β-OH بدون پیوند دوگانه Δ1 (قدرت مرجع = ۱)',
     props: { has11BetaOH: true, hasDelta1: false, has9AlphaF: false },
   },
   {
     id: '3',
-    codeName: 'ترکیب شماره ۳ (تریامسینولون)',
-    subtitle: 'دارای Δ1 + فلوئور 9α + هیدروکسیل 16α',
+    blindLabel: 'ترکیب شماره ۳',
+    revealedName: 'تریامسینولون (Triamcinolone)',
+    revealedNote: 'دارای Δ1 + فلوئور 9α + هیدروکسیل 16α (قدرت ضدالتهابی بالا بدون احتباس سدیم)',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: true, c16Sub: 'alpha-OH' },
   },
   {
     id: '4',
-    codeName: 'ترکیب شماره ۴ (متیل‌پردنیزولون)',
-    subtitle: 'دارای پیوند دوگانه Δ1 و گروه متیل 6α بدون فلوئور',
+    blindLabel: 'ترکیب شماره ۴',
+    revealedName: 'متیل‌پردنیزولون (Methylprednisolone)',
+    revealedNote: 'دارای پیوند دوگانه Δ1 و گروه متیل 6α بدون فلوئور',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: false, c6AlphaSub: 'CH3' },
   },
   {
     id: '5',
-    codeName: 'ترکیب شماره ۵ (بتامتازون / دگزامتازون)',
-    subtitle: 'دارای Δ1 + فلوئور 9α + استخلاف متیل در موقعیت C16',
+    blindLabel: 'ترکیب شماره ۵',
+    revealedName: 'بتامتازون / دگزامتازون',
+    revealedNote: 'دارای Δ1 + فلوئور 9α + استخلاف متیل در موقعیت C16 (بیشترین قدرت ضدالتهابی)',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: true, c16Sub: 'beta-CH3' },
   },
   {
     id: '6',
-    codeName: 'ترکیب شماره ۶ (پردنیزولون)',
-    subtitle: 'دارای پیوند دوگانه Δ1 (C1=C2) و گروه 11β-OH',
+    blindLabel: 'ترکیب شماره ۶',
+    revealedName: 'پردنیزولون (Prednisolone)',
+    revealedNote: 'دارای پیوند دوگانه Δ1 (C1=C2) و گروه 11β-OH (قدرت ۴ برابر کورتیزول)',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: false },
   },
 ];
@@ -80,21 +91,22 @@ export const GlucocorticoidLab: React.FC<Props> = ({
       ? { H8: 'beta', H9: 'alpha', H14: 'alpha' }
       : { H8: '', H9: '', H14: '' }
   );
-  const [confStart] = useState<number>(() => Date.now());
+  const confTimer = usePuzzleTimer(true, conformationSolved);
   const [confFeedback, setConfFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [confLoading, setConfLoading] = useState(false);
 
   const [order, setOrder] = useState<string[]>(
     sarSolved ? ['5', '3', '4', '6', '2', '1'] : ['1', '2', '3', '4', '5', '6']
   );
-  const [sarStart] = useState<number>(() => Date.now());
+  const sarTimer = usePuzzleTimer(conformationSolved, sarSolved);
   const [sarFeedback, setSarFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [sarLoading, setSarLoading] = useState(false);
+  const [showSandbox, setShowSandbox] = useState(false);
 
   const handleConfSubmit = async () => {
     setConfLoading(true);
     setConfFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - confStart) / 1000));
+    const elapsed = confTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('conformation_lock', conf, elapsed);
       setConfFeedback({ ok: res.correct, text: res.feedback });
@@ -117,7 +129,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
   const handleSarSubmit = async () => {
     setSarLoading(true);
     setSarFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - sarStart) / 1000));
+    const elapsed = sarTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmitPuzzle('sar_potency_sort', order, elapsed);
       setSarFeedback({ ok: res.correct, text: res.feedback });
@@ -140,14 +152,26 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             یادداشت روی دیوار آزمایشگاه: <em>«هر چقدر قدرت ضدالتهابی را بیشتر کنی، به فرمول اهریمن نزدیک‌تر می‌شوی...»</em>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onBackToMap}
-          className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
-        >
-          بازگشت به نقشه شرکت
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-center">
+          <button
+            type="button"
+            onClick={() => setShowSandbox((prev) => !prev)}
+            className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-2 text-xs font-bold text-cyan-700 dark:text-cyan-300 transition flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{showSandbox ? 'بستن میز کار آزاد SAR' : 'باز کردن میز کار آزاد SAR'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={onBackToMap}
+            className="rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
+          >
+            بازگشت به نقشه شرکت
+          </button>
+        </div>
       </div>
+
+      {showSandbox && <SteroidSandbox mode="free" />}
 
       {/* معمای ۱: قفل کانفورماسیون استریوشیمیایی */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
@@ -173,7 +197,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
 
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-7">
           برای دسترسی به سیستم کامپیوتر دکتر ارول، آرایش فضایی (آلفا با پیوند خط‌چین به سمت پشت صفحه یا بتا با گوه توپر به سمت جلوی صفحه)
-          را برای سه اتم هیدروژن کلیدی در اتصالات حلقه‌های <strong>B/C</strong> و <strong>C/D</strong> (کربن‌های 8، 9 و 14) در گلوکوکورتیکوئیدهای فعال بیولوژیک تنظیم کنید:
+          را برای سه اتم هیدروژن کلیدی در اتصالات حلقه‌های <strong>B/C</strong> و <strong>C/D</strong> (کربن‌های ۸، ۹ و ۱۴) در گلوکوکورتیکوئیدهای فعال بیولوژیک تنظیم کنید:
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -214,6 +238,14 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             </div>
           ))}
         </div>
+
+        <ProgressiveHintBox
+          solved={conformationSolved}
+          hints={[
+            'در تمام هورمون‌های استروئیدی طبیعی و گلوکوکورتیکوئیدهای فعال، اتصالات حلقه‌های B/C و C/D به شکل ترانس (trans-anti-trans) هستند تا اسکلت مسطح باقی بماند.',
+            'برای ایجاد اتصال ترانس، H8 هم‌جهت با متیل‌های زاویه‌ای C18/C19 (یعنی β) است، در حالی که H9 و H14 در جهت مخالف (α) قرار می‌گیرند.',
+          ]}
+        />
 
         {confFeedback && (
           <div
@@ -265,8 +297,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         </div>
 
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-7">
-          در ایمیل بازیابی‌شده از دکتر ارول آمده است: <em>«این ۶ مشتق کورتیکواستروئیدی را از قوی‌ترین به ضعیف‌ترین مرتب کن تا ویژگی مشترک دو ترکیب فوق‌قوی برایت آشکار شود.»</em>
-          با دکمه‌های بالا و پایین، ترتیب کارت‌ها را از <strong>قوی‌ترین (بالا)</strong> به <strong>ضعیف‌ترین (پایین)</strong> بچینید:
+          در ایمیل بازیابی‌شده از دکتر ارول آمده است: <em>«این ۶ ساختار کورتیکواستروئیدی را صرفاً با تحلیل استخلاف‌های روی حلقه‌ها از قوی‌ترین به ضعیف‌ترین مرتب کن تا ویژگی مشترک ترکیبات فوق‌قوی برایت آشکار شود.»</em>
         </p>
 
         <div className="space-y-3">
@@ -282,8 +313,23 @@ export const GlucocorticoidLab: React.FC<Props> = ({
                     {toPersianDigits(idx + 1)}
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">{comp.codeName}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{comp.subtitle}</div>
+                    <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                      {comp.blindLabel}
+                      {sarSolved && (
+                        <span className="mr-2 text-emerald-600 dark:text-emerald-400 font-semibold">
+                          — {comp.revealedName}
+                        </span>
+                      )}
+                    </div>
+                    {sarSolved ? (
+                      <div className="text-xs text-emerald-700 dark:text-emerald-300/90 mt-0.5">
+                        {comp.revealedNote}
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        ساختار شیمیایی را تحلیل کرده و رتبه قدرت آن را مشخص کنید
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -316,6 +362,15 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             );
           })}
         </div>
+
+        <ProgressiveHintBox
+          solved={sarSolved}
+          disabled={!conformationSolved}
+          hints={[
+            'حضور پیوند دوگانه Δ1 (C1=C2) قدرت را حدود ۴ برابر و افزودن اتم فلوئور 9α قدرت را بسیار بیشتر می‌کند. همچنین ترکیب دارای 11=O پیش‌داروست و ضعیف‌ترین رتبه را دارد.',
+            'بین دو ترکیب دارای فلوئور 9α (شماره ۳ و ۵)، متیل روی C16 (شماره ۵) قدرت ضدالتهابی بسیار بالاتری نسبت به هیدروکسیل 16α (شماره ۳) ایجاد می‌کند.',
+          ]}
+        />
 
         {sarFeedback && (
           <div

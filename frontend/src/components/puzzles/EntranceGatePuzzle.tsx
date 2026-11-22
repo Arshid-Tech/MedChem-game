@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, RotateCcw, ShieldCheck, AlertTriangle, Sparkles, ArrowLeft } from 'lucide-react';
+import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
+import { ProgressiveHintBox } from './ProgressiveHintBox';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Piece {
@@ -64,16 +66,25 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
   const [selectedIds, setSelectedIds] = useState<string[]>(
     isSolved ? ['ring_a', 'ring_b', 'ring_c', 'ring_d', 'c17_sidechain'] : []
   );
-  const [startTime] = useState<number>(() => Date.now());
+  const gateTimer = usePuzzleTimer(true, isSolved);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [justUnlocked, setJustUnlocked] = useState(false);
+  const autoAdvanceRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (isSolved && selectedIds.length === 0) {
       setSelectedIds(['ring_a', 'ring_b', 'ring_c', 'ring_d', 'c17_sidechain']);
     }
   }, [isSolved]);
+
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceRef.current !== null) {
+        window.clearTimeout(autoAdvanceRef.current);
+      }
+    };
+  }, []);
 
   const handleDropPiece = (pieceId: string) => {
     if (isSolved || justUnlocked) return;
@@ -93,13 +104,13 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
     if (selectedIds.length === 0 || loading) return;
     setLoading(true);
     setFeedback(null);
-    const elapsed = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+    const elapsed = gateTimer.consumeElapsedSeconds();
     try {
       const res = await onSubmit(selectedIds, elapsed);
       setFeedback({ ok: res.correct, text: res.feedback });
       if (res.correct) {
         setJustUnlocked(true);
-        window.setTimeout(() => {
+        autoAdvanceRef.current = window.setTimeout(() => {
           onNext();
         }, 1200);
       }
@@ -138,7 +149,6 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* بانک قطعات مولکولی */}
         <div className="lg:col-span-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/70 p-4 space-y-3 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
             <span>بانک قطعات ساختاری (بکشید یا کلیک کنید)</span>
@@ -159,19 +169,19 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
                   className={`flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm transition cursor-pointer ${
                     active
                       ? 'border-cyan-500 bg-cyan-50 dark:border-cyan-400 dark:bg-cyan-950/50 text-cyan-900 dark:text-cyan-200'
-                      : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:border-slate-400 dark:hover:border-slate-500 text-slate-800 dark:text-slate-200'
+                      : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:border-cyan-400 text-slate-800 dark:text-slate-200'
                   }`}
                 >
                   <div>
-                    <div className="font-semibold">{piece.label}</div>
-                    <div dir="ltr" className="text-xs text-slate-500 dark:text-slate-400 font-mono text-right">
+                    <div className="font-semibold text-xs sm:text-sm">{piece.label}</div>
+                    <div dir="ltr" className="text-[11px] text-slate-500 dark:text-slate-400 font-mono text-right">
                       {piece.chemName} ({piece.formula})
                     </div>
                   </div>
                   <span
                     className={`text-xs px-2 py-0.5 rounded-md shrink-0 ${
                       active
-                        ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-semibold'
+                        ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-bold'
                         : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                     }`}
                   >
@@ -183,7 +193,6 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
           </div>
         </div>
 
-        {/* راکتور سنتز و پیش‌نمایش زنده SVG */}
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
@@ -191,7 +200,7 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
             const id = e.dataTransfer.getData('text/plain');
             if (id) handleDropPiece(id);
           }}
-          className="lg:col-span-7 rounded-2xl border-2 border-dashed border-cyan-500/40 bg-slate-100/80 dark:bg-[#07111f] p-5 flex flex-col justify-between"
+          className="lg:col-span-7 rounded-2xl border-2 border-dashed border-cyan-500/40 bg-white dark:bg-[#07111f] p-5 flex flex-col justify-between shadow-sm"
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5">
@@ -224,134 +233,80 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
               </div>
             ) : (
               <svg viewBox="0 0 380 225" className="w-full max-w-[400px] h-56">
-                {/* حلقه A */}
                 {hasRingA && (
                   <g>
-                    <polygon
-                      points="48,118 82,98 116,118 116,156 82,176 48,156"
-                      fill="rgba(6,182,212,0.14)"
-                      stroke="#22d3ee"
-                      strokeWidth="2.4"
-                    />
+                    <polygon points="48,118 82,98 116,118 116,156 82,176 48,156" fill="rgba(6,182,212,0.14)" stroke="#22d3ee" strokeWidth="2.4" />
                     <line x1="84" y1="169" x2="110" y2="154" stroke="#38bdf8" strokeWidth="2" />
                     <line x1="28" y1="166" x2="48" y2="156" stroke="#f87171" strokeWidth="2.4" />
                     <line x1="31" y1="171" x2="51" y2="161" stroke="#f87171" strokeWidth="2.4" />
-                    <text x="14" y="175" fill="#f87171" fontSize="13" fontWeight="bold" fontFamily="monospace">
-                      O
-                    </text>
-                    <text x="77" y="141" fill="#22d3ee" fontSize="13" fontWeight="bold" fontFamily="monospace">
-                      A
-                    </text>
+                    <text x="14" y="175" fill="#f87171" fontSize="13" fontWeight="bold" fontFamily="monospace">O</text>
+                    <text x="77" y="141" fill="#22d3ee" fontSize="13" fontWeight="bold" fontFamily="monospace">A</text>
                   </g>
                 )}
 
-                {/* حلقه B */}
                 {hasRingB && (
                   <g>
-                    <polygon
-                      points="116,118 150,98 184,118 184,156 150,176 116,156"
-                      fill="rgba(16,185,129,0.14)"
-                      stroke="#34d399"
-                      strokeWidth="2.4"
-                    />
+                    <polygon points="116,118 150,98 184,118 184,156 150,176 116,156" fill="rgba(16,185,129,0.14)" stroke="#34d399" strokeWidth="2.4" />
                     <polygon points="116,118 112,88 120,88" fill="#34d399" />
-                    <text x="106" y="83" fill="#34d399" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                      CH3
-                    </text>
-                    <text x="145" y="141" fill="#34d399" fontSize="13" fontWeight="bold" fontFamily="monospace">
-                      B
-                    </text>
+                    <text x="106" y="83" fill="#34d399" fontSize="11" fontWeight="bold" fontFamily="monospace">CH3</text>
+                    <text x="145" y="141" fill="#34d399" fontSize="13" fontWeight="bold" fontFamily="monospace">B</text>
                   </g>
                 )}
 
-                {/* حلقه C */}
                 {hasRingC && (
                   <g>
-                    <polygon
-                      points="150,98 184,78 218,98 218,136 184,156 184,118"
-                      fill="rgba(56,189,248,0.14)"
-                      stroke="#38bdf8"
-                      strokeWidth="2.4"
-                    />
-                    <polygon points="184,78 168,54 175,51" fill="#38bdf8" />
-                    <text x="152" y="48" fill="#38bdf8" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                      HO
-                    </text>
-                    <text x="179" y="121" fill="#38bdf8" fontSize="13" fontWeight="bold" fontFamily="monospace">
-                      C
-                    </text>
+                    <polygon points="150,98 150,60 184,40 218,60 218,98 184,118" fill="rgba(56,189,248,0.14)" stroke="#38bdf8" strokeWidth="2.4" />
+                    <polygon points="150,60 130,45 135,39" fill="#38bdf8" />
+                    <text x="111" y="40" fill="#38bdf8" fontSize="11" fontWeight="bold" fontFamily="monospace">HO</text>
+                    <text x="179" y="84" fill="#38bdf8" fontSize="13" fontWeight="bold" fontFamily="monospace">C</text>
                   </g>
                 )}
 
-                {/* حلقه D */}
                 {hasRingD && (
                   <g>
-                    <polygon
-                      points="218,98 255,109 264,142 240,160 218,136"
-                      fill="rgba(192,132,252,0.15)"
-                      stroke="#c084fc"
-                      strokeWidth="2.4"
-                    />
-                    <polygon points="218,98 214,68 222,68" fill="#c084fc" />
-                    <text x="208" y="63" fill="#c084fc" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                      CH3
-                    </text>
-                    <text x="235" y="133" fill="#c084fc" fontSize="13" fontWeight="bold" fontFamily="monospace">
-                      D
-                    </text>
+                    <polygon points="218,60 255,49 277,79 255,109 218,98" fill="rgba(192,132,252,0.15)" stroke="#c084fc" strokeWidth="2.4" />
+                    <polygon points="218,60 214,32 222,32" fill="#c084fc" />
+                    <text x="208" y="26" fill="#c084fc" fontSize="11" fontWeight="bold" fontFamily="monospace">CH3</text>
+                    <text x="242" y="84" fill="#c084fc" fontSize="13" fontWeight="bold" fontFamily="monospace">D</text>
                   </g>
                 )}
 
-                {/* زنجیره جانبی C17 */}
                 {hasC17 && (
                   <g>
-                    <polygon points="255,109 282,91 286,97" fill="#fbbf24" />
-                    <text x="284" y="88" fill="#fbbf24" fontSize="11" fontWeight="bold" fontFamily="monospace">
-                      CO-CH2OH
-                    </text>
+                    <polygon points="255,49 282,31 286,37" fill="#fbbf24" />
+                    <text x="284" y="30" fill="#fbbf24" fontSize="11" fontWeight="bold" fontFamily="monospace">CO-CH2OH</text>
                   </g>
                 )}
 
-                {/* حلقه بنزن آروماتیک (در صورت انتخاب توسط کاربر رسم می‌شود) */}
                 {hasBenzene && (
                   <g transform="translate(268, 152)">
-                    <polygon
-                      points="24,0 45,12 45,36 24,48 3,36 3,12"
-                      fill="rgba(251,146,60,0.15)"
-                      stroke="#fb923c"
-                      strokeWidth="2.2"
-                    />
+                    <polygon points="24,0 45,12 45,36 24,48 3,36 3,12" fill="rgba(251,146,60,0.15)" stroke="#fb923c" strokeWidth="2.2" />
                     <circle cx="24" cy="24" r="12" fill="none" stroke="#fb923c" strokeWidth="1.8" />
-                    <text x="50" y="28" fill="#fb923c" fontSize="10" fontWeight="bold" fontFamily="monospace">
-                      C6H6
-                    </text>
+                    <text x="50" y="28" fill="#fb923c" fontSize="10" fontWeight="bold" fontFamily="monospace">C6H6</text>
                   </g>
                 )}
 
-                {/* هسته ایندول دوحلقه‌ای (در صورت انتخاب توسط کاربر رسم می‌شود) */}
                 {hasIndole && (
                   <g transform="translate(18, 14)">
-                    <polygon
-                      points="22,0 42,12 42,35 22,47 2,35 2,12"
-                      fill="rgba(244,114,182,0.15)"
-                      stroke="#f472b6"
-                      strokeWidth="2"
-                    />
+                    <polygon points="22,0 42,12 42,35 22,47 2,35 2,12" fill="rgba(244,114,182,0.15)" stroke="#f472b6" strokeWidth="2" />
                     <line x1="8" y1="15" x2="22" y2="7" stroke="#f472b6" strokeWidth="1.6" />
                     <line x1="8" y1="32" x2="22" y2="40" stroke="#f472b6" strokeWidth="1.6" />
-                    <polyline
-                      points="42,12 64,17 70,32 56,43 42,35"
-                      fill="rgba(244,114,182,0.12)"
-                      stroke="#f472b6"
-                      strokeWidth="2"
-                    />
-                    <text x="69" y="45" fill="#f472b6" fontSize="10" fontWeight="bold" fontFamily="monospace">
-                      NH (Indole)
-                    </text>
+                    <polyline points="42,12 64,17 70,32 56,43 42,35" fill="rgba(244,114,182,0.12)" stroke="#f472b6" strokeWidth="2" />
+                    <text x="69" y="45" fill="#f472b6" fontSize="10" fontWeight="bold" fontFamily="monospace">NH (Indole)</text>
                   </g>
                 )}
               </svg>
             )}
+          </div>
+
+          <div className="mt-3">
+            <ProgressiveHintBox
+              solved={unlocked}
+              hints={[
+                'اسکلت پایه کورتیکواستروئیدها (سیکلوپنتانوپرهیدروفنانترن) از سه حلقه شش‌ضلعی (A، B، C) و یک حلقه پنج‌ضلعی (D) تشکیل شده است.',
+                'علاوه بر حلقه‌های A تا D، زنجیره جانبی کتول C17β نیز برای کورتیکواستروئیدها ضروری است؛ حلقه‌های بنزن و ایندول ناخالصی هستند.',
+              ]}
+            />
           </div>
 
           {feedback && (

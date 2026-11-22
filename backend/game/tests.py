@@ -90,6 +90,41 @@ class AddedContentPuzzleTests(SimpleTestCase):
             )[0]
         )
 
+    def test_dict_list_fields_are_order_insensitive(self):
+        # Androgen 5-alpha reductase complex: ["9", "3"] must be accepted just like ["3", "9"]
+        self.assertTrue(
+            evaluate_answer(
+                ("androgen", "five_alpha_reductase_complex"),
+                {
+                    "selected_inhibitors": ["9", "3"],
+                    "cofactor_complex": "nadph_covalent_adduct",
+                    "pharmacophore": "keto_enol_lactam",
+                },
+            )[0]
+        )
+        # Duplicate items must still be rejected
+        self.assertFalse(
+            evaluate_answer(
+                ("androgen", "five_alpha_reductase_complex"),
+                {
+                    "selected_inhibitors": ["3", "3"],
+                    "cofactor_complex": "nadph_covalent_adduct",
+                    "pharmacophore": "keto_enol_lactam",
+                },
+            )[0]
+        )
+        # Progestin safe code: reversed selection order must be accepted
+        self.assertTrue(
+            evaluate_answer(
+                ("progestin", "pk_safe_code"),
+                {
+                    "bioavailability": ["4", "3"],
+                    "half_life": ["4", "2", "3"],
+                    "low_androgen": ["3", "1", "2"],
+                },
+            )[0]
+        )
+
     def test_hidden_room_mapping_is_a_separate_required_final_puzzle(self):
         self.assertTrue(
             evaluate_answer(
