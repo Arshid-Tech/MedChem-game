@@ -1,9 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { Atom, RotateCw, CheckCircle2, AlertTriangle, ArrowDown, ArrowUp } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Atom,
+  RotateCw,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  Siren,
+} from 'lucide-react';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
 import { SteroidSandbox } from '../molecules/SteroidSandbox';
 import { ProgressiveHintBox } from './ProgressiveHintBox';
 import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
+import { deterministicShuffle } from '../../utils/shuffle';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -21,35 +30,38 @@ interface Props {
   onBackToMap: () => void;
 }
 
-const ENZYME_OPTIONS = ['Estradiol dehydrogenase', '16a-hydroxylase', 'Aromatase (CYP19)', '5a-reductase'];
+const ENZYME_OPTIONS = deterministicShuffle(
+  ['Estradiol dehydrogenase', '16a-hydroxylase', 'Aromatase (CYP19)', '5a-reductase'],
+  'est-enzymes-v3'
+);
 
 const ESTROGEN_STRUCTURES = [
   {
     id: '1',
     blindLabel: 'ساختار ۱',
-    revealedName: 'استرادیول (17β-Estradiol - E2)',
-    revealedNote: 'حلقه A آروماتیک با 3-OH فنولی و 17β-OH',
+    revealedName: 'استرادیول (Estradiol - E2)',
+    revealedNote: 'دارای 3-OH فنولی و 17β-OH',
     smiles: 'C[C@]12CC[C@H]3[C@@H](CCc4cc(O)ccc34)[C@@H]1CC[C@@H]2O',
   },
   {
     id: '2',
     blindLabel: 'ساختار ۲',
     revealedName: 'استرون (Estrone - E1)',
-    revealedNote: 'اکسیداسیون گروه 17β-OH به کتون C17=O توسط Estradiol dehydrogenase',
+    revealedNote: 'دارای کتون C17=O',
     smiles: 'C[C@]12CC[C@H]3[C@@H](CCc4cc(O)ccc34)[C@@H]1CCC2=O',
   },
   {
     id: '3',
     blindLabel: 'ساختار ۳',
     revealedName: 'استریول (Estriol - E3)',
-    revealedNote: 'هیدروکسیلاسیون 16α روی استرادیول (تری‌هیدروکسی قطبی)',
+    revealedNote: 'دارای هیدروکسیل 16α و 17β',
     smiles: 'C[C@]12CC[C@H]3[C@@H](CCc4cc(O)ccc34)[C@@H]1C[C@@H](O)[C@@H]2O',
   },
   {
     id: '4',
     blindLabel: 'ساختار ۴',
-    revealedName: '16α-هیدروکسی‌استرون (16α-OH-E1)',
-    revealedNote: 'واسطه هیدروکسیله حلقه D دارای کتون C17=O و هیدروکسیل 16α',
+    revealedName: '16α-هیدروکسی‌استرون',
+    revealedNote: 'دارای کتون C17=O و هیدروکسیل 16α',
     smiles: 'C[C@]12CC[C@H]3[C@@H](CCc4cc(O)ccc34)[C@@H]1C[C@@H](O)C2=O',
   },
 ];
@@ -58,38 +70,49 @@ const POTENCY_COMPOUNDS = [
   {
     id: '1',
     blindLabel: 'ترکیب ۱',
-    revealedName: '17β-استرادیول (17β-Estradiol)',
-    revealedNote: 'استروژن طبیعی مرجع با 3-OH و 17β-OH',
+    revealedName: '17β-استرادیول',
+    revealedNote: 'استروژن طبیعی مرجع',
     smiles: 'C[C@]12CC[C@H]3[C@@H](CCc4cc(O)ccc34)[C@@H]1CC[C@@H]2O',
   },
   {
     id: '2',
     blindLabel: 'ترکیب ۲',
-    revealedName: 'اتینیل استرادیول (Ethinyl Estradiol)',
-    revealedNote: 'مشتق 17α-اتینیل مقاوم به متابولیسم کبدی (قدرت هم‌تراز در گیرنده)',
+    revealedName: 'اتینیل استرادیول',
+    revealedNote: 'مشتق خوراکی با قدرت هم‌تراز استرادیول',
     smiles: 'C#C[C@]1(O)CC[C@H]2[C@@H]3CCc4cc(O)ccc4[C@H]3CC[C@@]12C',
   },
   {
     id: '3',
     blindLabel: 'ترکیب ۳',
-    revealedName: 'دی‌اتیل‌استیل‌بسترول (trans-DES)',
-    revealedNote: 'آگونیست غیراستروئیدی ترانس با فاصله بهینه دو گروه فنولی و بیشترین قدرت اثر',
+    revealedName: 'دی‌اتیل‌استیل‌بسترول (DES)',
+    revealedNote: 'آگونیست غیراستروئیدی ترانس با بالاترین قدرت اثر',
     smiles: 'CC/C(=C(/CC)c1ccc(O)cc1)c2ccc(O)cc2',
   },
   {
     id: '4',
     blindLabel: 'ترکیب ۴',
-    revealedName: 'استریول (Estriol)',
-    revealedNote: 'متابولیت قطبی 16α,17β-دی‌اول با کمترین قدرت اثر استروژنی',
+    revealedName: 'استریول',
+    revealedNote: 'متابولیت قطبی با کمترین قدرت اثر',
     smiles: 'C[C@]12CC[C@H]3[C@@H](CCc4cc(O)ccc34)[C@@H]1C[C@@H](O)[C@@H]2O',
   },
 ];
 
+const INITIAL_POTENCY_ORDER = deterministicShuffle(['1', '2', '3', '4'], 'est-potency-v3');
+
+const METABOLITE_OPTIONS = deterministicShuffle(
+  [
+    { id: 'promote_active_metabolite', label: 'افزایش تبدیل دارو به متابولیت فعال' },
+    { id: 'increase_parent_exposure', label: 'افزایش تماس با داروی اولیه بدون تغییر مسیر متابولیک' },
+    { id: 'prevent_active_metabolite', label: 'اصلاح ساختار برای جلوگیری از تشکیل متابولیت فعال سرطان‌زا' },
+  ],
+  'est-met-path-v3'
+);
+
 const DRUG_CLASS_FIELDS = [
-  { key: 'serm', blindTitle: 'تعدیل‌کننده انتخابی گیرنده استروژن (SERM)', revealedTitle: 'تعدیل‌کننده انتخابی گیرنده استروژن — SERM (رالوکسیفن)' },
-  { key: 'pure_antiestrogen', blindTitle: 'آنتی‌استروژن خالص (Pure Antiestrogen)', revealedTitle: 'آنتی‌استروژن خالص — Pure Antiestrogen (فولوسترانت)' },
-  { key: 'steroid_aromatase_inhibitor', blindTitle: 'مهارکننده استروئیدی آروماتاز', revealedTitle: 'مهارکننده استروئیدی آروماتاز (اگزمستان)' },
-  { key: 'non_steroid_aromatase_inhibitor', blindTitle: 'مهارکننده غیراستروئیدی آروماتاز', revealedTitle: 'مهارکننده غیراستروئیدی آروماتاز (لتروزول)' },
+  { key: 'serm', blindTitle: '۱) تعدیل‌کننده انتخابی گیرنده استروژن (SERM)', revealedTitle: '۱) SERM — رالوکسیفن' },
+  { key: 'pure_antiestrogen', blindTitle: '۲) آنتی‌استروژن خالص (Pure Antiestrogen)', revealedTitle: '۲) آنتی‌استروژن خالص — فولوسترانت' },
+  { key: 'steroid_aromatase_inhibitor', blindTitle: '۳) مهارکننده استروئیدی آروماتاز', revealedTitle: '۳) مهارکننده استروئیدی آروماتاز — اگزمستان' },
+  { key: 'non_steroid_aromatase_inhibitor', blindTitle: '۴) مهارکننده غیراستروئیدی آروماتاز', revealedTitle: '۴) مهارکننده غیراستروئیدی آروماتاز — لتروزول' },
 ] as const;
 
 const DRUG_CLASS_STRUCTURES = [
@@ -97,28 +120,28 @@ const DRUG_CLASS_STRUCTURES = [
     id: 'A',
     blindLabel: 'ساختار A',
     revealedName: 'اگزمستان (Exemestane)',
-    revealedNote: 'مهارکننده استروئیدی غیرقابل برگشت آروماتاز (دارای متیلن C6)',
+    revealedNote: 'مهارکننده استروئیدی آروماتاز',
     smiles: 'C[C@]12CCC(=O)C=C1C(=C)C[C@@H]3[C@@H]2CC[C@]4(C)[C@H]3CCC4=O',
   },
   {
     id: 'B',
     blindLabel: 'ساختار B',
     revealedName: 'رالوکسیفن (Raloxifene)',
-    revealedNote: 'تعدیل‌کننده انتخابی گیرنده استروژن (SERM) با داربست بنزوتیوفن و زنجیره پیپریدین',
+    revealedNote: 'تعدیل‌کننده انتخابی گیرنده استروژن (SERM)',
     smiles: 'Oc1ccc(cc1)c2sc3cc(O)ccc3c2C(=O)c4ccc(OCCN5CCCCC5)cc4',
   },
   {
     id: 'C',
     blindLabel: 'ساختار C',
     revealedName: 'فولوسترانت (Fulvestrant)',
-    revealedNote: 'آنتی‌استروژن خالص با زنجیره بلند آلکیل سولفوکسید فلوئوره در C7α',
+    revealedNote: 'آنتی‌استروژن خالص با زنجیره بلند C7α',
     smiles: 'C[C@]12CC[C@H]3[C@@H]([C@@H](CCCCCCCCC[S](=O)CCCC(F)(F)C(F)(F)F)Cc4cc(O)ccc34)[C@@H]1CC[C@@H]2O',
   },
   {
     id: 'D',
     blindLabel: 'ساختار D',
     revealedName: 'لتروزول (Letrozole)',
-    revealedNote: 'مهارکننده غیراستروئیدی آروماتاز دارای حلقه تری‌آزول و دو گروه سیانید (-C≡N)',
+    revealedNote: 'مهارکننده غیراستروئیدی آروماتاز دارای سیانید (-C≡N)',
     smiles: 'N#Cc1ccc(cc1)C(c2ccc(C#N)cc2)n3cncn3',
   },
 ];
@@ -157,7 +180,7 @@ export const EstrogenLab: React.FC<Props> = ({
   const [oralLoading, setOralLoading] = useState(false);
 
   const [potencyOrder, setPotencyOrder] = useState<string[]>(
-    potencySolved ? ['3', '1', '2', '4'] : ['1', '2', '3', '4']
+    potencySolved ? ['3', '1', '2', '4'] : INITIAL_POTENCY_ORDER
   );
   const potencyTimer = usePuzzleTimer(oralDesignSolved, potencySolved);
   const [potencyFeedback, setPotencyFeedback] = useState<{ ok: boolean; text: string } | null>(null);
@@ -187,6 +210,15 @@ export const EstrogenLab: React.FC<Props> = ({
   const classificationTimer = usePuzzleTimer(metaboliteSolved, classificationSolved);
   const [classificationFeedback, setClassificationFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [classificationLoading, setClassificationLoading] = useState(false);
+
+  const shuffledMetStructures = useMemo(
+    () => deterministicShuffle(ESTROGEN_STRUCTURES, 'est-met-cards-v3'),
+    []
+  );
+  const shuffledDrugStructures = useMemo(
+    () => deterministicShuffle(DRUG_CLASS_STRUCTURES, 'est-class-cards-v3'),
+    []
+  );
 
   useEffect(() => {
     if (!escapeStarted || dockingSolved) return;
@@ -325,10 +357,10 @@ export const EstrogenLab: React.FC<Props> = ({
         <div>
           <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold text-lg">
             <Atom className="w-6 h-6" />
-            <span>دپارتمان سوم: آزمایشگاه استروژن‌ها و داکینگ گیرنده هسته‌ای (ERα)</span>
+            <span>🍯 اتاق ماه عسل — آزمایشگاه آقا و خانم لارنس (استروژن‌ها)</span>
           </div>
-          <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
-            آقا و خانم لارنس در این بخش روی استروژن‌های پایدار خوراکی، اتصال به رسپتور و مهارکننده‌های آروماتاز تحقیق می‌کردند.
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm mt-1 leading-6">
+            آقا و خانم لارنس یک ساله داخل آزمایشگاه حیوانات روی تولید یه استروژن «فول‌شارژ» کار می‌کنن. حواست باشه توی دامشون نیفتی!
           </p>
         </div>
         <button
@@ -336,18 +368,18 @@ export const EstrogenLab: React.FC<Props> = ({
           onClick={onBackToMap}
           className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
         >
-          بازگشت به نقشه شرکت
+          بازگشت به نقشه کارخانه
         </button>
       </div>
 
-      {/* معمای ۱: جانمایی ساختارهای واقعی و آنزیم‌های متابولیسم */}
+      {/* گام ۱: ورود به اتاق با جانمایی ساختارها و آنزیم‌ها */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(1)}: شناسایی چهار ساختار استروژنی و تکمیل نقشه متابولیسم کبدی
+          گام {toPersianDigits(1)}: برای ورود به اتاق، ساختارها و آنزیم‌های متابولیسم رو جای درستشون بذار
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {ESTROGEN_STRUCTURES.map((st) => (
+          {shuffledMetStructures.map((st) => (
             <MoleculeStructureCard
               key={st.id}
               smiles={st.smiles}
@@ -363,13 +395,13 @@ export const EstrogenLab: React.FC<Props> = ({
         <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-5 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              ['estradiol', 'استرادیول (Estradiol - E2)'],
-              ['estrone', 'استرون (Estrone - E1)'],
-              ['estriol', 'استریول (Estriol - E3)'],
+              ['estradiol', 'استرادیول (Estradiol)'],
+              ['estrone', 'استرون (Estrone)'],
+              ['estriol', 'استریول (Estriol)'],
               ['hydroxyestrone', '16α-هیدروکسی‌استرون'],
             ].map(([molecule, label]) => (
               <label key={molecule} className="space-y-1 text-[11px] text-slate-700 dark:text-slate-300">
-                <span className="font-semibold block">جایگاه ساختار: {label}</span>
+                <span className="font-semibold block">کدام ساختار مربوط به {label} است؟</span>
                 <select
                   required
                   disabled={metabolismSolved}
@@ -383,10 +415,11 @@ export const EstrogenLab: React.FC<Props> = ({
                   className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
                 >
                   <option value="">انتخاب شماره ساختار...</option>
-                  <option value="1">ساختار ۱</option>
-                  <option value="2">ساختار ۲</option>
-                  <option value="3">ساختار ۳</option>
-                  <option value="4">ساختار ۴</option>
+                  {shuffledMetStructures.map((st) => (
+                    <option key={st.id} value={st.id}>
+                      {st.blindLabel}
+                    </option>
+                  ))}
                 </select>
               </label>
             ))}
@@ -394,13 +427,11 @@ export const EstrogenLab: React.FC<Props> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-center">
             <div className="rounded-xl border border-cyan-500/40 bg-cyan-50/70 dark:bg-cyan-950/30 p-3">
-              <div className="font-bold text-cyan-800 dark:text-cyan-300 text-sm">استرادیول (E2)</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">قوی‌ترین استروژن طبیعی</div>
+              <div className="font-bold text-cyan-800 dark:text-cyan-300 text-sm">استرادیول</div>
             </div>
-
             <div>
               <label className="block text-[11px] text-amber-700 dark:text-amber-300 font-semibold mb-1">
-                آنزیم تبدیل برگشت‌پذیر E2 ⇄ E1
+                آنزیم تبدیل برگشت‌پذیر استرادیول ⇄ استرون
               </label>
               <select
                 disabled={metabolismSolved}
@@ -417,17 +448,15 @@ export const EstrogenLab: React.FC<Props> = ({
                 ))}
               </select>
             </div>
-
             <div className="rounded-xl border border-purple-500/40 bg-purple-50/70 dark:bg-purple-950/30 p-3">
-              <div className="font-bold text-purple-800 dark:text-purple-300 text-sm">استرون (E1)</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">متابولیت اکسیده‌شده در C17</div>
+              <div className="font-bold text-purple-800 dark:text-purple-300 text-sm">استرون</div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-center">
             <div>
               <label className="block text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold mb-1">
-                آنزیم مسیر E2 → E3
+                آنزیم مسیر استرادیول → استریول
               </label>
               <select
                 disabled={metabolismSolved}
@@ -444,10 +473,10 @@ export const EstrogenLab: React.FC<Props> = ({
                 ))}
               </select>
             </div>
-            <div className="text-xs text-slate-500 font-mono">↓ هیدروکسیلاسیون حلقه D ↓</div>
+            <div className="text-xs text-slate-500 font-mono">↓ مسیر تبدیل عمودی ↓</div>
             <div>
               <label className="block text-[11px] text-emerald-700 dark:text-emerald-300 font-semibold mb-1">
-                آنزیم مسیر E1 → 16α-OH-E1
+                آنزیم مسیر استرون → 16α-هیدروکسی‌استرون
               </label>
               <select
                 disabled={metabolismSolved}
@@ -468,13 +497,11 @@ export const EstrogenLab: React.FC<Props> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center text-center">
             <div className="rounded-xl border border-emerald-500/40 bg-emerald-50/70 dark:bg-emerald-950/30 p-3">
-              <div className="font-bold text-emerald-800 dark:text-emerald-300 text-sm">استریول (E3)</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">متابولیت نهایی قطبی</div>
+              <div className="font-bold text-emerald-800 dark:text-emerald-300 text-sm">استریول</div>
             </div>
-
             <div>
               <label className="block text-[11px] text-amber-700 dark:text-amber-300 font-semibold mb-1">
-                آنزیم تبدیل E3 ⇄ 16α-Hydroxyestrone
+                آنزیم تبدیل استریول ⇄ 16α-هیدروکسی‌استرون
               </label>
               <select
                 disabled={metabolismSolved}
@@ -491,10 +518,8 @@ export const EstrogenLab: React.FC<Props> = ({
                 ))}
               </select>
             </div>
-
             <div className="rounded-xl border border-amber-500/40 bg-amber-50/70 dark:bg-amber-950/30 p-3">
               <div className="font-bold text-amber-800 dark:text-amber-300 text-sm">16α-هیدروکسی‌استرون</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">واسطه هیدروکسیله حلقه D</div>
             </div>
           </div>
         </div>
@@ -502,8 +527,8 @@ export const EstrogenLab: React.FC<Props> = ({
         <ProgressiveHintBox
           solved={metabolismSolved}
           hints={[
-            'پسوند -diol به معنای دو گروه OH (ساختار ۱)، -one به معنای گروه کتون C17=O (ساختار ۲) و -triol به معنای سه گروه OH (ساختار ۳) است.',
-            'تبدیل برگشت‌پذیر الکل و کتون در C17 توسط Estradiol dehydrogenase و افزودن OH به کربن ۱۶ توسط 16a-hydroxylase انجام می‌شود.',
+            'پسوند -diol یعنی دو گروه OH (ساختار ۱)، -one یعنی کتون C17=O (ساختار ۲) و -triol یعنی سه گروه OH (ساختار ۳).',
+            'تبدیل الکل و کتون C17 با Estradiol dehydrogenase و افزودن OH روی کربن ۱۶ با 16a-hydroxylase انجام می‌شود.',
           ]}
         />
 
@@ -532,13 +557,13 @@ export const EstrogenLab: React.FC<Props> = ({
               onClick={handleMetSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
             >
-              {metLoading ? 'در حال بررسی...' : 'تایید مسیر متابولیک'}
+              {metLoading ? 'در حال بررسی...' : 'تایید و ورود به اتاق ماه عسل'}
             </button>
           </div>
         )}
       </div>
 
-      {/* معمای ۲: طراحی تعاملی استروژن خوراکی طولانی‌اثر با SteroidSandbox */}
+      {/* گام ۲: قفسه موش‌ها — ساخت فرم خوراکی و طولانی‌اثر با میز کار جامع */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           metabolismSolved
@@ -547,10 +572,10 @@ export const EstrogenLab: React.FC<Props> = ({
         }`}
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(2)}: سنتز تعاملی استروژن خوراکی و طولانی‌اثر از استرادیول
+          گام {toPersianDigits(2)}: قفسه موش‌ها — فرم خوراکی و طولانی‌اثر استروژن رو بساز
         </h3>
         <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-          ساختار استرادیول روی میز کار زیر آماده است. گروه‌های عاملی مناسب را از پالت روی موقعیت‌های صحیح بکشید و رها کنید تا فراهمی زیستی خوراکی و طول اثر به حداکثر برسد (بدون آسیب به اتصال گیرنده ERα):
+          به محض ورود چشمت به قفسه موش‌ها می‌افته که دارن یه دارویی می‌خورن؛ اما برای رد گم‌کنی، ماده‌ای که روی ویال کشیدن اصلاً خوراکی نیست! با جعبه‌ابزار آزاد، فرم <strong>خوراکی و طولانی‌اثرش</strong> رو بساز:
         </p>
 
         <SteroidSandbox
@@ -579,13 +604,13 @@ export const EstrogenLab: React.FC<Props> = ({
               onClick={handleOralSubmit}
               className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
             >
-              {oralLoading ? 'در حال بررسی...' : 'ثبت ساختار سنتزشده'}
+              {oralLoading ? 'در حال بررسی...' : 'ثبت ساختار ساخته‌شده'}
             </button>
           </div>
         )}
       </div>
 
-      {/* معمای ۳: رتبه‌بندی قدرت با رندر واقعی ۴ ساختار */}
+      {/* گام ۳: قفل کامپیوتر لارنس‌ها */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           oralDesignSolved
@@ -594,10 +619,10 @@ export const EstrogenLab: React.FC<Props> = ({
         }`}
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(3)}: ترتیب قدرت اثر ترکیبات استروژنی (قوی‌ترین به ضعیف‌ترین)
+          گام {toPersianDigits(3)}: رمز کامپیوتر قفل‌شده — این ۴ مولکول رو بر اساس قدرت مرتب کن
         </h3>
         <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-          چهار ساختار زیر را صرفاً از روی فرمول ساختاری از قوی‌ترین (رتبه ۱) به ضعیف‌ترین (رتبه ۴) مرتب کنید (دو ترکیب قدرت هم‌تراز دارند):
+          از قوی‌ترین (بالا) به ضعیف‌ترین (پایین) مرتب کن تا قفل کامپیوترشون باز بشه (دو ترکیب قدرت برابر دارند):
         </p>
         <div className="space-y-3">
           {potencyOrder.map((id, index) => {
@@ -653,8 +678,8 @@ export const EstrogenLab: React.FC<Props> = ({
           solved={potencySolved}
           disabled={!oralDesignSolved}
           hints={[
-            'ساختار غیراستروئیدی ترانس با دو حلقه فنولی (فاصله حدود ۱۰.۹ آنگستروم) بالاترین میل اتصال به گیرنده استروژن را دارد.',
-            'افزودن 16α-OH (ساختار ۴) قطبیت را بالا برده و کمترین قدرت را ایجاد می‌کند؛ ترکیب ۱ و ۲ هم‌تراز هستند.',
+            'ترکیب غیراستروئیدی ترانس با دو حلقه فنولی بیشترین قدرت اتصال به گیرنده را دارد.',
+            'ترکیب دارای ۳ گروه OH (استریول) ضعیف‌ترین است و ترکیب ۱ و ۲ هم‌ترازند.',
           ]}
         />
 
@@ -677,23 +702,28 @@ export const EstrogenLab: React.FC<Props> = ({
               onClick={handlePotencySubmit}
               className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
             >
-              {potencyLoading ? 'در حال بررسی...' : 'ثبت ترتیب قدرت'}
+              {potencyLoading ? 'در حال بررسی...' : 'باز کردن قفل کامپیوتر'}
             </button>
           </div>
         )}
       </div>
 
-      {/* معمای ۴: چرخش لیگاند در گیرنده */}
+      {/* گام ۴: لو رفتن توسط خانم لارنس + ۱۰ ثانیه فرار */}
       <div
         className={`rounded-2xl border p-6 space-y-6 transition ${
           potencySolved
-            ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm'
+            ? 'border-rose-500/40 bg-white dark:bg-slate-900/75 shadow-sm'
             : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
         }`}
       >
-        <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(4)}: داکینگ دی‌اتیل‌استیل‌بسترول (DES) در پاکت اتصال ERα
-        </h3>
+        <div className="rounded-xl border border-rose-500/40 bg-rose-50/80 dark:bg-rose-950/30 p-4 flex items-start gap-3">
+          <Siren className="w-5 h-5 text-rose-500 shrink-0 mt-0.5 animate-pulse" />
+          <div className="text-xs sm:text-sm leading-6 text-rose-900 dark:text-rose-200">
+            <strong>اوه اوهههه! خانم لارنس بالا سر کامپیوترش دیدت — لو رفتی!</strong>
+            <br />
+            فقط <strong>{toPersianDigits(10)} ثانیه</strong> وقت داری ساختار رو داخل رسپتور بچرخونی و قفل در رو باز کنی تا فرار کنی!
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           <div className="lg:col-span-6 rounded-2xl border border-slate-700 bg-[#07111f] p-4 flex flex-col items-center">
@@ -741,13 +771,13 @@ export const EstrogenLab: React.FC<Props> = ({
                 <RotateCw className="w-4 h-4" /> چرخش {toPersianDigits(45)} درجه ({toPersianDigits(angle)}°)
               </button>
               <span className={`text-xs font-bold ${isAligned ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {isAligned ? 'پیوند هیدروژنی برقرار شد ✓' : 'در جستجوی زاویه اتصال...'}
+                {isAligned ? 'هم‌تراز شد ✓' : 'بچرخون...'}
               </span>
             </div>
             <div className="mt-3 text-xs text-rose-300" role="status" aria-live="polite">
               {escapeSeconds > 0
-                ? `مهلت خروج: ${toPersianDigits(escapeSeconds)} ثانیه`
-                : 'مهلت تمام شد؛ برای تلاش دوباره، بازه را از نو آغاز کنید.'}
+                ? `مهلت فرار: ${toPersianDigits(escapeSeconds)} ثانیه`
+                : 'مهلت تمام شد! روی دکمه زیر بزن و دوباره سریع بچرخون.'}
             </div>
             {potencySolved && escapeSeconds === 0 && !dockingSolved && (
               <button
@@ -760,18 +790,18 @@ export const EstrogenLab: React.FC<Props> = ({
                 }}
                 className="mt-2 rounded-lg border border-rose-500/40 px-3 py-2 text-xs font-bold text-rose-200"
               >
-                شروع دوباره مهلت {toPersianDigits(10)} ثانیه‌ای
+                تلاش دوباره ({toPersianDigits(10)} ثانیه)
               </button>
             )}
           </div>
 
           <div className="lg:col-span-6 space-y-3">
-            <div className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-              دی‌اتیل‌استیل‌بسترول را بچرخانید تا با Glu 353، Arg 394 و His 524 هم‌تراز شود. پس از چرخش، پرونده به گفت‌وگو و شناسایی متابولیت فعال می‌رسد.
+            <div className="text-xs leading-7 text-slate-600 dark:text-slate-300">
+              ساختار رو بچرخون تا دو طرفش با Glu 353، Arg 394 و His 524 پیوند هیدروژنی بده!
             </div>
-            {isAligned && (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/20 p-4 text-xs leading-6 text-emerald-800 dark:text-emerald-200">
-                ساختار در زاویه درست قرار گرفت؛ اطلاعات اتصال برای ادامه پرونده آماده ثبت است.
+            {dockingSolved && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-50/70 dark:bg-amber-950/25 p-4 text-xs leading-7 text-amber-900 dark:text-amber-200">
+                <strong>پیچش داستانی!</strong> با اینکه درست وصل کردی، متاسفانه رمز خروج رو عوض کردن و گیر افتادی... اما نگران نباش، خانم لارنس حرف مهمی باهات داره!
               </div>
             )}
           </div>
@@ -798,13 +828,13 @@ export const EstrogenLab: React.FC<Props> = ({
               onClick={handleDockSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
-              {dockLoading ? 'در حال ثبت داکینگ...' : 'ثبت داکینگ'}
+              {dockLoading ? 'در حال ثبت...' : 'ثبت اتصال و تلاش برای فرار'}
             </button>
           )}
         </div>
       </div>
 
-      {/* معمای ۵: جلوگیری از تشکیل متابولیت فعال */}
+      {/* گام ۵: معامله با خانم لارنس */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           dockingSolved
@@ -813,23 +843,28 @@ export const EstrogenLab: React.FC<Props> = ({
         }`}
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(5)}: جلوگیری از تشکیل متابولیت فعال سرطان‌زا
+          گام {toPersianDigits(5)}: گفت‌وگو با خانم لارنس
         </h3>
-        <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-          خانم لارنس می‌گوید دارویی که مصرف کرده باعث بیماری شده است. کدام هدف باید در طراحی اصلاح دارو دنبال شود؟
-        </p>
-        <select
-          required
-          disabled={!dockingSolved || metaboliteSolved}
-          value={metabolitePath}
-          onChange={(event) => setMetabolitePath(event.target.value)}
-          className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white"
-        >
-          <option value="">انتخاب مسیر متابولیک...</option>
-          <option value="prevent_active_metabolite">اصلاح ساختار برای جلوگیری از تشکیل متابولیت فعال</option>
-          <option value="promote_active_metabolite">افزایش تبدیل دارو به متابولیت فعال</option>
-          <option value="increase_parent_exposure">افزایش تماس با داروی اولیه بدون تغییر متابولیت</option>
-        </select>
+        <div className="rounded-xl border border-pink-500/30 bg-pink-50/70 dark:bg-pink-950/20 p-3.5 text-xs leading-7 text-slate-700 dark:text-slate-200">
+          <strong>🔬 خانم لارنس:</strong> <em>«که اومدی اینجا جاسوسی کنی! باشه، من بهت کمک می‌کنم؛ چون ارول یه دارویی به من داد بخورم و باعث شد به سرطان مبتلا بشم... کمکم کن طوری تغییرش بدیم که به متابولیت فعالش تبدیل نشه.»</em>
+        </div>
+        <div className="space-y-2">
+          {METABOLITE_OPTIONS.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              disabled={!dockingSolved || metaboliteSolved}
+              onClick={() => setMetabolitePath(opt.id)}
+              className={`w-full text-right rounded-xl border p-3.5 text-xs sm:text-sm transition ${
+                metabolitePath === opt.id
+                  ? 'border-cyan-500 bg-cyan-500/15 text-cyan-900 dark:text-cyan-100 font-bold'
+                  : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] text-slate-700 dark:text-slate-300'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
         {metaboliteFeedback && (
           <div
             className={`rounded-xl border p-3 text-sm ${
@@ -849,13 +884,13 @@ export const EstrogenLab: React.FC<Props> = ({
               onClick={handleMetaboliteSubmit}
               className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
             >
-              {metaboliteLoading ? 'در حال بررسی...' : 'ثبت مسیر مهاری'}
+              {metaboliteLoading ? 'در حال بررسی...' : 'کمک به خانم لارنس'}
             </button>
           </div>
         )}
       </div>
 
-      {/* معمای ۶: طبقه‌بندی ۴ ساختار واقعی داروهای استروژنی */}
+      {/* گام ۶: پاداش خانم لارنس و کشف سرنخ سیانید */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           metaboliteSolved
@@ -864,14 +899,14 @@ export const EstrogenLab: React.FC<Props> = ({
         }`}
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(6)}: شناسایی کلاس‌های دارویی استروژن از روی ساختار شیمیایی و استخراج سرنخ سوم
+          گام {toPersianDigits(6)}: وصل کردن ساختارها به دسته دارویی (پاداش خانم لارنس)
         </h3>
         <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-          چهار ساختار A تا D را با دقت تحلیل کرده و هر یک را به کلاس دارویی مربوط متصل کنید:
+          <strong>🔬 خانم لارنس:</strong> <em>«دستت درد نکنه که کمکم کردی! منم در ازای لطفت بهت می‌گم این ساختارها رو به دسته داروییشون وصل کن و اونی که مربوط به مورد ۴ هست رو خوب یادت باشه...»</em>
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {DRUG_CLASS_STRUCTURES.map((st) => (
+          {shuffledDrugStructures.map((st) => (
             <MoleculeStructureCard
               key={st.id}
               smiles={st.smiles}
@@ -903,7 +938,7 @@ export const EstrogenLab: React.FC<Props> = ({
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
               >
                 <option value="">انتخاب ساختار...</option>
-                {DRUG_CLASS_STRUCTURES.map((option) => (
+                {shuffledDrugStructures.map((option) => (
                   <option key={option.id} value={option.id}>
                     {classificationSolved ? `${option.blindLabel} — ${option.revealedName}` : option.blindLabel}
                   </option>
@@ -917,8 +952,8 @@ export const EstrogenLab: React.FC<Props> = ({
           solved={classificationSolved}
           disabled={!metaboliteSolved}
           hints={[
-            'مهارکننده استروئیدی آروماتاز اسکلت چهارحلقه‌ای استروئیدی دارد، اما مهارکننده غیراستروئیدی آروماتاز دارای حلقه تری‌آزول و گروه‌های سیانید (-C≡N) است.',
-            'آنتی‌استروژن خالص (فولوسترانت) زنجیره آلکیل بسیار بلند فلوئوره روی کربن 7α استرادیول دارد و SERM دارای داربست بنزوتیوفن و زنجیره آمینی است.',
+            'مهارکننده استروئیدی آروماتاز هسته ۴حلقه‌ای دارد؛ مهارکننده غیراستروئیدی آروماتاز دارای حلقه تری‌آزول و دو گروه سیانید (-CN) است.',
+            'آنتی‌استروژن خالص زنجیره بسیار بلند فلوئوره دارد و SERM دارای داربست بنزوتیوفن است.',
           ]}
         />
 
@@ -945,7 +980,7 @@ export const EstrogenLab: React.FC<Props> = ({
               onClick={handleClassificationSubmit}
               className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
             >
-              {classificationLoading ? 'در حال بررسی...' : 'ثبت طبقه‌بندی و استخراج سرنخ'}
+              {classificationLoading ? 'در حال بررسی...' : 'ثبت دسته‌بندی و استخراج سرنخ سیانید'}
             </button>
           </div>
         ) : (
@@ -955,7 +990,7 @@ export const EstrogenLab: React.FC<Props> = ({
               onClick={onBackToMap}
               className="rounded-xl bg-emerald-500 px-6 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-emerald-400"
             >
-              تکمیل پرونده و بازگشت به نقشه ←
+              ذخیره سرنخ سوم (سیانید) و بازگشت ←
             </button>
           </div>
         )}
