@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Atom, RotateCw, CheckCircle2, AlertTriangle, ArrowDown, ArrowUp } from 'lucide-react';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
+import { SteroidSandbox } from '../molecules/SteroidSandbox';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -221,13 +222,6 @@ export const EstrogenLab: React.FC<Props> = ({
     } finally {
       setMetLoading(false);
     }
-  };
-
-  const toggleOralModification = (id: string) => {
-    if (!metabolismSolved || oralDesignSolved) return;
-    setOralMods((previous) =>
-      previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id]
-    );
   };
 
   const handleOralSubmit = async () => {
@@ -534,7 +528,7 @@ export const EstrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۲: طراحی استروژن خوراکی طولانی‌اثر */}
+      {/* معمای ۲: طراحی تعاملی استروژن خوراکی طولانی‌اثر با SteroidSandbox */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           metabolismSolved
@@ -543,49 +537,19 @@ export const EstrogenLab: React.FC<Props> = ({
         }`}
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(2)}: طراحی استروژن خوراکی و طولانی‌اثر از استرادیول
+          معمای {toPersianDigits(2)}: سنتز تعاملی استروژن خوراکی و طولانی‌اثر از استرادیول
         </h3>
         <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-          استرادیول طبیعی به دلیل متابولیسم عبور اول کبدی خوراکی نیست. کدام تغییرات ساختاری باعث ایجاد فعالیت خوراکی و افزایش طول اثر می‌شوند؟
+          ساختار استرادیول روی میز کار زیر آماده است. گروه‌های عاملی مناسب را از پالت روی موقعیت‌های صحیح بکشید و رها کنید تا فراهمی زیستی خوراکی و طول اثر به حداکثر برسد (بدون آسیب به اتصال گیرنده ERα):
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {[
-            {
-              id: 'add_17alpha_ethynyl',
-              title: 'افزودن گروه 17α-اتینیل (-C≡CH)',
-              desc: 'ممانعت فضایی در برابر اکسیداسیون کبدی C17-OH توسط 17β-HSD',
-            },
-            {
-              id: 'methylate_3_hydroxyl',
-              title: 'متیله‌کردن هیدروکسیل فنولی C3 (ایجاد اتر متیل)',
-              desc: 'افزایش لیپوفیلیته و آزادسازی آهسته کبدی به شکل پیش‌دارو',
-            },
-            {
-              id: 'remove_17beta_hydroxyl',
-              title: 'حذف کامل گروه 17β-هیدروکسیل',
-              desc: 'تغییر در پیوند هیدروژنی انتهای حلقه D در پاکت گیرنده',
-            },
-          ].map((modification) => {
-            const active = oralMods.includes(modification.id);
-            return (
-              <button
-                key={modification.id}
-                type="button"
-                disabled={!metabolismSolved || oralDesignSolved}
-                aria-pressed={active}
-                onClick={() => toggleOralModification(modification.id)}
-                className={`rounded-xl border p-4 text-right transition ${
-                  active
-                    ? 'border-cyan-500 bg-cyan-50 dark:border-cyan-400 dark:bg-cyan-950/50 text-cyan-900 dark:text-cyan-100'
-                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                <div className="font-bold text-xs">{modification.title}</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{modification.desc}</div>
-              </button>
-            );
-          })}
-        </div>
+
+        <SteroidSandbox
+          mode="estrogen_oral"
+          disabled={!metabolismSolved}
+          solved={oralDesignSolved}
+          onTokensChange={setOralMods}
+        />
+
         {oralFeedback && (
           <div
             className={`rounded-xl border p-3 text-sm ${
@@ -605,7 +569,7 @@ export const EstrogenLab: React.FC<Props> = ({
               onClick={handleOralSubmit}
               className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
             >
-              {oralLoading ? 'در حال بررسی...' : 'ثبت طراحی خوراکی'}
+              {oralLoading ? 'در حال بررسی...' : 'ثبت ساختار سنتزشده'}
             </button>
           </div>
         )}
@@ -871,7 +835,7 @@ export const EstrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۶: طبقه‌بندی ۴ ساختار واقعی داروهای استروژنی بدون لو دادن نام دارو */}
+      {/* معمای ۶: طبقه‌بندی ۴ ساختار واقعی داروهای استروژنی */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           metaboliteSolved

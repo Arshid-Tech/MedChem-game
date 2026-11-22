@@ -8,8 +8,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   KeyRound,
+  Sparkles,
 } from 'lucide-react';
 import { SteroidMoleculeSVG, SteroidRenderProps } from '../molecules/SteroidMoleculeSVG';
+import { SteroidSandbox } from '../molecules/SteroidSandbox';
 import { toPersianDigits } from '../../utils/persian';
 
 interface CompoundCard {
@@ -97,6 +99,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
   const [sarStart] = useState<number>(() => Date.now());
   const [sarFeedback, setSarFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [sarLoading, setSarLoading] = useState(false);
+  const [showSandbox, setShowSandbox] = useState(false);
 
   const handleConfSubmit = async () => {
     setConfLoading(true);
@@ -147,14 +150,27 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             یادداشت روی دیوار آزمایشگاه: <em>«هر چقدر قدرت ضدالتهابی را بیشتر کنی، به فرمول اهریمن نزدیک‌تر می‌شوی...»</em>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onBackToMap}
-          className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
-        >
-          بازگشت به نقشه شرکت
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-center">
+          <button
+            type="button"
+            onClick={() => setShowSandbox((prev) => !prev)}
+            className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-2 text-xs font-bold text-cyan-700 dark:text-cyan-300 transition flex items-center gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{showSandbox ? 'بستن میز کار آزاد SAR' : 'باز کردن میز کار آزاد SAR'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={onBackToMap}
+            className="rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
+          >
+            بازگشت به نقشه شرکت
+          </button>
+        </div>
       </div>
+
+      {/* میز کار آزاد تعاملی SAR کورتیکواستروئیدها */}
+      {showSandbox && <SteroidSandbox mode="free" />}
 
       {/* معمای ۱: قفل کانفورماسیون استریوشیمیایی */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
@@ -253,7 +269,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۲: مرتب‌سازی قدرت اثر SAR گلوکوکورتیکوئیدها (بر اساس ساختار بدون نمایش نام) */}
+      {/* معمای ۲: مرتب‌سازی قدرت اثر SAR گلوکوکورتیکوئیدها */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           conformationSolved

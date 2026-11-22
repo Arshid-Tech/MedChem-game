@@ -11,6 +11,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
+import { SteroidSandbox } from '../molecules/SteroidSandbox';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -25,34 +26,6 @@ interface Props {
   onOpenSurvey: () => void;
   onBackToMap: () => void;
 }
-
-const ANTIDOTE_TOOLS = [
-  {
-    id: 'remove_9alpha_f',
-    title: 'حذف اتم فلوئور از موقعیت 9α (Defluorination)',
-    desc: 'کاهش شدید سمیت گلوکوکورتیکوئیدی و میل اتصال مهارناپذیر به گیرنده GR',
-  },
-  {
-    id: 'remove_cyanide',
-    title: 'حذف گروه سیانید (-C≡N) متصل به حلقه',
-    desc: 'رفع مهار غیرانتخابی سیتوکروم P450 و سمیت متابولیک',
-  },
-  {
-    id: 'add_11beta_antagonist_aryl',
-    title: 'افزودن گروه حجیم 11β-(4-دی‌متیل‌آمینوفنیل) مشابه میفپریستون',
-    desc: 'ممانعت فضایی در جابه‌جایی هلیکس ۱۲ گیرنده هسته‌ای و تبدیل آگونیست به آنتاگونیست قوی (پادزهر)',
-  },
-  {
-    id: 'hydrolyze_lipophilic_ester',
-    title: 'هیدرولیز استر لیپوفیل موضعی (تبدیل به فرم قطبی قابل دفع)',
-    desc: 'کاهش ماندگاری بافتی و تسهیل دفع کلیوی ترکیب سمی',
-  },
-  {
-    id: 'add_extra_fluorine_decoy',
-    title: 'افزودن اتم فلوئور دوم در موقعیت 6α',
-    desc: 'افزایش لیپوفیلیته و قدرت اتصال به گیرنده‌های هسته‌ای در حلقه B',
-  },
-];
 
 const HIDDEN_STRUCTURES = [
   {
@@ -176,11 +149,6 @@ export const FinalAntidoteLab: React.FC<Props> = ({
     }
   };
 
-  const toggleTool = (id: string) => {
-    if (!vaultSolved || antidoteSolved) return;
-    setSelectedTools((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-
   const handleAntidoteSubmit = async () => {
     if (!vaultSolved || !selectedTools.length) return;
     setAntidoteLoading(true);
@@ -195,11 +163,6 @@ export const FinalAntidoteLab: React.FC<Props> = ({
       setAntidoteLoading(false);
     }
   };
-
-  const hasDefluor = selectedTools.includes('remove_9alpha_f');
-  const hasNoCn = selectedTools.includes('remove_cyanide');
-  const hasAryl = selectedTools.includes('add_11beta_antagonist_aryl');
-  const hasHydrolysis = selectedTools.includes('hydrolyze_lipophilic_ester');
 
   return (
     <div className="space-y-8">
@@ -413,7 +376,7 @@ export const FinalAntidoteLab: React.FC<Props> = ({
         )}
       </form>
 
-      {/* گام ۳: اوج بازی — سنتز پادزهر اهریمن */}
+      {/* گام ۳: اوج بازی — سنتز تعاملی پادزهر اهریمن با SteroidSandbox */}
       <div
         className={`rounded-2xl border p-6 space-y-6 transition ${
           vaultSolved
@@ -428,96 +391,26 @@ export const FinalAntidoteLab: React.FC<Props> = ({
           </div>
           {!antidoteSolved && vaultSolved && (
             <div className="flex items-center gap-1.5 rounded-xl border border-rose-500/50 bg-rose-950/85 px-3 py-1.5 text-xs font-bold text-rose-200">
-              <Timer className="w-4 h-4 animate-spin" />
-              <span>چرخه پایداری راکتور: {toPersianDigits(climaxTimer)} ثانیه</span>
+              <Timer className={`w-4 h-4 ${climaxTimer > 0 ? 'animate-spin' : ''}`} />
+              <span>
+                {climaxTimer > 0
+                  ? `چرخه پایداری راکتور: ${toPersianDigits(climaxTimer)} ثانیه`
+                  : 'هشدار بحرانی راکتور! فوراً پادزهر را سنتز کنید'}
+              </span>
             </div>
           )}
         </div>
 
-        {/* پیش‌نمایش زنده مولکول اهریمن در حال خنثی‌سازی */}
-        <div className="rounded-2xl border border-slate-700 bg-[#06101e] p-5 flex flex-col items-center">
-          <div className="text-xs font-bold text-slate-300 mb-2">
-            {antidoteSolved ? 'ساختار پادزهر آنتاگونیست نهایی (خنثی و ایمن ✓)' : 'ساختار فعال پروژه اهریمن (Project Leviathan)'}
-          </div>
-          <div dir="ltr" className="w-full flex justify-center">
-            <svg viewBox="0 0 380 215" className="w-full max-w-[400px] h-48">
-              <polygon points="58,114 91,95 124,114 124,152 91,171 58,152" fill="none" stroke="#cbd5e1" strokeWidth="2.3" />
-              <polygon points="124,114 157,95 190,114 190,152 157,171 124,152" fill="none" stroke="#cbd5e1" strokeWidth="2.3" />
-              <polygon points="157,95 157,57 190,38 223,57 223,95 190,114" fill="none" stroke="#cbd5e1" strokeWidth="2.3" />
-              <polygon points="223,57 259,46 281,76 259,106 223,95" fill="none" stroke="#cbd5e1" strokeWidth="2.3" />
+        <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
+          با استفاده از پالت گروه‌های عاملی زیر، مستقیماً روی مولکول اهریمن تغییرات شیمیایی را اعمال کنید تا شاخص سمیت به <strong>صفر</strong> برسد، اثر آنتاگونیستی فعال شود و دفع کلیوی بهینه گردد:
+        </p>
 
-              <line x1="36" y1="162" x2="57" y2="150" stroke="#f87171" strokeWidth="2.2" />
-              <line x1="39" y1="167" x2="60" y2="155" stroke="#f87171" strokeWidth="2.2" />
-              <text x="19" y="172" fill="#f87171" fontSize="12" fontWeight="bold">O</text>
-
-              {!hasDefluor && (
-                <g>
-                  <line x1="157" y1="95" x2="157" y2="124" stroke="#f43f5e" strokeWidth="2.5" strokeDasharray="3,2" />
-                  <text x="152" y="138" fill="#f43f5e" fontSize="13" fontWeight="bold">9α-F</text>
-                </g>
-              )}
-
-              {!hasNoCn && (
-                <g>
-                  <line x1="281" y1="76" x2="314" y2="88" stroke="#f43f5e" strokeWidth="2.5" />
-                  <text x="317" y="92" fill="#f43f5e" fontSize="12" fontWeight="bold">-C≡N</text>
-                </g>
-              )}
-
-              {hasAryl && (
-                <g>
-                  <polygon points="157,57 137,43 142,37" fill="#34d399" />
-                  <polygon points="110,18 130,18 140,34 130,50 110,50 100,34" fill="rgba(52,211,153,0.18)" stroke="#34d399" strokeWidth="2" />
-                  <text x="48" y="37" fill="#34d399" fontSize="10" fontWeight="bold">11β-Aryl-N(Me)2</text>
-                </g>
-              )}
-
-              {!hasHydrolysis ? (
-                <g>
-                  <line x1="259" y1="46" x2="288" y2="30" stroke="#fbbf24" strokeWidth="2.3" />
-                  <text x="291" y="33" fill="#fbbf24" fontSize="10" fontWeight="bold">Lipophilic Ester</text>
-                </g>
-              ) : (
-                <g>
-                  <line x1="259" y1="46" x2="285" y2="32" stroke="#34d399" strokeWidth="2.3" />
-                  <text x="288" y="35" fill="#34d399" fontSize="11" fontWeight="bold">-OH (Polar)</text>
-                </g>
-              )}
-            </svg>
-          </div>
-        </div>
-
-        {/* ابزارهای ویرایش شیمیایی */}
-        <div className="space-y-2.5">
-          {ANTIDOTE_TOOLS.map((tool) => {
-            const active = selectedTools.includes(tool.id);
-            return (
-              <div
-                key={tool.id}
-                onClick={() => toggleTool(tool.id)}
-                className={`rounded-xl border p-4 cursor-pointer transition flex items-start justify-between gap-3 ${
-                  active
-                    ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/40'
-                    : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] hover:border-slate-400 dark:hover:border-slate-500'
-                }`}
-              >
-                <div>
-                  <div className="font-bold text-xs text-slate-900 dark:text-slate-100">{tool.title}</div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{tool.desc}</div>
-                </div>
-                <span
-                  className={`text-xs px-2.5 py-1 rounded-md shrink-0 ${
-                    active
-                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  {active ? 'اعمال شد ✓' : 'اجرا'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        <SteroidSandbox
+          mode="antidote"
+          disabled={!vaultSolved}
+          solved={antidoteSolved}
+          onTokensChange={setSelectedTools}
+        />
 
         {antidoteFeedback && (
           <div
