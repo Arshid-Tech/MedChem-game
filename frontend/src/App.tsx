@@ -18,6 +18,8 @@ import {
   ChevronLeft,
   Sun,
   Moon,
+  Radio,
+  Eye,
 } from 'lucide-react';
 import { api, ApiError, clearTokens, getAccessToken } from './api';
 import { Badge, GameSession, LeaderboardEntry, StudentUser } from './types';
@@ -34,6 +36,8 @@ import { AndrogenLab } from './components/puzzles/AndrogenLab';
 import { FinalAntidoteLab } from './components/puzzles/FinalAntidoteLab';
 import { MeegaSurveyModal } from './components/MeegaSurveyModal';
 import { KnowledgeQuizModal } from './components/KnowledgeQuizModal';
+import { StoryCommsModal } from './components/StoryCommsModal';
+import { STORY_BEATS, StoryBeat } from './data/storyData';
 import { toPersianDigits } from './utils/persian';
 
 type ActiveView =
@@ -50,68 +54,100 @@ type ActiveView =
 const DEPARTMENTS = [
   {
     code: 'glucocorticoid',
-    title: 'دپارتمان ۱: آزمایشگاه گلوکوکورتیکوئیدها',
-    shortTitle: '۱. گلوکوکورتیکوئیدها',
-    subtitle: 'کانفورماسیون حلقه‌ها، میز کار آزاد SAR و تحلیل قدرت ضدالتهابی',
+    emoji: '🧠',
+    roomName: 'اتاق چنگال استرس',
+    hormoneTag: 'گلوکوکورتیکوئیدها',
+    title: 'اتاق ۱: چنگال استرس (پروفسور کژتاب)',
+    shortTitle: '۱. چنگال استرس',
+    subtitle: 'اتاق پروفسور کژتاب — قفل لمسی کانفورماسیون، قوی‌تر کردن کورتیزول و ایمیل ارول',
   },
   {
     code: 'mineralocorticoid',
-    title: 'دپارتمان ۲: بخش مینرالوکورتیکوئیدها',
-    shortTitle: '۲. مینرالوکورتیکوئیدها',
-    subtitle: 'احتباس آب و الکترولیت و تشخیص مسیر تجویز موضعی',
+    emoji: '🧂',
+    roomName: 'اتاق گوله نمک',
+    hormoneTag: 'مینرالوکورتیکوئیدها',
+    title: 'اتاق ۲: گوله نمک (پروفسور زهتاب)',
+    shortTitle: '۲. گوله نمک',
+    subtitle: 'اتاق پروفسور زهتاب — نامه کژتاب، تماس تلفنی مرموز و جداسازی ترکیبات موضعی',
   },
   {
     code: 'estrogen',
-    title: 'دپارتمان ۳: آزمایشگاه استروژن‌ها',
-    shortTitle: '۳. استروژن‌ها',
-    subtitle: 'مسیر متابولیسم، سنتز خوراکی، داکینگ گیرنده و کلاس‌های دارویی',
+    emoji: '🍯',
+    roomName: 'اتاق ماه عسل',
+    hormoneTag: 'استروژن‌ها',
+    title: 'اتاق ۳: ماه عسل (آقا و خانم لارنس)',
+    shortTitle: '۳. ماه عسل',
+    subtitle: 'آزمایشگاه حیوانات لارنس — متابولیسم، فرم خوراکی، فرار ۱۰ ثانیه‌ای و راز سیانید',
   },
   {
     code: 'progestin',
-    title: 'دپارتمان ۴: بخش پروژستین‌ها',
-    shortTitle: '۴. پروژستین‌ها',
-    subtitle: 'مشتقات ۱۹-نورآندروستان و سنتز خوراکی طولانی‌اثر',
+    emoji: '🍼',
+    roomName: 'اتاق نی‌نی کوچولو',
+    hormoneTag: 'پروژسترون',
+    title: 'اتاق ۴: نی‌نی کوچولو (دکتر ماریا)',
+    shortTitle: '۴. نی‌نی کوچولو',
+    subtitle: 'اتاق همسر دکتر ارول — رمز تاریخ تولد بچه و تخته تحقیقات ۱۹-نورآندروستان',
   },
   {
     code: 'androgen',
-    title: 'دپارتمان ۵: آندروژن‌ها و مهارکننده‌های آنزیمی',
-    shortTitle: '۵. آندروژن‌ها',
-    subtitle: 'متابولیسم فلوتامید، SARMs، آندروژنیسیته و کمپلکس ۵-آلفا ردوکتاز',
+    emoji: '🧔',
+    roomName: 'اتاق ریش و سیبیل',
+    hormoneTag: 'آندروژن‌ها',
+    title: 'اتاق ۵: ریش و سیبیل (آقای زیگموند)',
+    shortTitle: '۵. ریش و سیبیل',
+    subtitle: 'خیانت ارول به زیگموند — متابولیت فلوتامید، ساخت SARM و کمپلکس ۵-آلفا ردوکتاز',
   },
 ];
 
 const TOUR_STEPS: TourStep[] = [
   {
     target: '[data-tour="navigation"]',
-    title: 'نقشه و جابه‌جایی سریع',
+    title: 'نقشه کارخانه و جابه‌جایی آزاد',
     description:
-      'از این نوار بین نقشه شرکت، پنج دپارتمان تخصصی و مرحله نهایی جابه‌جا شوید. دپارتمان‌ها پس از عبور از گیت ورودی باز می‌شوند.',
+      'از این نوار همیشه می‌توانید بین ورودی کارخانه، نقشه، ۵ اتاق تخصصی و اتاق مخفی دکتر ارول جابه‌جا شوید و حتی پس از اتمام بازی، تمام مراحل قبل را مرور کنید.',
   },
   {
     target: '[data-tour="progress"]',
-    title: 'زمان بازرسی FDA، آزمون‌ها و امتیاز',
+    title: 'بی‌سیم داستان، زمان عملیات و آزمون‌ها',
     description:
-      'زمان باقی‌مانده تا بازرسی FDA، امتیاز کل، پیش‌آزمون/پس‌آزمون شیمی دارویی و پرسشنامه MEEGA+ را از این بخش دنبال کنید.',
+      'با دکمه «بی‌سیم داستان» دیالوگ شخصیت‌های کارخانه را مرور کنید و وضعیت زمان، امتیاز، پیش/پس‌آزمون و پرسشنامه MEEGA+ را ببینید.',
   },
   {
     target: '[data-tour="workspace"]',
-    title: 'محیط تعاملی حل معماها و سنتز مولکول',
+    title: 'محیط تعاملی حل معماها و ساخت مولکول',
     description:
-      'معماهای هر دپارتمان به ترتیب باز می‌شوند. ساختارهای شیمیایی را تحلیل کنید، گروه‌های عاملی را روی اسکلت استروئید بکشید و در صورت نیاز از راهنمای پله‌ای مدیر R&D کمک بگیرید.',
+      'ساختارهای شیمیایی را تحلیل کنید، قطعات و گروه‌های عاملی را آزادانه روی اسکلت مولکول بچینید و در صورت نیاز از راهنمای پله‌ای کمک بگیرید.',
   },
   {
     target: '[data-tour="clues"]',
-    title: 'پرونده سرنخ‌ها و مدال‌ها',
+    title: 'پرونده سرنخ‌های اهریمن و مدال‌ها',
     description:
-      'سرنخ‌های کشف‌شده برای شناخت ساختار مولکول اهریمن و مدال‌های پژوهشی خود را در این ستون مرور کنید.',
+      'پنج سرنخ کشف‌شده از ساختار مولکول اهریمن و مدال‌های شما در این ستون جمع‌آوری می‌شوند.',
   },
   {
     target: '[data-tour="profile"]',
-    title: 'پروفایل کاربری و تغییر رمز عبور',
+    title: 'پروفایل کاربری و تنظیمات',
     description:
-      'اطلاعات دانشجویی، ویرایش مشخصات پژوهشی، آمار عملکرد و گزینه تغییر رمز عبور از طریق دکمه «پروفایل» در دسترس است.',
+      'اطلاعات دانشجویی، ویرایش مشخصات پژوهشی، آمار عملکرد و تغییر رمز عبور از طریق دکمه «پروفایل» در دسترس است.',
   },
 ];
+
+const STORY_STORAGE_KEY = 'medchem_story_seen_v3';
+
+function getSeenStoryIds(): string[] {
+  try {
+    const raw = localStorage.getItem(STORY_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function markStorySeen(id: string) {
+  const seen = new Set(getSeenStoryIds());
+  seen.add(id);
+  localStorage.setItem(STORY_STORAGE_KEY, JSON.stringify(Array.from(seen)));
+}
 
 export function App() {
   const [user, setUser] = useState<StudentUser | null>(null);
@@ -132,6 +168,7 @@ export function App() {
   const [quizModalPhase, setQuizModalPhase] = useState<'pre' | 'post' | null>(null);
   const [preAssessment, setPreAssessment] = useState<any | null>(null);
   const [postAssessment, setPostAssessment] = useState<any | null>(null);
+  const [activeStoryBeat, setActiveStoryBeat] = useState<StoryBeat | null>(null);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -166,6 +203,20 @@ export function App() {
       setToast(null);
       toastTimerRef.current = null;
     }, 5000);
+  };
+
+  const triggerStoryBeat = (beatId: string, force = false) => {
+    const beat = STORY_BEATS[beatId];
+    if (!beat) return;
+    if (!force && getSeenStoryIds().includes(beatId)) return;
+    setActiveStoryBeat(beat);
+  };
+
+  const closeStoryBeat = () => {
+    if (activeStoryBeat) {
+      markStorySeen(activeStoryBeat.id);
+    }
+    setActiveStoryBeat(null);
   };
 
   const loadInitialData = async () => {
@@ -209,6 +260,18 @@ export function App() {
   useEffect(() => {
     void loadInitialData();
   }, []);
+
+  // نمایش خودکار داستان مرتبط هنگام ورود به هر بخش برای اولین بار
+  useEffect(() => {
+    if (!user || !session || showTour) return;
+    if (activeView === 'entrance') {
+      triggerStoryBeat('intro_call');
+    } else if (activeView === 'map' && session.completed_stages?.includes('entrance')) {
+      triggerStoryBeat('entrance_unlocked');
+    } else if (STORY_BEATS[activeView]) {
+      triggerStoryBeat(activeView);
+    }
+  }, [activeView, user, session, showTour]);
 
   useEffect(() => {
     const finished = session?.status === 'completed' || session?.completed_stages?.includes('final');
@@ -301,6 +364,7 @@ export function App() {
     setQuizModalPhase(null);
     setPreAssessment(null);
     setPostAssessment(null);
+    setActiveStoryBeat(null);
     setStartupError(null);
   };
 
@@ -312,7 +376,7 @@ export function App() {
   if (loadingApp) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-[#060d18] flex items-center justify-center text-cyan-600 dark:text-cyan-400 text-sm">
-        در حال راه‌اندازی سیستم آزمایشگاه Apex Pharma...
+        در حال اتصال به بی‌سیم عملیات کارخانه مولکول دکتر ارول...
       </div>
     );
   }
@@ -377,14 +441,25 @@ export function App() {
   ].every((d) => session?.completed_stages?.includes(d));
   const gameCompleted = session?.status === 'completed' || session?.completed_stages?.includes('final');
 
+  const currentStoryBeatId =
+    activeView === 'entrance'
+      ? 'intro_call'
+      : activeView === 'map'
+      ? entranceSolved
+        ? 'entrance_unlocked'
+        : 'intro_call'
+      : STORY_BEATS[activeView]
+      ? activeView
+      : 'intro_call';
+
   const currentViewLabel =
     activeView === 'entrance'
-      ? 'گیت امنیتی ورودی'
+      ? 'ورودی کارخانه دکتر ارول'
       : activeView === 'final'
-      ? 'اتاق مخفی و سنتز پادزهر'
+      ? 'اتاق مخفی دکتر ارول و سنتز پادزهر'
       : activeView === 'leaderboard'
       ? 'جدول رده‌بندی'
-      : DEPARTMENTS.find((d) => d.code === activeView)?.title || 'نقشه دپارتمان‌ها';
+      : DEPARTMENTS.find((d) => d.code === activeView)?.title || 'نقشه کارخانه مولکول';
 
   const activeQuizPhase: 'pre' | 'post' = gameCompleted ? 'post' : 'pre';
   const activeQuizDone = activeQuizPhase === 'post' ? Boolean(postAssessment) : Boolean(preAssessment);
@@ -406,7 +481,7 @@ export function App() {
             </div>
             <div>
               <div className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <span>بحران در فارماکوکم</span>
+                <span>کارخانه مولکول دکتر ارول</span>
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full border ${
                     gameCompleted
@@ -414,7 +489,7 @@ export function App() {
                       : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
                   }`}
                 >
-                  {gameCompleted ? 'بحران مهار شد ✓' : 'پروژه اهریمن'}
+                  {gameCompleted ? 'ماموریت موفق · مرور آزاد ✓' : 'پروژه اهریمن'}
                 </span>
               </div>
               <div className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
@@ -424,6 +499,16 @@ export function App() {
           </div>
 
           <div data-tour="progress" className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {/* دکمه بی‌سیم داستان */}
+            <button
+              type="button"
+              onClick={() => triggerStoryBeat(currentStoryBeatId, true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 text-xs font-bold transition"
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span>بی‌سیم داستان</span>
+            </button>
+
             {/* تایمر */}
             <div
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold ${
@@ -435,7 +520,7 @@ export function App() {
               }`}
             >
               <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">{gameCompleted ? 'زمان باقی‌مانده:' : 'بازرسی FDA:'}</span>
+              <span className="hidden sm:inline">{gameCompleted ? 'زمان باقی‌مانده:' : 'مهلت عملیات:'}</span>
               <span dir="ltr" className="font-mono text-xs sm:text-sm">
                 {formatTime(timeLeft)}
               </span>
@@ -462,10 +547,10 @@ export function App() {
                 {activeQuizPhase === 'post'
                   ? postAssessment
                     ? `پس‌آزمون (${toPersianDigits(postAssessment.percentage)}٪) ✓`
-                    : 'پس‌آزمون یادگیری'
+                    : 'پس‌آزمون'
                   : preAssessment
                   ? `پیش‌آزمون (${toPersianDigits(preAssessment.percentage)}٪) ✓`
-                  : 'پیش‌آزمون کوتاه'}
+                  : 'پیش‌آزمون'}
               </span>
             </button>
 
@@ -480,7 +565,7 @@ export function App() {
               }`}
             >
               <ClipboardCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>{meegaSubmitted ? 'MEEGA+ ثبت شد ✓' : 'پرسشنامه MEEGA+'}</span>
+              <span>{meegaSubmitted ? 'MEEGA+ ✓' : 'MEEGA+'}</span>
             </button>
 
             {/* پروفایل */}
@@ -529,13 +614,27 @@ export function App() {
           </div>
         </div>
 
-        {/* نوار دسترسی سریع به اتاق‌ها */}
+        {/* نوار دسترسی سریع به تمام مراحل (شامل ورودی کارخانه برای مرور همیشگی) */}
         <nav
           data-tour="navigation"
           aria-label="ناوبری بازی"
           className="border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-100/70 dark:bg-[#050c17]"
         >
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <button
+              type="button"
+              onClick={() => setActiveView('entrance')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 ${
+                activeView === 'entrance'
+                  ? 'bg-cyan-500 text-slate-950 font-bold'
+                  : entranceSolved
+                  ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+              }`}
+            >
+              <span>ورودی کارخانه</span>
+              {entranceSolved && <span>✓</span>}
+            </button>
             <button
               type="button"
               disabled={!entranceSolved}
@@ -546,7 +645,7 @@ export function App() {
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800'
               }`}
             >
-              نقشه شرکت
+              نقشه کارخانه
             </button>
             {DEPARTMENTS.map((d) => {
               const done = session?.completed_stages?.includes(d.code);
@@ -581,7 +680,7 @@ export function App() {
                   : 'text-slate-400 dark:text-slate-600 cursor-not-allowed'
               }`}
             >
-              مرحله نهایی
+              اتاق مخفی ارول
             </button>
             <button
               type="button"
@@ -599,19 +698,26 @@ export function App() {
         </nav>
       </header>
 
-      {/* مسیر راهنمای صفحه (Breadcrumb) */}
-      <div className="max-w-7xl w-full mx-auto px-4 pt-4">
+      {/* مسیر راهنمای صفحه (Breadcrumb) + بنر حالت مرور پس از اتمام */}
+      <div className="max-w-7xl w-full mx-auto px-4 pt-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
           <button
             type="button"
             onClick={() => setActiveView(entranceSolved ? 'map' : 'entrance')}
             className="hover:text-cyan-600 dark:hover:text-cyan-400"
           >
-            بحران در فارماکوکم
+            کارخانه مولکول دکتر ارول
           </button>
           <ChevronLeft className="w-3.5 h-3.5" />
           <span className="font-bold text-cyan-700 dark:text-cyan-300">{currentViewLabel}</span>
         </div>
+
+        {gameCompleted && (
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+            <Eye className="w-3.5 h-3.5" />
+            <span>حالت مرور فعال است — می‌توانید هر مرحله را بدون تغییر امتیاز دوباره بررسی کنید</span>
+          </div>
+        )}
       </div>
 
       {toast && (
@@ -785,11 +891,11 @@ export function App() {
                 <div className="rounded-2xl border border-emerald-400/50 bg-emerald-50 dark:bg-gradient-to-l dark:from-emerald-950/50 dark:via-slate-900 dark:to-slate-900 p-6 flex flex-wrap items-center justify-between gap-4 shadow-sm">
                   <div className="space-y-1">
                     <h2 className="font-extrabold text-base text-emerald-800 dark:text-emerald-300">
-                      ماموریت با موفقیت کامل شد! پادزهر اهریمن سنتز گردید.
+                      تبریک! به ساختار اهریمن رسیدی و پادزهرش رو ساختی!
                     </h2>
                     <p className="text-xs text-slate-700 dark:text-slate-300 leading-6">
                       امتیاز نهایی شما: <strong>{toPersianDigits(session?.total_score ?? 0)}</strong> | تعداد خطاها:{' '}
-                      <strong>{toPersianDigits(session?.total_errors ?? 0)}</strong>. لطفاً پس‌آزمون ۵ سوالی و فرم MEEGA+ را تکمیل کنید.
+                      <strong>{toPersianDigits(session?.total_errors ?? 0)}</strong>. هنوز می‌تونی هر اتاقی (حتی ورودی کارخونه) رو دوباره مرور کنی.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -814,13 +920,12 @@ export function App() {
               ) : (
                 <div className="rounded-2xl border border-rose-500/30 bg-rose-50/90 dark:bg-gradient-to-l dark:from-rose-950/30 dark:via-slate-900/90 dark:to-slate-900/90 p-5 flex items-start gap-3 shadow-sm">
                   <AlertOctagon className="w-6 h-6 text-rose-500 shrink-0 mt-0.5" />
-                  <div>
+                  <div className="space-y-1">
                     <h2 className="font-bold text-base text-rose-800 dark:text-rose-200">
-                      هشدار امنیتی سطح ۱: فرمول «اهریمن» در سرور R&D فعال است
+                      🎧 پیام همکار پشت بی‌سیم: از هر اتاقی که دوست داری شروع کن!
                     </h2>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 mt-1 leading-6">
-                      هر یک از {toPersianDigits(5)} دپارتمان تحقیقاتی شرکت Apex Pharma سرنخی از ساختار شیمیایی ترکیب اهریمن را در خود پنهان کرده است.
-                      پس از کشف هر {toPersianDigits(5)} سرنخ، درِ اتاق مخفی دکتر ارول برای سنتز پادزهر باز می‌شود.
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-6">
+                      هر اتاق توی کارخانه دکتر ارول مربوط به یه دسته از هورمون‌های استروئیدیه. هر ۵ اتاق رو بگرد و سرنخ‌های مولکول «اهریمن» رو جمع کن تا درِ اتاق مخفی خود ارول باز بشه.
                     </p>
                   </div>
                 </div>
@@ -846,14 +951,14 @@ export function App() {
                   </div>
                   <div>
                     <div className="font-extrabold text-sm text-slate-900 dark:text-white">
-                      مرحله نهایی: اتاق مخفی دکتر ارول و سنتز پادزهر اهریمن
+                      اتاق مخفی دکتر ارول و گاوصندوق «اهریمن»
                     </div>
                     <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                       {allFiveDepartmentsDone
-                        ? 'قفل امنیتی ۵ دپارتمان باز شد! وارد اتاق مخفی شوید و پادزهر را سنتز کنید.'
-                        : `نیازمند کشف هر ۵ سرنخ از دپارتمان‌های تحقیقاتی (${toPersianDigits(
+                        ? 'همه ۵ سرنخ جمع شدن! وارد اتاق مخفی شو، رمز جدول رو بشکن و ساختار اهریمن رو خنثی کن.'
+                        : `نیازمند گشتن هر ۵ اتاق کارخانه (${toPersianDigits(
                             session?.unlocked_clues?.length ?? 0
-                          )}/۵ سرنخ کشف شده)`}
+                          )}/۵ سرنخ پیدا شده)`}
                     </div>
                   </div>
                 </div>
@@ -881,15 +986,27 @@ export function App() {
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2">
-                          <span className="font-bold text-sm text-slate-900 dark:text-white">{dept.title}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl" aria-hidden="true">{dept.emoji}</span>
+                            <div>
+                              <div className="font-extrabold text-sm text-slate-900 dark:text-white">
+                                {dept.roomName}
+                              </div>
+                              <div className="text-[11px] font-semibold text-cyan-700 dark:text-cyan-400">
+                                {dept.hormoneTag}
+                              </div>
+                            </div>
+                          </div>
                           {isCompleted && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
                         </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-6">{dept.subtitle}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-6 mt-2">
+                          {dept.subtitle}
+                        </p>
                       </div>
 
                       <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
                         <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {isCompleted ? 'تکمیل شده و سرنخ ثبت شد ✓' : 'آماده ورود و رمزگشایی'}
+                          {isCompleted ? 'سرنخ ثبت شد · قابل مرور ✓' : 'آماده ورود و کشف سرنخ'}
                         </span>
                         <button
                           type="button"
@@ -900,7 +1017,7 @@ export function App() {
                               : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950'
                           }`}
                         >
-                          {isCompleted ? 'مرور آزمایشگاه' : 'ورود به دپارتمان'}
+                          {isCompleted ? 'مرور اتاق' : 'ورود به اتاق'}
                         </button>
                       </div>
                     </div>
@@ -932,7 +1049,7 @@ export function App() {
               </div>
             ) : (
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-6">
-                هنوز سرنخی از ساختار اهریمن استخراج نشده است. معماهای دپارتمان‌ها را حل کنید.
+                هنوز سرنخی از ساختار اهریمن پیدا نکردی. اتاق‌های کارخونه رو بگرد!
               </p>
             )}
           </div>
@@ -940,7 +1057,7 @@ export function App() {
           <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 p-4 space-y-3 shadow-sm">
             <div className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-300 border-b border-slate-100 dark:border-slate-800 pb-2.5">
               <Award className="w-4 h-4" />
-              <span>مدال‌های پژوهشی ({toPersianDigits(badges.length)})</span>
+              <span>مدال‌های ماموریت ({toPersianDigits(badges.length)})</span>
             </div>
             {badges.length > 0 ? (
               <div className="space-y-2">
@@ -956,7 +1073,7 @@ export function App() {
               </div>
             ) : (
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-6">
-                با حل بدون خطای معماهای هر دپارتمان، مدال تخصصی دریافت کنید.
+                با حل بدون خطای معماهای هر اتاق، مدال تخصصی دریافت کن.
               </p>
             )}
           </div>
@@ -980,6 +1097,8 @@ export function App() {
       {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
 
       {showTour && <GuidedTour steps={TOUR_STEPS} onClose={closeTour} />}
+
+      {activeStoryBeat && <StoryCommsModal beat={activeStoryBeat} onClose={closeStoryBeat} />}
 
       {quizModalPhase && (
         <KnowledgeQuizModal
