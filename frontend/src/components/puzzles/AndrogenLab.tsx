@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Dna, CheckCircle2, AlertTriangle, RotateCcw, Cpu, ArrowDown, ArrowUp } from 'lucide-react';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
 import { ProgressiveHintBox } from './ProgressiveHintBox';
 import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
+import { deterministicShuffle } from '../../utils/shuffle';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -25,21 +26,21 @@ const ENTRY_POTENCY_ITEMS = [
     id: '1',
     blindLabel: 'ساختار ۱',
     revealedName: 'اکسی‌متولون (Oxymetholone)',
-    revealedNote: 'مشتق دی‌هیدروتستوسترون با گروه 2-هیدروکسی‌متیلن',
+    revealedNote: 'مشتق دی‌هیدروتستوسترون با 2-هیدروکسی‌متیلن',
     smiles: 'C[C@]12CC[C@H]3[C@@H](CC[C@@H]4CC(=O)C(=CO)C[C@]34C)[C@@H]1CC[C@]2(C)O',
   },
   {
     id: '2',
     blindLabel: 'ساختار ۲',
     revealedName: 'استانوزولول (Stanozolol)',
-    revealedNote: 'دارای حلقه پیرازول متصل به حلقه A و گروه 17α-متیل',
+    revealedNote: 'دارای حلقه پیرازول متصل به حلقه A',
     smiles: 'C[C@]12CC[C@H]3[C@@H](CC[C@@H]4Cc5c[nH]nc5C[C@]34C)[C@@H]1CC[C@]2(C)O',
   },
   {
     id: '3',
     blindLabel: 'ساختار ۳',
-    revealedName: 'میبولرون (Mibolerone — 7α,17α-دی‌متیل ۱۹-نورتستوسترون)',
-    revealedNote: 'ممانعت فضایی حداکثری در برابر متابولیسم و بیشترین قدرت اثر',
+    revealedName: 'میبولرون / مشتق دی‌متیل',
+    revealedNote: 'بیشترین قدرت اثر در این مجموعه',
     smiles: 'C[C@@H]1CC2=CC(=O)CC[C@@H]2[C@H]3CC[C@]4(C)[C@H]([C@@H]13)CC[C@]4(C)O',
   },
   {
@@ -51,101 +52,131 @@ const ENTRY_POTENCY_ITEMS = [
   },
 ];
 
+const INITIAL_ENTRY_ORDER = deterministicShuffle(['1', '2', '3', '4'], 'and-entry-order-v3');
+
 const FLUTAMIDE_PARENT_SMILES = 'CC(C)C(=O)Nc1ccc([N+](=O)[O-])c(C(F)(F)F)c1';
+const BICALUTAMIDE_SMILES = 'CC(O)(CS(=O)(=O)c1ccc(F)cc1)C(=O)Nc2ccc(C#N)c(C(F)(F)F)c2';
 
 const FLUTAMIDE_CANDIDATES = [
   {
     id: '2-hydroxyflutamide',
-    blindLabel: 'گزینه ۱',
-    revealedName: '۲-هیدروکسی‌فلوتامید (2-Hydroxyflutamide)',
-    revealedNote: 'هیدروکسیلاسیون CYP1A2 روی کربن متین زنجیره ایزوبوتیریل — متابولیت ماژور و فعال',
+    blindLabel: 'ساختار الف',
+    revealedName: '۲-هیدروکسی‌فلوتامید (متابولیت فعال)',
+    revealedNote: 'هیدروکسیلاسیون روی کربن متین زنجیره ایزوبوتیریل',
     smiles: 'CC(C)(O)C(=O)Nc1ccc([N+](=O)[O-])c(C(F)(F)F)c1',
   },
   {
     id: 'nitro_reduced_amine',
-    blindLabel: 'گزینه ۲',
-    revealedName: 'آمین آروماتیک احیاشده (-NH2)',
-    revealedNote: 'احیای گروه نیترو حلقه بنزن — متابولیت غیرفعال',
+    blindLabel: 'ساختار ب',
+    revealedName: 'آمین آروماتیک احیاشده (غیرفعال)',
+    revealedNote: 'احیای گروه نیترو حلقه بنزن',
     smiles: 'CC(C)C(=O)Nc1ccc(N)c(C(F)(F)F)c1',
   },
   {
     id: 'n_dealkylated_anilide',
-    blindLabel: 'گزینه ۳',
-    revealedName: 'پارا-نیترو-متا-تری‌فلورومتیل آنیلین',
-    revealedNote: 'هیدرولیز کامل پیوند آمیدی — متابولیت غیرفعال/سمی',
+    blindLabel: 'ساختار ج',
+    revealedName: 'محصول هیدرولیز پیوند آمیدی (غیرفعال)',
+    revealedNote: 'شکست کامل زنجیره آمیدی',
     smiles: 'Nc1ccc([N+](=O)[O-])c(C(F)(F)F)c1',
   },
 ];
+
+const ANDROGENICITY_OPTIONS = deterministicShuffle(
+  [
+    { id: 'add_androgenic_features', label: 'افزودن استخلاف‌های 17α-متیل و 9α-فلوئور روی هسته آندروستان' },
+    { id: 'remove_androgenic_features', label: 'حذف بخش‌هایی که خواص آندروژنی ایجاد می‌کنند (مثل متیل زاویه‌ای C19)' },
+    { id: 'add_low_androgenic_features', label: 'افزودن تغییرات کاهنده آندروژنیسیته و مهارکننده احیای 5α' },
+  ],
+  'and-low-opts-v3'
+);
+
+const COFACTOR_OPTIONS = deterministicShuffle(
+  [
+    { value: 'heme_iron_chelation', label: 'کلاته کردن اتم آهن هم (Heme Fe)' },
+    { value: 'nadph_covalent_adduct', label: 'تشکیل کمپلکس کووالانسی برگشت‌ناپذیر با کوفاکتور NADPH' },
+    { value: 'allosteric_zinc', label: 'اتصال آلوستریک به یون روی' },
+  ],
+  'and-cofactor-v3'
+);
+
+const PHARMACOPHORE_OPTIONS = deterministicShuffle(
+  [
+    { value: 'phenolic_oh', label: 'حلقه فنولیک آروماتیک' },
+    { value: 'nitro_benzene', label: 'حلقه نیتروبنزن' },
+    { value: 'keto_enol_lactam', label: 'سیستم کتو-انول / لاکتام حلقه A' },
+  ],
+  'and-pharm-v3'
+);
 
 const ANDROGEN_DRUGS = [
   {
     id: '1',
     blindLabel: 'ترکیب ۱',
-    revealedName: 'سیپروترون استات (Cyproterone Acetate)',
-    revealedNote: 'آنتی‌اندروژن استروئیدی دارای حلقه سیکلوپروپیل 1α,2α و کلر C6',
+    revealedName: 'سیپروترون استات',
+    revealedNote: 'آنتی‌اندروژن استروئیدی',
     smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C=C(Cl)C4=CC(=O)[C@@H]5C[C@@H]5[C@]4(C)[C@H]3CC[C@@]12C',
   },
   {
     id: '2',
     blindLabel: 'ترکیب ۲',
-    revealedName: 'نیلوتامید (Nilutamide)',
-    revealedNote: 'آنتی‌اندروژن غیراستروئیدی دارای حلقه ایمیدازولیدین‌دیون',
+    revealedName: 'نیلوتامید',
+    revealedNote: 'آنتی‌اندروژن غیراستروئیدی',
     smiles: 'CC1(C)NC(=O)N(c2ccc([N+](=O)[O-])c(C(F)(F)F)c2)C1=O',
   },
   {
     id: '3',
     blindLabel: 'ترکیب ۳',
-    revealedName: 'فیناستراید (Finasteride)',
-    revealedNote: '۴-آزااستروئید مهارکننده ۵-آلفا ردوکتاز دارای پیوند دوگانه Δ1',
+    revealedName: 'فیناستراید',
+    revealedNote: 'مهارکننده ۵-آلفا ردوکتاز',
     smiles: 'CC(C)(C)NC(=O)[C@H]1CC[C@H]2[C@@H]3CC[C@H]4NC(=O)C=C[C@]4(C)[C@H]3CC[C@]12C',
   },
   {
     id: '4',
     blindLabel: 'ترکیب ۴',
-    revealedName: 'لیاروزول (Liarozole)',
-    revealedNote: 'دارای حلقه‌های ایمیدازول و بنزیمیدازول مهارکننده آنزیم‌های CYP17',
+    revealedName: 'لیاروزول',
+    revealedNote: 'مهارکننده 17α-هیدروکسیلاز / لایز',
     smiles: 'Clc1ccc(cc1)C(c2ccc3nc[nH]c3c2)n4ccnc4',
   },
   {
     id: '5',
     blindLabel: 'ترکیب ۵',
-    revealedName: 'آبیراترون (Abiraterone)',
-    revealedNote: 'استروئید دارای حلقه پیریدین C17 — مهارکننده اختصاصی CYP17A1',
+    revealedName: 'آبیراترون',
+    revealedNote: 'مهارکننده 17α-هیدروکسیلاز / لایز',
     smiles: 'C[C@]12CC[C@H](O)CC1=CC[C@@H]3[C@@H]2CC[C@]4(C)[C@H]3CC=C4c5cccnc5',
   },
   {
     id: '6',
     blindLabel: 'ترکیب ۶',
-    revealedName: 'انوبوسارم / اوستارین (Enobosarm)',
-    revealedNote: 'تعدیل‌کننده انتخابی گیرنده آندروژن (SARM) با پل اتری و دو گروه سیانو',
+    revealedName: 'انوبوسارم (SARM)',
+    revealedNote: 'تعدیل‌کننده انتخابی گیرنده آندروژن',
     smiles: 'C[C@@](O)(COc1ccc(C#N)cc1)C(=O)Nc2ccc(C#N)c(C(F)(F)F)c2',
   },
   {
     id: '7',
     blindLabel: 'ترکیب ۷',
-    revealedName: 'اوساترون استات (Osaterone Acetate)',
-    revealedNote: 'آنتاگونیست استروئیدی با اتم اکسیژن در حلقه A (2-اکسااستروئید)',
+    revealedName: 'اوساترون استات',
+    revealedNote: 'آنتی‌اندروژن استروئیدی',
     smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C=C(Cl)C4=CC(=O)OC[C@]4(C)[C@H]3CC[C@@]12C',
   },
   {
     id: '8',
     blindLabel: 'ترکیب ۸',
-    revealedName: 'بیکالوتامید (Bicalutamide)',
-    revealedNote: 'آنتی‌اندروژن غیراستروئیدی دارای گروه سیانو (-CN) و پل سولفونیل (-SO2-)',
-    smiles: 'CC(O)(CS(=O)(=O)c1ccc(F)cc1)C(=O)Nc2ccc(C#N)c(C(F)(F)F)c2',
+    revealedName: 'بیکالوتامید',
+    revealedNote: 'آنتی‌اندروژن غیراستروئیدی',
+    smiles: BICALUTAMIDE_SMILES,
   },
   {
     id: '9',
     blindLabel: 'ترکیب ۹',
-    revealedName: 'دوتاستراید (Dutasteride)',
-    revealedNote: '۴-آزااستروئید مهارکننده دوگانه ۵-آلفا ردوکتاز با بیس(تری‌فلورومتیل)فنیل آمید',
+    revealedName: 'دوتاستراید',
+    revealedNote: 'مهارکننده ۵-آلفا ردوکتاز',
     smiles: 'C[C@]12CC[C@H]3[C@@H](CC[C@@H]4NC(=O)C=C[C@]34C)[C@@H]1CC[C@@H]2C(=O)Nc5cc(C(F)(F)F)cc(C(F)(F)F)c5',
   },
   {
     id: '10',
     blindLabel: 'ترکیب ۱۰',
-    revealedName: 'آندارین (Andarine)',
-    revealedNote: 'تعدیل‌کننده انتخابی گیرنده آندروژن (SARM) با پل اتری و گروه پارا-استامیدو',
+    revealedName: 'آندارین (SARM)',
+    revealedNote: 'تعدیل‌کننده انتخابی گیرنده آندروژن',
     smiles: 'CC(=O)Nc1ccc(OC[C@](C)(O)C(=O)Nc2ccc([N+](=O)[O-])c(C(F)(F)F)c2)cc1',
   },
 ];
@@ -168,7 +199,7 @@ export const AndrogenLab: React.FC<Props> = ({
   onBackToMap,
 }) => {
   const [entryOrder, setEntryOrder] = useState<string[]>(
-    entryPotencySolved ? ['3', '2', '1', '4'] : ['1', '2', '3', '4']
+    entryPotencySolved ? ['3', '2', '1', '4'] : INITIAL_ENTRY_ORDER
   );
   const entryTimer = usePuzzleTimer(true, entryPotencySolved);
   const [entryFeedback, setEntryFeedback] = useState<{ ok: boolean; text: string } | null>(null);
@@ -225,6 +256,23 @@ export const AndrogenLab: React.FC<Props> = ({
   const compTimer = usePuzzleTimer(classificationSolved, enzymeComplexSolved);
   const [compFeedback, setCompFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [compLoading, setCompLoading] = useState(false);
+
+  const shuffledFlutamide = useMemo(
+    () => deterministicShuffle(FLUTAMIDE_CANDIDATES, 'and-flutamide-v3'),
+    []
+  );
+  const shuffledSarms = useMemo(
+    () =>
+      deterministicShuffle(
+        ANDROGEN_DRUGS.filter((d) => ['2', '6', '10'].includes(d.id)),
+        'and-sarms-v3'
+      ),
+    []
+  );
+  const shuffledDrugs = useMemo(
+    () => deterministicShuffle(ANDROGEN_DRUGS, 'and-all10-v3'),
+    []
+  );
 
   const moveEntryItem = (index: number, direction: -1 | 1) => {
     if (entryPotencySolved) return;
@@ -371,18 +419,16 @@ export const AndrogenLab: React.FC<Props> = ({
     }
   };
 
-  const sarmCandidates = ANDROGEN_DRUGS.filter((d) => ['2', '6', '10'].includes(d.id));
-
   return (
     <div className="space-y-8">
       <div className="rounded-2xl border border-cyan-500/30 bg-white dark:bg-slate-900/80 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div>
           <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold text-lg">
             <Dna className="w-6 h-6" />
-            <span>دپارتمان پنجم: بخش آندروژن‌ها و مهارکننده‌های ۵-آلفا ردوکتاز</span>
+            <span>🧔 اتاق ریش و سیبیل — اتاق آقای زیگموند (آندروژن‌ها)</span>
           </div>
-          <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
-            آخرین بخش تحقیقاتی: بررسی متابولیسم آنتی‌آندروژن‌ها، انتخاب SARM و مکانیسم مهار آنزیم ۵-آلفا ردوکتاز برای کاهش آندروژنیسیته.
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm mt-1 leading-6">
+            آقای زیگموند (رفیق صمیمی و رقیب ارول) مبتلا به سرطان پروستاته و ارول بهش خیانت کرده! کمکش کن تا آخرین نامه ارول رو بهت بده...
           </p>
         </div>
         <button
@@ -390,18 +436,15 @@ export const AndrogenLab: React.FC<Props> = ({
           onClick={onBackToMap}
           className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
         >
-          بازگشت به نقشه شرکت
+          بازگشت به نقشه کارخانه
         </button>
       </div>
 
-      {/* معمای ۱: رتبه‌بندی قدرت آندروژنی با ساختار واقعی */}
+      {/* گام ۱: ورود به اتاق با رتبه‌بندی ۴ ساختار */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-4 shadow-sm">
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(1)}: رتبه‌بندی قدرت اثر مشتقات آندروژنی برای باز کردن قفل آزمایشگاه
+          گام {toPersianDigits(1)}: برای ورود به اتاق، ساختارها رو بر اساس قدرت مرتب کن
         </h3>
-        <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-          چهار ساختار زیر را صرفاً بر اساس تحلیل رابطه ساختار-اثر (SAR) از قوی‌ترین (رتبه ۱) به ضعیف‌ترین (رتبه ۴) مرتب کنید:
-        </p>
         <div className="space-y-3">
           {entryOrder.map((id, index) => {
             const item = ENTRY_POTENCY_ITEMS.find((x) => x.id === id)!;
@@ -455,8 +498,8 @@ export const AndrogenLab: React.FC<Props> = ({
         <ProgressiveHintBox
           solved={entryPotencySolved}
           hints={[
-            'مشتق ۱۹-نور دارای متیل 7α و 17α (ساختار ۳) بالاترین قدرت و مقاومت متابولیک را دارد.',
-            'افزودن حلقه پیرازول به حلقه A (ساختار ۲) قوی‌تر از گروه هیدروکسی‌متیلن (ساختار ۱) است و ترکیب فلوئوره/11β-OH (ساختار ۴) کمترین قدرت را در این مجموعه دارد.',
+            'ساختار ۳ (مشتق متیله بدون C19) بالاترین قدرت را دارد.',
+            'حلقه پیرازول (ساختار ۲) قوی‌تر از 2-هیدروکسی‌متیلن (ساختار ۱) است و ترکیب فلوئوره (ساختار ۴) کمترین قدرت را دارد.',
           ]}
         />
 
@@ -479,13 +522,13 @@ export const AndrogenLab: React.FC<Props> = ({
               onClick={handleEntrySubmit}
               className="rounded-xl bg-cyan-500 px-5 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-40"
             >
-              {entryLoading ? 'در حال بررسی...' : 'ثبت ترتیب و باز کردن در'}
+              {entryLoading ? 'در حال بررسی...' : 'باز کردن در اتاق زیگموند'}
             </button>
           </div>
         )}
       </div>
 
-      {/* معمای ۲: متابولیت ماژور فلوتامید */}
+      {/* گام ۲: آزمایش PSA بالا و متابولیت ماژور فلوتامید */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           entryPotencySolved
@@ -494,22 +537,22 @@ export const AndrogenLab: React.FC<Props> = ({
         }`}
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(2)}: شناسایی متابولیت ماژور و فعال داروی فلوتامید (Flutamide)
+          گام {toPersianDigits(2)}: متابولیت ماژور و فعال داروی فلوتامید
         </h3>
-        <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
-          فلوتامید یک پیش‌داروی غیراستروئیدی است که در کبد توسط CYP1A2 فعال می‌شود. با مقایسه ساختار داروی مادر با سه ساختار زیر، متابولیت فعال را انتخاب کنید:
-        </p>
+        <div className="rounded-xl border border-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/20 p-3.5 text-xs leading-7 text-slate-700 dark:text-slate-200">
+          آقای زیگموند غمگین نشسته؛ توی آزمایشش <strong>تستوسترون، آندروستندیون و PSA خیلی بالاست</strong>. توی دستش فلوتامید رو می‌بینی و می‌گه: <em>«ارول گفته متابولیت ماژور و موثر اینو مصرف کنم ولی PSA هنوز بالاست... کدوم ساختار متابولیت فعالشه؟»</em>
+        </div>
 
         <div className="max-w-xs">
           <MoleculeStructureCard
             smiles={FLUTAMIDE_PARENT_SMILES}
-            label="داروی مادر: فلوتامید (Flutamide)"
+            label="داروی دست زیگموند: فلوتامید"
             compact
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {FLUTAMIDE_CANDIDATES.map((opt) => (
+          {shuffledFlutamide.map((opt) => (
             <div
               key={opt.id}
               onClick={() => !metaboliteSolved && setMetabolite(opt.id)}
@@ -558,7 +601,7 @@ export const AndrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۳: جایگزین SARM */}
+      {/* گام ۳: پیشنهاد SARM از داربست بیکالوتامید */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           metaboliteSolved
@@ -567,13 +610,18 @@ export const AndrogenLab: React.FC<Props> = ({
         }`}
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(3)}: پیشنهاد یک SARM انتخابی به‌جای بیکالوتامید
+          گام {toPersianDigits(3)}: پیشنهاد یک SARM بهتر به‌جای بیکالوتامید
         </h3>
         <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-          آقای زیگموند به دارویی با اثر انتخابی بافتی (SARM) و بدون عوارض متابولیک کبدی نیاز دارد. از بین سه ساختار زیر، کدام ترکیب یک SARM است؟
+          ساختار قبلی دو تا مشکل داره: ۱) باید چند بار در روز مصرف بشه، ۲) PSA زیگموند همچنان بالاست. از روی ساختار بیکالوتامید، کدوم ترکیب زیر یه <strong>SARM</strong> با اثر قوی‌تر و خطر متابولیسم کمتره؟
         </p>
+
+        <div className="max-w-xs">
+          <MoleculeStructureCard smiles={BICALUTAMIDE_SMILES} label="ساختار مرجع: بیکالوتامید" compact />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {sarmCandidates.map((cand) => (
+          {shuffledSarms.map((cand) => (
             <div
               key={cand.id}
               onClick={() => metaboliteSolved && !sarmSolved && setSarmChoice(cand.id)}
@@ -619,7 +667,7 @@ export const AndrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۴: کاهش آندروژنیسیته */}
+      {/* گام ۴: کمک زیگموند — کمینه‌کردن آندروژنیسیته */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           sarmSolved
@@ -628,14 +676,13 @@ export const AndrogenLab: React.FC<Props> = ({
         }`}
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(4)}: اصلاح ساختار برای کمینه‌کردن آندروژنیسیته
+          گام {toPersianDigits(4)}: راز زیگموند درباره کمینه‌کردن آندروژنیسیته
         </h3>
+        <div className="rounded-xl border border-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/20 p-3.5 text-xs leading-7 text-slate-700 dark:text-slate-200">
+          <strong>🧔 آقای زیگموند:</strong> <em>«ارول اهریمن رو با کمترین آندروژنیسیته می‌سازه؛ اون قسمتایی که خواص آندروژنی می‌دن رو باید حذف کنی و قسمتایی که آندروژنیسیته رو کم می‌کنن اضافه کنی.»</em>
+        </div>
         <div className="space-y-2">
-          {[
-            { id: 'remove_androgenic_features', label: 'حذف بخش‌هایی از ساختار که خواص آندروژنی ایجاد می‌کنند (مانند متیل زاویه‌ای C19)' },
-            { id: 'add_low_androgenic_features', label: 'افزودن تغییرات ساختاری کاهنده آندروژنیسیته و مهارکننده احیای 5α' },
-            { id: 'add_androgenic_features', label: 'افزودن استخلاف‌های 17α-متیل و 9α-فلوئور روی هسته آندروستان' },
-          ].map((modification) => {
+          {ANDROGENICITY_OPTIONS.map((modification) => {
             const active = androgenicityMods.includes(modification.id);
             return (
               <button
@@ -680,7 +727,7 @@ export const AndrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۵: دسته‌بندی ۱۰ ساختار واقعی در ۵ کلاس */}
+      {/* گام ۵: آخرین نامه ارول — دسته‌بندی ۱۰ ساختار با ترتیب تصادفی */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           androgenicitySolved
@@ -690,7 +737,7 @@ export const AndrogenLab: React.FC<Props> = ({
       >
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-            معمای {toPersianDigits(5)}: دسته‌بندی {toPersianDigits(10)} ساختار دارویی محور آندروژن در {toPersianDigits(5)} کلاس مکانیسمی
+            گام {toPersianDigits(5)}: آخرین نامه ارول — جداسازی {toPersianDigits(10)} ساختار در {toPersianDigits(5)} دسته
           </h3>
           {!classificationSolved && assignedCount > 0 && (
             <button
@@ -713,35 +760,37 @@ export const AndrogenLab: React.FC<Props> = ({
         </div>
 
         <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
-          هر ساختار را با <strong>Drag & Drop</strong> یا کلیک، در کلاس مکانیسمی صحیح قرار دهید (برای بررسی دقیق اتم‌ها و حلقه‌ها روی آیکون بزرگ‌نمایی کلیک کنید):
+          ارول توی آخرین نامه‌اش از زیگموند خواسته این {toPersianDigits(10)} ساختار رو بر اساس دسته‌هاشون جدا کنه و حواسش به ساختارهای مهارکننده ۵-آلفا ردوکتاز باشه:
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {ANDROGEN_DRUGS.filter((d) => !Object.values(buckets).flat().includes(d.id)).map((drug) => (
-            <div
-              key={drug.id}
-              draggable={androgenicitySolved && !classificationSolved}
-              onDragStart={(e) => e.dataTransfer.setData('text/plain', drug.id)}
-              onClick={() => {
-                if (!androgenicitySolved || classificationSolved) return;
-                setSelectedChip(selectedChip === drug.id ? null : drug.id);
-              }}
-              className={`rounded-xl cursor-pointer transition ${
-                selectedChip === drug.id
-                  ? 'ring-2 ring-cyan-500 shadow-md'
-                  : 'hover:ring-1 hover:ring-cyan-400/60'
-              }`}
-            >
-              <MoleculeStructureCard
-                smiles={drug.smiles}
-                label={drug.blindLabel}
-                revealed={classificationSolved}
-                revealedName={drug.revealedName}
-                revealedNote={drug.revealedNote}
-                compact
-              />
-            </div>
-          ))}
+          {shuffledDrugs
+            .filter((d) => !Object.values(buckets).flat().includes(d.id))
+            .map((drug) => (
+              <div
+                key={drug.id}
+                draggable={androgenicitySolved && !classificationSolved}
+                onDragStart={(e) => e.dataTransfer.setData('text/plain', drug.id)}
+                onClick={() => {
+                  if (!androgenicitySolved || classificationSolved) return;
+                  setSelectedChip(selectedChip === drug.id ? null : drug.id);
+                }}
+                className={`rounded-xl cursor-pointer transition ${
+                  selectedChip === drug.id
+                    ? 'ring-2 ring-cyan-500 shadow-md'
+                    : 'hover:ring-1 hover:ring-cyan-400/60'
+                }`}
+              >
+                <MoleculeStructureCard
+                  smiles={drug.smiles}
+                  label={drug.blindLabel}
+                  revealed={classificationSolved}
+                  revealedName={drug.revealedName}
+                  revealedNote={drug.revealedNote}
+                  compact
+                />
+              </div>
+            ))}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
@@ -750,8 +799,8 @@ export const AndrogenLab: React.FC<Props> = ({
               { key: 'steroid_antiandrogen', title: 'Steroid Antiandrogens' },
               { key: 'non_steroid_antiandrogen', title: 'Non-Steroid Antiandrogens' },
               { key: 'five_alpha_reductase', title: '5α-Reductase Inhibitors' },
-              { key: 'cyp17_inhibitor', title: '17α-Hydroxylase / Lyase Inhibitors' },
-              { key: 'sarms', title: 'SARMs (Selective Modulators)' },
+              { key: 'cyp17_inhibitor', title: '17α-Hydroxylase / Lyase' },
+              { key: 'sarms', title: 'SARMs' },
             ] as const
           ).map((b) => (
             <div
@@ -797,8 +846,8 @@ export const AndrogenLab: React.FC<Props> = ({
           solved={classificationSolved}
           disabled={!androgenicitySolved}
           hints={[
-            'مهارکننده‌های ۵-آلفا ردوکتاز (۳ و ۹) دارای حلقه A لاکتامی ۴-آزااستروئیدی هستند؛ مهارکننده‌های CYP17 (۴ و ۵) حلقه ایمیدازول یا پیریدین برای کلاته کردن آهن Heme دارند.',
-            'SARMها (۶ و ۱۰) پل اتری (-O-) دارند، در حالی که آنتی‌آندروژن‌های غیراستروئیدی (۲ و ۸) حلقه ایمیدازولیدین‌دیون یا پل سولفونیل (-SO2-) دارند.',
+            'مهارکننده‌های ۵-آلفا ردوکتاز (۳ و ۹) حلقه A لاکتامی (NH-C=O) دارند؛ مهارکننده‌های CYP17 (۴ و ۵) حلقه ایمیدازول یا پیریدین دارند.',
+            'SARMها (۶ و ۱۰) پل اتری (-O-) دارند و آنتی‌آندروژن‌های غیراستروئیدی (۲ و ۸) ایمیدازولیدین‌دیون یا پل سولفونیل (-SO2-) دارند.',
           ]}
         />
 
@@ -829,7 +878,7 @@ export const AndrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۶: کمپلکس آنزیم ۵-آلفا ردوکتاز */}
+      {/* گام ۶: قرار دادن مهارکننده ۵-آلفا ردوکتاز داخل سایت فعال آنزیم */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           classificationSolved
@@ -839,14 +888,18 @@ export const AndrogenLab: React.FC<Props> = ({
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
           <Cpu className="w-5 h-5 text-cyan-500" />
-          <span>معمای {toPersianDigits(6)}: شبیه‌سازی کمپلکس مهارکننده در سایت فعال آنزیم ۵-آلفا ردوکتاز</span>
+          <span>گام {toPersianDigits(6)}: قرار دادن مهارکننده‌های ۵-آلفا ردوکتاز داخل سایت فعال آنزیم</span>
         </h3>
+
+        <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
+          ببین کدوم قسمت از ساختار مهارکننده‌های ۵-آلفا ردوکتاز با کوفاکتور آنزیم وارد واکنش می‌شه و برای ارول مهم بوده:
+        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-2">
             <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">۱. شماره مهارکننده‌های ۵-آلفا ردوکتاز:</div>
             <div className="flex flex-wrap gap-2">
-              {['1', '3', '6', '8', '9'].map((num) => {
+              {['8', '1', '9', '6', '3'].map((num) => {
                 const active = complexState.selected_inhibitors.includes(num);
                 return (
                   <button
@@ -875,25 +928,29 @@ export const AndrogenLab: React.FC<Props> = ({
               onChange={(e) => setComplexState((p) => ({ ...p, cofactor_complex: e.target.value }))}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
             >
-              <option value="">انتخاب کمپلکس...</option>
-              <option value="nadph_covalent_adduct">تشکیل آداکت کووالانسی برگشت‌ناپذیر با کوفاکتور NADPH</option>
-              <option value="heme_iron_chelation">کلاته کردن اتم آهن هم (Heme Fe)</option>
-              <option value="allosteric_zinc">اتصال آلوستریک به یون روی</option>
+              <option value="">انتخاب مکانیسم...</option>
+              {COFACTOR_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
 
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-2">
-            <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">۳. فارماکوفور کلیدی حلقه A در ترکیب اهریمن:</div>
+            <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">۳. بخش کلیدی حلقه A در اهریمن:</div>
             <select
               disabled={!classificationSolved || enzymeComplexSolved}
               value={complexState.pharmacophore}
               onChange={(e) => setComplexState((p) => ({ ...p, pharmacophore: e.target.value }))}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
             >
-              <option value="">انتخاب فارماکوفور...</option>
-              <option value="keto_enol_lactam">سیستم کونژوگه کتو-انول / لاکتام (Keto-Enol / Lactam)</option>
-              <option value="phenolic_oh">حلقه فنولیک آروماتیک</option>
-              <option value="nitro_benzene">حلقه نیتروبنزن</option>
+              <option value="">انتخاب بخش کلیدی...</option>
+              {PHARMACOPHORE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -918,7 +975,7 @@ export const AndrogenLab: React.FC<Props> = ({
               onClick={onBackToMap}
               className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
-              ذخیره سرنخ پنجم و بازگشت به نقشه ←
+              ذخیره سرنخ پنجم (کتو-انول مهار ۵-آلفا ردوکتاز) و بازگشت ←
             </button>
           ) : (
             <button
@@ -933,7 +990,7 @@ export const AndrogenLab: React.FC<Props> = ({
               onClick={handleComplexSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
-              {compLoading ? 'در حال ثبت کمپلکس...' : 'تایید کمپلکس آنزیمی و استخراج سرنخ'}
+              {compLoading ? 'در حال ثبت...' : 'تایید کمپلکس و کشف آخرین سرنخ'}
             </button>
           )}
         </div>

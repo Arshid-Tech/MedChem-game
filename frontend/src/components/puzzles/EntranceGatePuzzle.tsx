@@ -1,60 +1,45 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, RotateCcw, ShieldCheck, AlertTriangle, Sparkles, ArrowLeft } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  CheckCircle2,
+  RotateCcw,
+  ShieldCheck,
+  AlertTriangle,
+  Sparkles,
+  ArrowLeft,
+  Move,
+  Trash2,
+} from 'lucide-react';
 import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
 import { ProgressiveHintBox } from './ProgressiveHintBox';
+import { deterministicShuffle } from '../../utils/shuffle';
 import { toPersianDigits } from '../../utils/persian';
 
-interface Piece {
+interface PieceSpec {
   id: string;
   label: string;
-  chemName: string;
-  formula: string;
+  targetX: number;
+  targetY: number;
+  color: string;
 }
 
-const AVAILABLE_PIECES: Piece[] = [
-  {
-    id: 'ring_a',
-    label: 'حلقه A (سیکلوهگزنون Δ4)',
-    chemName: '3-Keto-Δ4 Ring A',
-    formula: 'C6H7O',
-  },
-  {
-    id: 'ring_b',
-    label: 'حلقه B (سیکلوهگزان C5-C10)',
-    chemName: 'Ring B + C19 Methyl',
-    formula: 'C6H10',
-  },
-  {
-    id: 'ring_c',
-    label: 'حلقه C (سیکلوهگزان C8-C14)',
-    chemName: 'Ring C (11β-OH)',
-    formula: 'C6H10O',
-  },
-  {
-    id: 'ring_d',
-    label: 'حلقه D (سیکلوپنتان)',
-    chemName: 'Cyclopentane Ring D',
-    formula: 'C5H8',
-  },
-  {
-    id: 'c17_sidechain',
-    label: 'زنجیره کتول C17β',
-    chemName: '17β-Ketol (-CO-CH2OH)',
-    formula: 'C2H3O2',
-  },
-  {
-    id: 'benzene_decoy',
-    label: 'حلقه بنزن آروماتیک',
-    chemName: 'Aromatic Benzene',
-    formula: 'C6H6',
-  },
-  {
-    id: 'indole_decoy',
-    label: 'هسته ایندول دوحلقه‌ای',
-    chemName: 'Indole Heterocycle',
-    formula: 'C8H7N',
-  },
+interface PlacedPiece {
+  id: string;
+  x: number;
+  y: number;
+  snapped: boolean;
+}
+
+const PIECE_SPECS: PieceSpec[] = [
+  { id: 'ring_a', label: 'حلقه ۶ضلعی با =O', targetX: 90, targetY: 145, color: '#22d3ee' },
+  { id: 'ring_b', label: 'حلقه ۶ضلعی با CH3', targetX: 158, targetY: 145, color: '#34d399' },
+  { id: 'ring_c', label: 'حلقه ۶ضلعی با OH', targetX: 192, targetY: 88, color: '#38bdf8' },
+  { id: 'ring_d', label: 'حلقه ۵ضلعی با CH3', targetX: 256, targetY: 88, color: '#c084fc' },
+  { id: 'c17_sidechain', label: 'زنجیره -CO-CH2OH', targetX: 306, targetY: 50, color: '#fbbf24' },
+  { id: 'benzene_decoy', label: 'حلقه بنزن آروماتیک', targetX: 0, targetY: 0, color: '#fb923c' },
+  { id: 'indole_decoy', label: 'حلقه دوگانه نیتروژن‌دار', targetX: 0, targetY: 0, color: '#f472b6' },
 ];
+
+const SNAP_RADIUS = 34;
 
 interface Props {
   isSolved: boolean;
@@ -62,21 +47,90 @@ interface Props {
   onNext: () => void;
 }
 
+function renderPieceGraphic(id: string) {
+  switch (id) {
+    case 'ring_a':
+      return (
+        <g>
+          <polygon points="-34,-19 0,-38 34,-19 34,19 0,38 -34,19" fill="rgba(6,182,212,0.16)" stroke="#22d3ee" strokeWidth="2.4" />
+          <line x1="2" y1="31" x2="28" y2="16" stroke="#38bdf8" strokeWidth="2" />
+          <line x1="-54" y1="29" x2="-34" y2="19" stroke="#f87171" strokeWidth="2.4" />
+          <line x1="-51" y1="34" x2="-31" y2="24" stroke="#f87171" strokeWidth="2.4" />
+          <text x="-68" y="38" fill="#f87171" fontSize="13" fontWeight="bold" fontFamily="monospace">O</text>
+        </g>
+      );
+    case 'ring_b':
+      return (
+        <g>
+          <polygon points="-34,-19 0,-38 34,-19 34,19 0,38 -34,19" fill="rgba(16,185,129,0.16)" stroke="#34d399" strokeWidth="2.4" />
+          <polygon points="-34,-19 -38,-48 -30,-48" fill="#34d399" />
+          <text x="-45" y="-53" fill="#34d399" fontSize="10.5" fontWeight="bold" fontFamily="monospace">CH3</text>
+        </g>
+      );
+    case 'ring_c':
+      return (
+        <g>
+          <polygon points="-34,19 -34,-19 0,-38 34,-19 34,19 0,38" fill="rgba(56,189,248,0.16)" stroke="#38bdf8" strokeWidth="2.4" />
+          <polygon points="-34,-19 -54,-34 -49,-40" fill="#38bdf8" />
+          <text x="-74" y="-39" fill="#38bdf8" fontSize="11" fontWeight="bold" fontFamily="monospace">HO</text>
+        </g>
+      );
+    case 'ring_d':
+      return (
+        <g>
+          <polygon points="-30,-19 6,-30 28,0 6,30 -30,19" fill="rgba(192,132,252,0.16)" stroke="#c084fc" strokeWidth="2.4" />
+          <polygon points="-30,-19 -34,-47 -26,-47" fill="#c084fc" />
+          <text x="-40" y="-53" fill="#c084fc" fontSize="10.5" fontWeight="bold" fontFamily="monospace">CH3</text>
+        </g>
+      );
+    case 'c17_sidechain':
+      return (
+        <g>
+          <polygon points="-44,8 -18,-9 -14,-3" fill="#fbbf24" />
+          <text x="-12" y="-4" fill="#fbbf24" fontSize="11.5" fontWeight="bold" fontFamily="monospace">CO-CH2OH</text>
+        </g>
+      );
+    case 'benzene_decoy':
+      return (
+        <g>
+          <polygon points="-24,-14 0,-28 24,-14 24,14 0,28 -24,14" fill="rgba(251,146,60,0.16)" stroke="#fb923c" strokeWidth="2.2" />
+          <circle cx="0" cy="0" r="13" fill="none" stroke="#fb923c" strokeWidth="1.8" />
+        </g>
+      );
+    case 'indole_decoy':
+      return (
+        <g>
+          <polygon points="-30,-12 -10,-24 10,-12 10,12 -10,24 -30,12" fill="rgba(244,114,182,0.16)" stroke="#f472b6" strokeWidth="2" />
+          <polyline points="10,-12 32,-7 38,8 24,19 10,12" fill="rgba(244,114,182,0.12)" stroke="#f472b6" strokeWidth="2" />
+          <text x="37" y="21" fill="#f472b6" fontSize="10" fontWeight="bold" fontFamily="monospace">NH</text>
+        </g>
+      );
+    default:
+      return null;
+  }
+}
+
 export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext }) => {
-  const [selectedIds, setSelectedIds] = useState<string[]>(
-    isSolved ? ['ring_a', 'ring_b', 'ring_c', 'ring_d', 'c17_sidechain'] : []
+  const [placed, setPlaced] = useState<PlacedPiece[]>(() =>
+    isSolved
+      ? PIECE_SPECS.filter((p) => p.targetX > 0).map((p) => ({
+          id: p.id,
+          x: p.targetX,
+          y: p.targetY,
+          snapped: true,
+        }))
+      : []
   );
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [practiceMode, setPracticeMode] = useState(false);
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const gateTimer = usePuzzleTimer(true, isSolved);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [justUnlocked, setJustUnlocked] = useState(false);
   const autoAdvanceRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (isSolved && selectedIds.length === 0) {
-      setSelectedIds(['ring_a', 'ring_b', 'ring_c', 'ring_d', 'c17_sidechain']);
-    }
-  }, [isSolved]);
+  const shuffledSpecs = useMemo(() => deterministicShuffle(PIECE_SPECS, 'entrance-pieces-v3'), []);
 
   useEffect(() => {
     return () => {
@@ -86,33 +140,89 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
     };
   }, []);
 
-  const handleDropPiece = (pieceId: string) => {
-    if (isSolved || justUnlocked) return;
-    if (!selectedIds.includes(pieceId)) {
-      setSelectedIds((prev) => [...prev, pieceId]);
-      setFeedback(null);
-    }
-  };
+  const isLocked = (isSolved || justUnlocked) && !practiceMode;
 
-  const handleRemovePiece = (pieceId: string) => {
-    if (isSolved || justUnlocked) return;
-    setSelectedIds((prev) => prev.filter((id) => id !== pieceId));
+  const addPieceToCanvas = (pieceId: string) => {
+    if (isLocked) return;
+    if (placed.some((p) => p.id === pieceId)) return;
+    const offset = (placed.length % 4) * 32;
+    setPlaced((prev) => [
+      ...prev,
+      { id: pieceId, x: 140 + offset, y: 120 + (placed.length % 2) * 35, snapped: false },
+    ]);
     setFeedback(null);
   };
 
+  const removePiece = (pieceId: string) => {
+    if (isLocked) return;
+    setPlaced((prev) => prev.filter((p) => p.id !== pieceId));
+    setFeedback(null);
+  };
+
+  const getSvgCoords = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 200, y: 120 };
+    const rect = svg.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * 420;
+    const y = ((clientY - rect.top) / rect.height) * 240;
+    return {
+      x: Math.max(36, Math.min(385, x)),
+      y: Math.max(36, Math.min(205, y)),
+    };
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!draggingId || isLocked) return;
+    const { x, y } = getSvgCoords(e.clientX, e.clientY);
+    const spec = PIECE_SPECS.find((p) => p.id === draggingId);
+    let finalX = x;
+    let finalY = y;
+    let snapped = false;
+
+    if (spec && spec.targetX > 0) {
+      const dist = Math.hypot(x - spec.targetX, y - spec.targetY);
+      if (dist <= SNAP_RADIUS) {
+        finalX = spec.targetX;
+        finalY = spec.targetY;
+        snapped = true;
+      }
+    }
+
+    setPlaced((prev) =>
+      prev.map((p) => (p.id === draggingId ? { ...p, x: finalX, y: finalY, snapped } : p))
+    );
+  };
+
   const handleVerify = async () => {
-    if (selectedIds.length === 0 || loading) return;
+    if (placed.length === 0 || loading) return;
+    const coreIds = ['ring_a', 'ring_b', 'ring_c', 'ring_d', 'c17_sidechain'];
+    const hasAllCore = coreIds.every((id) => placed.some((p) => p.id === id));
+    const allSnapped = placed
+      .filter((p) => coreIds.includes(p.id))
+      .every((p) => p.snapped);
+
+    if (hasAllCore && !allSnapped) {
+      setFeedback({
+        ok: false,
+        text: 'قطعات درست را آورده‌ای، اما هنوز دقیق به هم وصل نشده‌اند! هر قطعه را روی بوم بکش و کنار هم بچین تا به جای درستش قفل (Snap) شود.',
+      });
+      return;
+    }
+
     setLoading(true);
     setFeedback(null);
     const elapsed = gateTimer.consumeElapsedSeconds();
     try {
-      const res = await onSubmit(selectedIds, elapsed);
+      const res = await onSubmit(
+        placed.map((p) => p.id),
+        elapsed
+      );
       setFeedback({ ok: res.correct, text: res.feedback });
-      if (res.correct) {
+      if (res.correct && !isSolved) {
         setJustUnlocked(true);
         autoAdvanceRef.current = window.setTimeout(() => {
           onNext();
-        }, 1200);
+        }, 1400);
       }
     } catch (err: unknown) {
       setFeedback({
@@ -124,68 +234,69 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
     }
   };
 
-  const hasRingA = selectedIds.includes('ring_a');
-  const hasRingB = selectedIds.includes('ring_b');
-  const hasRingC = selectedIds.includes('ring_c');
-  const hasRingD = selectedIds.includes('ring_d');
-  const hasC17 = selectedIds.includes('c17_sidechain');
-  const hasBenzene = selectedIds.includes('benzene_decoy');
-  const hasIndole = selectedIds.includes('indole_decoy');
-
   const unlocked = isSolved || justUnlocked;
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-cyan-500/30 bg-white dark:bg-slate-900/80 p-5 shadow-sm">
-        <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold text-base sm:text-lg mb-2">
-          <ShieldCheck className="w-6 h-6 shrink-0" />
-          <span>مرحله ورود: گیت بیومتریک بخش R&D شرکت Apex Pharma</span>
+      <div className="rounded-2xl border border-cyan-500/30 bg-white dark:bg-slate-900/80 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold text-base sm:text-lg mb-1">
+            <ShieldCheck className="w-6 h-6 shrink-0" />
+            <span>ورودی کارخانه مولکول دکتر ارول</span>
+          </div>
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-7">
+            اینجا درِ کارخونه‌ست! برای ورود، قطعات درست رو وارد بوم کن و <strong>آزادانه کنار هم بچین</strong> تا یه اسکلت استروئید کامل بسازی و به عنوان کلید ورود ازش استفاده کنی.
+          </p>
         </div>
-        <p className="text-slate-600 dark:text-slate-300 text-sm leading-7">
-          دکتر ارول پیش از خروج، قفل بیومتریک آزمایشگاه مرکزی را روی حالت سنتز مولکولی تنظیم کرده است.
-          برای اثبات هویت خود به عنوان <strong>متخصص ارشد شیمی دارویی</strong>، قطعات صحیح را انتخاب یا به
-          درون راکتور بکشید (Drag & Drop) تا اسکلت پایه استروئیدی (<strong>سیکلوپنتانوپرهیدروفنانترن</strong> همراه با زنجیره کتول C17) ساخته شود.
-        </p>
+        {unlocked && (
+          <button
+            type="button"
+            onClick={() => {
+              setPracticeMode((p) => !p);
+              if (!practiceMode) {
+                setPlaced([]);
+                setFeedback(null);
+              }
+            }}
+            className="self-start sm:self-center rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3.5 py-2 text-xs font-bold text-cyan-700 dark:text-cyan-300 whitespace-nowrap"
+          >
+            {practiceMode ? 'خروج از تمرین مجدد' : 'تمرین دوباره چیدمان'}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-5 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/70 p-4 space-y-3 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
-            <span>بانک قطعات ساختاری (بکشید یا کلیک کنید)</span>
-            <span className="text-xs text-cyan-700 dark:text-cyan-400">
-              {toPersianDigits(selectedIds.length)} قطعه انتخاب شده
+        <div className="lg:col-span-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/70 p-4 space-y-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+              قطعات موجود (کلیک کن تا وارد بوم شود)
+            </h3>
+            <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400">
+              {toPersianDigits(placed.length)} قطعه روی بوم
             </span>
-          </h3>
+          </div>
 
-          <div className="space-y-2">
-            {AVAILABLE_PIECES.map((piece) => {
-              const active = selectedIds.includes(piece.id);
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+            {shuffledSpecs.map((spec) => {
+              const onCanvas = placed.some((p) => p.id === spec.id);
               return (
                 <div
-                  key={piece.id}
-                  draggable={!unlocked && !active}
-                  onDragStart={(e) => e.dataTransfer.setData('text/plain', piece.id)}
-                  onClick={() => (active ? handleRemovePiece(piece.id) : handleDropPiece(piece.id))}
-                  className={`flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm transition cursor-pointer ${
-                    active
+                  key={spec.id}
+                  onClick={() => (onCanvas ? removePiece(spec.id) : addPieceToCanvas(spec.id))}
+                  className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-xs transition cursor-pointer ${
+                    onCanvas
                       ? 'border-cyan-500 bg-cyan-50 dark:border-cyan-400 dark:bg-cyan-950/50 text-cyan-900 dark:text-cyan-200'
                       : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:border-cyan-400 text-slate-800 dark:text-slate-200'
                   }`}
                 >
-                  <div>
-                    <div className="font-semibold text-xs sm:text-sm">{piece.label}</div>
-                    <div dir="ltr" className="text-[11px] text-slate-500 dark:text-slate-400 font-mono text-right">
-                      {piece.chemName} ({piece.formula})
-                    </div>
+                  <div className="flex items-center gap-2.5">
+                    <svg viewBox="-75 -65 130 115" className="w-12 h-10 shrink-0 bg-slate-950 rounded-lg p-0.5">
+                      {renderPieceGraphic(spec.id)}
+                    </svg>
+                    <span className="font-semibold">{spec.label}</span>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-md shrink-0 ${
-                      active
-                        ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-bold'
-                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    {active ? 'در راکتور ✓' : '+ افزودن'}
+                  <span className="text-[11px] font-bold shrink-0">
+                    {onCanvas ? <Trash2 className="w-3.5 h-3.5 text-rose-500" /> : '+ افزودن'}
                   </span>
                 </div>
               );
@@ -193,118 +304,84 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
           </div>
         </div>
 
-        <div
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            const id = e.dataTransfer.getData('text/plain');
-            if (id) handleDropPiece(id);
-          }}
-          className="lg:col-span-7 rounded-2xl border-2 border-dashed border-cyan-500/40 bg-white dark:bg-[#07111f] p-5 flex flex-col justify-between shadow-sm"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4" />
-              محفظه سنتز مولکولی راکتور (Drop Zone)
+        <div className="lg:col-span-8 rounded-2xl border-2 border-dashed border-cyan-500/40 bg-white dark:bg-[#07111f] p-5 flex flex-col justify-between shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <span className="text-xs sm:text-sm font-bold text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5">
+              <Move className="w-4 h-4" />
+              بوم ساخت کلید استروئیدی (قطعات را آزادانه بکش و کنار هم بچین)
             </span>
-            {!unlocked && selectedIds.length > 0 && (
+            {!isLocked && placed.length > 0 && (
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedIds([]);
+                  setPlaced([]);
                   setFeedback(null);
                 }}
-                className="text-xs text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 flex items-center gap-1"
+                className="text-xs text-slate-500 dark:text-slate-400 hover:text-rose-500 flex items-center gap-1"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                پاکسازی راکتور
+                پاکسازی بوم
               </button>
             )}
           </div>
 
           <div
             dir="ltr"
-            className="my-2 flex items-center justify-center bg-slate-950 rounded-xl p-4 border border-slate-800 min-h-[230px]"
+            className="my-2 flex items-center justify-center bg-slate-950 rounded-xl p-2 border border-slate-800 min-h-[260px] touch-none select-none"
           >
-            {selectedIds.length === 0 ? (
-              <div dir="rtl" className="text-center text-xs text-slate-400 space-y-1">
-                <p className="font-semibold text-slate-300">محفظه راکتور خالی است</p>
-                <p>قطعات ساختاری مورد نظر را از ستون کناری انتخاب کنید تا ساختار در اینجا رسم شود.</p>
-              </div>
-            ) : (
-              <svg viewBox="0 0 380 225" className="w-full max-w-[400px] h-56">
-                {hasRingA && (
-                  <g>
-                    <polygon points="48,118 82,98 116,118 116,156 82,176 48,156" fill="rgba(6,182,212,0.14)" stroke="#22d3ee" strokeWidth="2.4" />
-                    <line x1="84" y1="169" x2="110" y2="154" stroke="#38bdf8" strokeWidth="2" />
-                    <line x1="28" y1="166" x2="48" y2="156" stroke="#f87171" strokeWidth="2.4" />
-                    <line x1="31" y1="171" x2="51" y2="161" stroke="#f87171" strokeWidth="2.4" />
-                    <text x="14" y="175" fill="#f87171" fontSize="13" fontWeight="bold" fontFamily="monospace">O</text>
-                    <text x="77" y="141" fill="#22d3ee" fontSize="13" fontWeight="bold" fontFamily="monospace">A</text>
-                  </g>
-                )}
+            <svg
+              ref={svgRef}
+              viewBox="0 0 420 240"
+              className="w-full h-64 sm:h-72"
+              onPointerMove={handlePointerMove}
+              onPointerUp={() => setDraggingId(null)}
+              onPointerLeave={() => setDraggingId(null)}
+            >
+              <defs>
+                <pattern id="canvasGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+                  <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(56,189,248,0.08)" strokeWidth="1" />
+                </pattern>
+              </defs>
+              <rect width="420" height="240" fill="url(#canvasGrid)" />
 
-                {hasRingB && (
-                  <g>
-                    <polygon points="116,118 150,98 184,118 184,156 150,176 116,156" fill="rgba(16,185,129,0.14)" stroke="#34d399" strokeWidth="2.4" />
-                    <polygon points="116,118 112,88 120,88" fill="#34d399" />
-                    <text x="106" y="83" fill="#34d399" fontSize="11" fontWeight="bold" fontFamily="monospace">CH3</text>
-                    <text x="145" y="141" fill="#34d399" fontSize="13" fontWeight="bold" fontFamily="monospace">B</text>
-                  </g>
-                )}
+              <circle cx="90" cy="145" r="4" fill="rgba(148,163,184,0.22)" />
+              <circle cx="158" cy="145" r="4" fill="rgba(148,163,184,0.22)" />
+              <circle cx="192" cy="88" r="4" fill="rgba(148,163,184,0.22)" />
+              <circle cx="256" cy="88" r="4" fill="rgba(148,163,184,0.22)" />
+              <circle cx="306" cy="50" r="4" fill="rgba(148,163,184,0.22)" />
 
-                {hasRingC && (
-                  <g>
-                    <polygon points="150,98 150,60 184,40 218,60 218,98 184,118" fill="rgba(56,189,248,0.14)" stroke="#38bdf8" strokeWidth="2.4" />
-                    <polygon points="150,60 130,45 135,39" fill="#38bdf8" />
-                    <text x="111" y="40" fill="#38bdf8" fontSize="11" fontWeight="bold" fontFamily="monospace">HO</text>
-                    <text x="179" y="84" fill="#38bdf8" fontSize="13" fontWeight="bold" fontFamily="monospace">C</text>
-                  </g>
-                )}
+              {placed.length === 0 && (
+                <text x="210" y="125" textAnchor="middle" fill="#64748b" fontSize="12" fontFamily="Vazirmatn, sans-serif">
+                  قطعات را از ستون کناری اضافه کن و اینجا کنار هم بچین
+                </text>
+              )}
 
-                {hasRingD && (
-                  <g>
-                    <polygon points="218,60 255,49 277,79 255,109 218,98" fill="rgba(192,132,252,0.15)" stroke="#c084fc" strokeWidth="2.4" />
-                    <polygon points="218,60 214,32 222,32" fill="#c084fc" />
-                    <text x="208" y="26" fill="#c084fc" fontSize="11" fontWeight="bold" fontFamily="monospace">CH3</text>
-                    <text x="242" y="84" fill="#c084fc" fontSize="13" fontWeight="bold" fontFamily="monospace">D</text>
-                  </g>
-                )}
-
-                {hasC17 && (
-                  <g>
-                    <polygon points="255,49 282,31 286,37" fill="#fbbf24" />
-                    <text x="284" y="30" fill="#fbbf24" fontSize="11" fontWeight="bold" fontFamily="monospace">CO-CH2OH</text>
-                  </g>
-                )}
-
-                {hasBenzene && (
-                  <g transform="translate(268, 152)">
-                    <polygon points="24,0 45,12 45,36 24,48 3,36 3,12" fill="rgba(251,146,60,0.15)" stroke="#fb923c" strokeWidth="2.2" />
-                    <circle cx="24" cy="24" r="12" fill="none" stroke="#fb923c" strokeWidth="1.8" />
-                    <text x="50" y="28" fill="#fb923c" fontSize="10" fontWeight="bold" fontFamily="monospace">C6H6</text>
-                  </g>
-                )}
-
-                {hasIndole && (
-                  <g transform="translate(18, 14)">
-                    <polygon points="22,0 42,12 42,35 22,47 2,35 2,12" fill="rgba(244,114,182,0.15)" stroke="#f472b6" strokeWidth="2" />
-                    <line x1="8" y1="15" x2="22" y2="7" stroke="#f472b6" strokeWidth="1.6" />
-                    <line x1="8" y1="32" x2="22" y2="40" stroke="#f472b6" strokeWidth="1.6" />
-                    <polyline points="42,12 64,17 70,32 56,43 42,35" fill="rgba(244,114,182,0.12)" stroke="#f472b6" strokeWidth="2" />
-                    <text x="69" y="45" fill="#f472b6" fontSize="10" fontWeight="bold" fontFamily="monospace">NH (Indole)</text>
-                  </g>
-                )}
-              </svg>
-            )}
+              {placed.map((p) => (
+                <g
+                  key={p.id}
+                  transform={`translate(${p.x}, ${p.y})`}
+                  onPointerDown={(e) => {
+                    if (isLocked) return;
+                    e.currentTarget.setPointerCapture?.(e.pointerId);
+                    setDraggingId(p.id);
+                  }}
+                  className={isLocked ? '' : 'cursor-grab active:cursor-grabbing'}
+                >
+                  {p.snapped && (
+                    <circle cx="0" cy="0" r="40" fill="none" stroke="rgba(52,211,153,0.35)" strokeWidth="1.5" strokeDasharray="4,3" />
+                  )}
+                  {renderPieceGraphic(p.id)}
+                </g>
+              ))}
+            </svg>
           </div>
 
-          <div className="mt-3">
+          <div className="mt-2">
             <ProgressiveHintBox
-              solved={unlocked}
+              solved={unlocked && !practiceMode}
               hints={[
-                'اسکلت پایه کورتیکواستروئیدها (سیکلوپنتانوپرهیدروفنانترن) از سه حلقه شش‌ضلعی (A، B، C) و یک حلقه پنج‌ضلعی (D) تشکیل شده است.',
-                'علاوه بر حلقه‌های A تا D، زنجیره جانبی کتول C17β نیز برای کورتیکواستروئیدها ضروری است؛ حلقه‌های بنزن و ایندول ناخالصی هستند.',
+                'اسکلت استروئید از سه حلقه شش‌ضلعی (A، B، C) و یک حلقه پنج‌ضلعی (D) تشکیل شده که به شکل پله‌ای به هم متصل‌اند.',
+                'حلقه A (با =O) پایین-چپ، حلقه B کنارش، حلقه C کمی بالاتر، حلقه ۵ضلعی D کنار C و زنجیره کتول در بالا-راست قرار می‌گیرد. قطعات بنزن و دوحلقه‌ای اضافی هستند.',
               ]}
             />
           </div>
@@ -328,23 +405,24 @@ export const EntranceGatePuzzle: React.FC<Props> = ({ isSolved, onSubmit, onNext
           )}
 
           <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
-            {unlocked ? (
+            {unlocked && !practiceMode ? (
               <button
                 type="button"
                 onClick={onNext}
                 className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-6 py-2.5 text-sm transition shadow-md flex items-center gap-2"
               >
-                <span>ورود به نقشه دپارتمان‌های R&D</span>
+                <Sparkles className="w-4 h-4" />
+                <span>ورود به راهروی اتاق‌های کارخانه</span>
                 <ArrowLeft className="w-4 h-4" />
               </button>
             ) : (
               <button
                 type="button"
-                disabled={loading || selectedIds.length === 0}
+                disabled={loading || placed.length === 0}
                 onClick={handleVerify}
                 className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold px-6 py-2.5 text-sm transition shadow-md"
               >
-                {loading ? 'در حال بررسی ساختار...' : 'تایید سنتز و باز کردن گیت'}
+                {loading ? 'در حال بررسی کلید...' : 'تایید ساختار و باز کردن در کارخانه'}
               </button>
             )}
           </div>
