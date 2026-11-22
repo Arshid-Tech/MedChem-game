@@ -134,4 +134,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+
+  getAssessmentStatus: () =>
+    request<{ pre: any | null; post: any | null }>('/analytics/assessment/'),
+
+  submitAssessment: (payload: { phase: 'pre' | 'post'; answers: Record<string, string> }) =>
+    request<{ assessment: any; answer_key: Record<string, string> | null }>('/analytics/assessment/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 };

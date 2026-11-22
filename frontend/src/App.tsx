@@ -12,6 +12,7 @@ import {
   Sparkles,
   Skull,
   ClipboardCheck,
+  BookOpenCheck,
   UserRound,
   CircleHelp,
   ChevronLeft,
@@ -32,6 +33,7 @@ import { ProgestinLab } from './components/puzzles/ProgestinLab';
 import { AndrogenLab } from './components/puzzles/AndrogenLab';
 import { FinalAntidoteLab } from './components/puzzles/FinalAntidoteLab';
 import { MeegaSurveyModal } from './components/MeegaSurveyModal';
+import { KnowledgeQuizModal } from './components/KnowledgeQuizModal';
 import { toPersianDigits } from './utils/persian';
 
 type ActiveView =
@@ -87,9 +89,9 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     target: '[data-tour="progress"]',
-    title: 'زمان بازرسی FDA و امتیاز',
+    title: 'زمان بازرسی FDA، آزمون‌ها و امتیاز',
     description:
-      'زمان باقی‌مانده تا بازرسی FDA، امتیاز کل شما و وضعیت پرسشنامه ارزیابی پژوهشی را از این بخش دنبال کنید.',
+      'زمان باقی‌مانده تا بازرسی FDA، امتیاز کل، پیش‌آزمون/پس‌آزمون شیمی دارویی و پرسشنامه MEEGA+ را از این بخش دنبال کنید.',
   },
   {
     target: '[data-tour="workspace"]',
@@ -127,6 +129,9 @@ export function App() {
   const [showMeegaModal, setShowMeegaModal] = useState(false);
   const [surveyPrompted, setSurveyPrompted] = useState(false);
   const [meegaSubmitted, setMeegaSubmitted] = useState(false);
+  const [quizModalPhase, setQuizModalPhase] = useState<'pre' | 'post' | null>(null);
+  const [preAssessment, setPreAssessment] = useState<any | null>(null);
+  const [postAssessment, setPostAssessment] = useState<any | null>(null);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -171,11 +176,16 @@ export function App() {
     setStartupError(null);
     try {
       const [profile, gameData] = await Promise.all([api.getProfile(), api.getSession()]);
-      const meegaStatus = await api.getMeegaStatus().catch(() => ({ submitted: false }));
+      const [meegaStatus, assessmentStatus] = await Promise.all([
+        api.getMeegaStatus().catch(() => ({ submitted: false })),
+        api.getAssessmentStatus().catch(() => ({ pre: null, post: null })),
+      ]);
       setUser(profile);
       setSession(gameData.session);
       setBadges(gameData.badges || []);
       setMeegaSubmitted(Boolean(meegaStatus?.submitted));
+      setPreAssessment(assessmentStatus?.pre ?? null);
+      setPostAssessment(assessmentStatus?.post ?? null);
       setTimeLeft(gameData.session.time_remaining_seconds ?? 3600);
       if (!gameData.session.completed_stages?.includes('entrance')) {
         setActiveView('entrance');
@@ -288,6 +298,9 @@ export function App() {
     setShowProfileModal(false);
     setShowPasswordModal(false);
     setSurveyPrompted(false);
+    setQuizModalPhase(null);
+    setPreAssessment(null);
+    setPostAssessment(null);
     setStartupError(null);
   };
 
@@ -373,6 +386,9 @@ export function App() {
       ? 'جدول رده‌بندی'
       : DEPARTMENTS.find((d) => d.code === activeView)?.title || 'نقشه دپارتمان‌ها';
 
+  const activeQuizPhase: 'pre' | 'post' = gameCompleted ? 'post' : 'pre';
+  const activeQuizDone = activeQuizPhase === 'post' ? Boolean(postAssessment) : Boolean(preAssessment);
+
   return (
     <div
       className={`min-h-screen flex flex-col overflow-x-hidden transition-colors duration-200 ${
@@ -430,6 +446,28 @@ export function App() {
               <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>امتیاز: {toPersianDigits(session?.total_score ?? 0)}</span>
             </div>
+
+            {/* پیش‌آزمون / پس‌آزمون */}
+            <button
+              type="button"
+              onClick={() => setQuizModalPhase(activeQuizPhase)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition ${
+                activeQuizDone
+                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                  : 'border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-200 hover:border-purple-400'
+              }`}
+            >
+              <BookOpenCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>
+                {activeQuizPhase === 'post'
+                  ? postAssessment
+                    ? `پس‌آزمون (${toPersianDigits(postAssessment.percentage)}٪) ✓`
+                    : 'پس‌آزمون یادگیری'
+                  : preAssessment
+                  ? `پیش‌آزمون (${toPersianDigits(preAssessment.percentage)}٪) ✓`
+                  : 'پیش‌آزمون کوتاه'}
+              </span>
+            </button>
 
             {/* پرسشنامه MEEGA+ */}
             <button
@@ -751,17 +789,27 @@ export function App() {
                     </h2>
                     <p className="text-xs text-slate-700 dark:text-slate-300 leading-6">
                       امتیاز نهایی شما: <strong>{toPersianDigits(session?.total_score ?? 0)}</strong> | تعداد خطاها:{' '}
-                      <strong>{toPersianDigits(session?.total_errors ?? 0)}</strong>. لطفاً برای تکمیل ارزیابی پژوهشی، فرم کوتاه MEEGA+ را ثبت کنید.
+                      <strong>{toPersianDigits(session?.total_errors ?? 0)}</strong>. لطفاً پس‌آزمون ۵ سوالی و فرم MEEGA+ را تکمیل کنید.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowMeegaModal(true)}
-                    className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-5 py-2.5 text-xs transition flex items-center gap-2"
-                  >
-                    <ClipboardCheck className="w-4 h-4" />
-                    <span>{meegaSubmitted ? 'مشاهده / ویرایش پرسشنامه MEEGA+' : 'تکمیل پرسشنامه MEEGA+'}</span>
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setQuizModalPhase('post')}
+                      className="rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-extrabold px-4 py-2.5 text-xs transition flex items-center gap-1.5"
+                    >
+                      <BookOpenCheck className="w-4 h-4" />
+                      <span>{postAssessment ? 'مشاهده پس‌آزمون ✓' : 'انجام پس‌آزمون'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowMeegaModal(true)}
+                      className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-4 py-2.5 text-xs transition flex items-center gap-1.5"
+                    >
+                      <ClipboardCheck className="w-4 h-4" />
+                      <span>{meegaSubmitted ? 'مشاهده MEEGA+ ✓' : 'تکمیل MEEGA+'}</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-rose-500/30 bg-rose-50/90 dark:bg-gradient-to-l dark:from-rose-950/30 dark:via-slate-900/90 dark:to-slate-900/90 p-5 flex items-start gap-3 shadow-sm">
@@ -932,6 +980,23 @@ export function App() {
       {showPasswordModal && <ChangePasswordModal onClose={() => setShowPasswordModal(false)} />}
 
       {showTour && <GuidedTour steps={TOUR_STEPS} onClose={closeTour} />}
+
+      {quizModalPhase && (
+        <KnowledgeQuizModal
+          phase={quizModalPhase}
+          preScorePercent={preAssessment?.percentage ?? null}
+          onClose={() => setQuizModalPhase(null)}
+          onSubmitted={(p, assessment) => {
+            if (p === 'pre') {
+              setPreAssessment(assessment);
+              showNotification('پیش‌آزمون با موفقیت ثبت شد.');
+            } else {
+              setPostAssessment(assessment);
+              showNotification('پس‌آزمون با موفقیت ثبت شد.');
+            }
+          }}
+        />
+      )}
 
       {showMeegaModal && (
         <MeegaSurveyModal
