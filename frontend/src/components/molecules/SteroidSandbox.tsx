@@ -6,6 +6,8 @@ import {
   Info,
   ShieldCheck,
   Activity,
+  Eraser,
+  FlipHorizontal2,
 } from 'lucide-react';
 import { toPersianDigits } from '../../utils/persian';
 
@@ -23,32 +25,39 @@ export type HotspotId =
   | 'C19'
   | 'C21';
 
+export type Stereo = 'alpha' | 'beta';
+
 export interface SandboxState {
   ringA: 'delta4' | 'delta14' | 'aromatic';
   C3: '=O' | 'OH' | 'OCH3' | '=N-OH';
   C6: 'H' | 'CH3' | 'F';
+  C6Stereo: Stereo;
   C9: 'H' | 'F';
+  C9Stereo: Stereo;
   C11: 'H' | 'OH' | '=O' | 'aryl';
-  C16: 'H' | 'alpha-OH' | 'alpha-CH3' | 'beta-CH3' | 'CN';
+  C11Stereo: Stereo;
+  C16: 'H' | 'OH' | 'CH3' | 'CN';
+  C16Stereo: Stereo;
   C17a: 'H' | 'OH' | 'ethynyl';
   C17b: 'H' | 'OH' | 'ketol';
   C19: 'CH3' | 'H';
   C21: 'none' | 'OH' | 'ester' | 'phosphate';
 }
 
-interface PaletteItem {
+type ToolCategory = 'rings' | 'groups' | 'chains' | 'edit';
+
+interface UniversalTool {
   id: string;
   label: string;
   formula: string;
-  target: HotspotId;
-  value: string;
+  category: ToolCategory;
   color: string;
-  hint: string;
+  apply: (state: SandboxState, spot: HotspotId) => { next?: SandboxState; error?: string };
 }
 
 interface MeterSpec {
   label: string;
-  value: number; // 0..100
+  value: number;
   displayValue: string;
   colorClass: string;
 }
@@ -65,9 +74,13 @@ const INITIAL_STATES: Record<SandboxMode, SandboxState> = {
     ringA: 'delta4',
     C3: '=O',
     C6: 'H',
+    C6Stereo: 'alpha',
     C9: 'H',
+    C9Stereo: 'alpha',
     C11: 'OH',
+    C11Stereo: 'beta',
     C16: 'H',
+    C16Stereo: 'alpha',
     C17a: 'OH',
     C17b: 'ketol',
     C19: 'CH3',
@@ -77,9 +90,13 @@ const INITIAL_STATES: Record<SandboxMode, SandboxState> = {
     ringA: 'aromatic',
     C3: 'OH',
     C6: 'H',
+    C6Stereo: 'alpha',
     C9: 'H',
+    C9Stereo: 'alpha',
     C11: 'H',
+    C11Stereo: 'beta',
     C16: 'H',
+    C16Stereo: 'alpha',
     C17a: 'H',
     C17b: 'OH',
     C19: 'H',
@@ -89,9 +106,13 @@ const INITIAL_STATES: Record<SandboxMode, SandboxState> = {
     ringA: 'delta4',
     C3: '=O',
     C6: 'H',
+    C6Stereo: 'alpha',
     C9: 'H',
+    C9Stereo: 'alpha',
     C11: 'H',
+    C11Stereo: 'beta',
     C16: 'H',
+    C16Stereo: 'alpha',
     C17a: 'H',
     C17b: 'OH',
     C19: 'CH3',
@@ -101,9 +122,13 @@ const INITIAL_STATES: Record<SandboxMode, SandboxState> = {
     ringA: 'delta14',
     C3: '=O',
     C6: 'H',
+    C6Stereo: 'alpha',
     C9: 'F',
+    C9Stereo: 'alpha',
     C11: 'OH',
+    C11Stereo: 'beta',
     C16: 'CN',
+    C16Stereo: 'alpha',
     C17a: 'OH',
     C17b: 'ketol',
     C19: 'CH3',
@@ -133,42 +158,226 @@ const SOLVED_STATES: Record<SandboxMode, SandboxState> = {
   },
 };
 
-const PALETTES: Record<SandboxMode, PaletteItem[]> = {
-  free: [
-    { id: 'f_d1', label: 'پیوند دوگانه Δ1', formula: 'C1=C2', target: 'ringA', value: 'delta14', color: 'border-emerald-500/60 text-emerald-700 dark:text-emerald-300', hint: 'روی حلقه A رها کنید' },
-    { id: 'f_d4', label: 'حذف Δ1 (فقط Δ4)', formula: 'C1-C2', target: 'ringA', value: 'delta4', color: 'border-slate-400 text-slate-700 dark:text-slate-300', hint: 'روی حلقه A رها کنید' },
-    { id: 'f_9f', label: 'فلوئور 9α-F', formula: '9α-F', target: 'C9', value: 'F', color: 'border-cyan-500/60 text-cyan-700 dark:text-cyan-300', hint: 'روی کربن C9 رها کنید' },
-    { id: 'f_9h', label: 'حذف فلوئور C9', formula: '9α-H', target: 'C9', value: 'H', color: 'border-slate-400 text-slate-700 dark:text-slate-300', hint: 'روی کربن C9 رها کنید' },
-    { id: 'f_6me', label: 'متیل 6α-CH3', formula: '6α-CH3', target: 'C6', value: 'CH3', color: 'border-amber-500/60 text-amber-700 dark:text-amber-300', hint: 'روی کربن C6 رها کنید' },
-    { id: 'f_6f', label: 'فلوئور 6α-F', formula: '6α-F', target: 'C6', value: 'F', color: 'border-cyan-500/60 text-cyan-700 dark:text-cyan-300', hint: 'روی کربن C6 رها کنید' },
-    { id: 'f_11oh', label: 'هیدروکسیل 11β-OH', formula: '11β-OH', target: 'C11', value: 'OH', color: 'border-emerald-500/60 text-emerald-700 dark:text-emerald-300', hint: 'روی کربن C11 رها کنید' },
-    { id: 'f_11o', label: 'کتون 11=O (پیش‌دارو)', formula: '11=O', target: 'C11', value: '=O', color: 'border-rose-500/60 text-rose-700 dark:text-rose-300', hint: 'روی کربن C11 رها کنید' },
-    { id: 'f_16oh', label: 'هیدروکسیل 16α-OH', formula: '16α-OH', target: 'C16', value: 'alpha-OH', color: 'border-purple-500/60 text-purple-700 dark:text-purple-300', hint: 'روی کربن C16 رها کنید' },
-    { id: 'f_16am', label: 'متیل 16α-CH3', formula: '16α-CH3', target: 'C16', value: 'alpha-CH3', color: 'border-amber-500/60 text-amber-700 dark:text-amber-300', hint: 'روی کربن C16 رها کنید' },
-    { id: 'f_16bm', label: 'متیل 16β-CH3', formula: '16β-CH3', target: 'C16', value: 'beta-CH3', color: 'border-fuchsia-500/60 text-fuchsia-700 dark:text-fuchsia-300', hint: 'روی کربن C16 رها کنید' },
-    { id: 'f_21est', label: 'استر لیپوفیل C21', formula: 'C21-OCOR', target: 'C21', value: 'ester', color: 'border-amber-500/60 text-amber-700 dark:text-amber-300', hint: 'روی زنجیره C21 رها کنید' },
-    { id: 'f_21phos', label: 'فسفات قطبی C21', formula: 'C21-PO4', target: 'C21', value: 'phosphate', color: 'border-sky-500/60 text-sky-700 dark:text-sky-300', hint: 'روی زنجیره C21 رها کنید' },
-  ],
-  estrogen_oral: [
-    { id: 'e_eth', label: 'گروه 17α-اتینیل', formula: '-C≡CH', target: 'C17a', value: 'ethynyl', color: 'border-cyan-500/70 text-cyan-700 dark:text-cyan-300', hint: 'روی کربن C17α رها کنید' },
-    { id: 'e_ome', label: 'متیله‌کردن C3 (متیل اتر)', formula: '3-OCH3', target: 'C3', value: 'OCH3', color: 'border-emerald-500/70 text-emerald-700 dark:text-emerald-300', hint: 'روی کربن C3 رها کنید' },
-    { id: 'e_rm17', label: 'حذف 17β-OH (تبدیل به H)', formula: '17β-H', target: 'C17b', value: 'H', color: 'border-rose-500/70 text-rose-700 dark:text-rose-300', hint: 'روی کربن C17β رها کنید' },
-    { id: 'e_res17', label: 'بازگرداندن 17β-OH', formula: '17β-OH', target: 'C17b', value: 'OH', color: 'border-slate-400 text-slate-700 dark:text-slate-300', hint: 'روی کربن C17β رها کنید' },
-  ],
-  progestin_nor: [
-    { id: 'p_nor', label: 'حذف متیل C19 (19-nor)', formula: '19-H', target: 'C19', value: 'H', color: 'border-emerald-500/70 text-emerald-700 dark:text-emerald-300', hint: 'روی موقعیت C19 رها کنید' },
-    { id: 'p_eth', label: 'افزودن 17α-اتینیل', formula: '17α-C≡CH', target: 'C17a', value: 'ethynyl', color: 'border-cyan-500/70 text-cyan-700 dark:text-cyan-300', hint: 'روی موقعیت C17α رها کنید' },
-    { id: 'p_ox', label: 'تبدیل C3 به اکسیم / استر', formula: '3=N-OH', target: 'C3', value: '=N-OH', color: 'border-amber-500/70 text-amber-700 dark:text-amber-300', hint: 'روی کربن C3 رها کنید' },
-    { id: 'p_aro', label: 'آروماتیک کردن حلقه A', formula: 'Aromatic A', target: 'ringA', value: 'aromatic', color: 'border-purple-500/70 text-purple-700 dark:text-purple-300', hint: 'روی حلقه A رها کنید' },
-  ],
-  antidote: [
-    { id: 'a_def', label: 'حذف فلوئور 9α (Defluorination)', formula: '9α-H', target: 'C9', value: 'H', color: 'border-cyan-500/70 text-cyan-700 dark:text-cyan-300', hint: 'روی کربن C9 رها کنید' },
-    { id: 'a_nocn', label: 'حذف گروه سیانید (-C≡N)', formula: '16-H', target: 'C16', value: 'H', color: 'border-cyan-500/70 text-cyan-700 dark:text-cyan-300', hint: 'روی کربن C16 رها کنید' },
-    { id: 'a_aryl', label: 'گروه حجیم 11β-آریل آنتاگونیست', formula: '11β-Ar-NMe2', target: 'C11', value: 'aryl', color: 'border-emerald-500/70 text-emerald-700 dark:text-emerald-300', hint: 'روی کربن C11 رها کنید' },
-    { id: 'a_hyd', label: 'هیدرولیز استر موضعی به -OH', formula: 'C21-OH', target: 'C21', value: 'OH', color: 'border-sky-500/70 text-sky-700 dark:text-sky-300', hint: 'روی زنجیره C21 رها کنید' },
-    { id: 'a_6f', label: 'افزودن فلوئور دوم 6α-F', formula: '6α-F', target: 'C6', value: 'F', color: 'border-rose-500/70 text-rose-700 dark:text-rose-300', hint: 'روی کربن C6 رها کنید' },
-  ],
-};
+const UNIVERSAL_TOOLS: UniversalTool[] = [
+  // حلقه‌ها و پیوندها
+  {
+    id: 'delta14',
+    label: 'پیوند دوگانه Δ1',
+    formula: 'C1=C2',
+    category: 'rings',
+    color: 'border-emerald-500/60 text-emerald-700 dark:text-emerald-300',
+    apply: (s, spot) =>
+      spot === 'ringA'
+        ? { next: { ...s, ringA: 'delta14' } }
+        : { error: 'پیوند دوگانه Δ1 فقط روی حلقه A قرار می‌گیرد.' },
+  },
+  {
+    id: 'delta4',
+    label: 'حلقه Δ4 ساده',
+    formula: 'C4=C5',
+    category: 'rings',
+    color: 'border-sky-500/60 text-sky-700 dark:text-sky-300',
+    apply: (s, spot) =>
+      spot === 'ringA'
+        ? { next: { ...s, ringA: 'delta4' } }
+        : { error: 'تغییر ساختار حلقه فقط روی حلقه A اعمال می‌شود.' },
+  },
+  {
+    id: 'aromatic',
+    label: 'آروماتیک کردن حلقه A',
+    formula: 'Aromatic',
+    category: 'rings',
+    color: 'border-purple-500/60 text-purple-700 dark:text-purple-300',
+    apply: (s, spot) =>
+      spot === 'ringA'
+        ? { next: { ...s, ringA: 'aromatic', C19: 'H', C3: s.C3 === '=O' ? 'OH' : s.C3 } }
+        : { error: 'آروماتیک کردن فقط روی حلقه A امکان‌پذیر است.' },
+  },
+  // گروه‌های عاملی و استخلاف‌ها
+  {
+    id: 'fluorine',
+    label: 'اتم فلوئور',
+    formula: '-F',
+    category: 'groups',
+    color: 'border-cyan-500/60 text-cyan-700 dark:text-cyan-300',
+    apply: (s, spot) => {
+      if (spot === 'C9') return { next: { ...s, C9: 'F', C9Stereo: 'alpha' } };
+      if (spot === 'C6') return { next: { ...s, C6: 'F', C6Stereo: 'alpha' } };
+      return { error: 'در استروئیدهای دارویی، فلوئور روی موقعیت‌های C9 یا C6 قرار می‌گیرد.' };
+    },
+  },
+  {
+    id: 'methyl',
+    label: 'گروه متیل',
+    formula: '-CH3',
+    category: 'groups',
+    color: 'border-amber-500/60 text-amber-700 dark:text-amber-300',
+    apply: (s, spot) => {
+      if (spot === 'C6') return { next: { ...s, C6: 'CH3', C6Stereo: 'alpha' } };
+      if (spot === 'C16') return { next: { ...s, C16: 'CH3' } };
+      if (spot === 'C19') return { next: { ...s, C19: 'CH3' } };
+      return { error: 'گروه متیل را می‌توانید روی C6، C16 یا C19 قرار دهید.' };
+    },
+  },
+  {
+    id: 'hydroxyl',
+    label: 'هیدروکسیل',
+    formula: '-OH',
+    category: 'groups',
+    color: 'border-emerald-500/60 text-emerald-700 dark:text-emerald-300',
+    apply: (s, spot) => {
+      if (spot === 'C3') return { next: { ...s, C3: 'OH' } };
+      if (spot === 'C11') return { next: { ...s, C11: 'OH', C11Stereo: 'beta' } };
+      if (spot === 'C16') return { next: { ...s, C16: 'OH', C16Stereo: 'alpha' } };
+      if (spot === 'C17a') return { next: { ...s, C17a: 'OH' } };
+      if (spot === 'C17b') return { next: { ...s, C17b: 'OH' } };
+      if (spot === 'C21') return { next: { ...s, C21: 'OH', C17b: 'ketol' } };
+      return { error: 'گروه -OH را روی C3، C11، C16، C17 یا C21 قرار دهید.' };
+    },
+  },
+  {
+    id: 'keto',
+    label: 'گروه کتون',
+    formula: '=O',
+    category: 'groups',
+    color: 'border-rose-500/60 text-rose-700 dark:text-rose-300',
+    apply: (s, spot) => {
+      if (spot === 'C3') return { next: { ...s, C3: '=O' } };
+      if (spot === 'C11') return { next: { ...s, C11: '=O' } };
+      return { error: 'گروه کتون (=O) روی موقعیت‌های C3 یا C11 قابل اتصال است.' };
+    },
+  },
+  {
+    id: 'methoxy',
+    label: 'متیل اتر (متیلاسیون)',
+    formula: '-OCH3',
+    category: 'groups',
+    color: 'border-teal-500/60 text-teal-700 dark:text-teal-300',
+    apply: (s, spot) =>
+      spot === 'C3'
+        ? { next: { ...s, C3: 'OCH3' } }
+        : { error: 'متیل اتر (-OCH3) برای ساخت پیش‌دارو روی موقعیت C3 قرار می‌گیرد.' },
+  },
+  {
+    id: 'oxime',
+    label: 'گروه اکسیم',
+    formula: '=N-OH',
+    category: 'groups',
+    color: 'border-amber-500/60 text-amber-700 dark:text-amber-300',
+    apply: (s, spot) =>
+      spot === 'C3'
+        ? { next: { ...s, C3: '=N-OH' } }
+        : { error: 'گروه اکسیم (=N-OH) روی کربن C3 قرار می‌گیرد.' },
+  },
+  {
+    id: 'ethynyl',
+    label: 'گروه اتینیل',
+    formula: '-C≡CH',
+    category: 'groups',
+    color: 'border-cyan-500/60 text-cyan-700 dark:text-cyan-300',
+    apply: (s, spot) =>
+      spot === 'C17a'
+        ? { next: { ...s, C17a: 'ethynyl' } }
+        : { error: 'گروه اتینیل (-C≡CH) برای پایداری خوراکی روی موقعیت C17α قرار می‌گیرد.' },
+  },
+  {
+    id: 'cyanide',
+    label: 'گروه سیانید',
+    formula: '-C≡N',
+    category: 'groups',
+    color: 'border-rose-500/60 text-rose-700 dark:text-rose-300',
+    apply: (s, spot) =>
+      spot === 'C16'
+        ? { next: { ...s, C16: 'CN' } }
+        : { error: 'گروه سیانید را می‌توانید روی موقعیت C16 آزمایش کنید.' },
+  },
+  // زنجیره‌ها و گروه‌های حجیم
+  {
+    id: 'aryl',
+    label: 'آریل حجیم آنتاگونیست',
+    formula: 'Ar-NMe2',
+    category: 'chains',
+    color: 'border-emerald-500/60 text-emerald-700 dark:text-emerald-300',
+    apply: (s, spot) =>
+      spot === 'C11'
+        ? { next: { ...s, C11: 'aryl', C11Stereo: 'beta' } }
+        : { error: 'گروه حجیم آریل آنتاگونیست (مشابه میفپریستون) روی C11β قرار می‌گیرد.' },
+  },
+  {
+    id: 'ketol',
+    label: 'زنجیره کتول C17β',
+    formula: '-CO-CH2OH',
+    category: 'chains',
+    color: 'border-sky-500/60 text-sky-700 dark:text-sky-300',
+    apply: (s, spot) =>
+      spot === 'C17b' || spot === 'C21'
+        ? { next: { ...s, C17b: 'ketol', C21: 'OH' } }
+        : { error: 'زنجیره کتول روی موقعیت C17β یا C21 قرار می‌گیرد.' },
+  },
+  {
+    id: 'ester',
+    label: 'استر لیپوفیل (موضعی)',
+    formula: '-OCOR',
+    category: 'chains',
+    color: 'border-amber-500/60 text-amber-700 dark:text-amber-300',
+    apply: (s, spot) =>
+      spot === 'C21' || spot === 'C17b'
+        ? { next: { ...s, C17b: 'ketol', C21: 'ester' } }
+        : { error: 'استر لیپوفیل موضعی روی زنجیره C21 قرار می‌گیرد.' },
+  },
+  {
+    id: 'phosphate',
+    label: 'فسفات قطبی (تزریقی)',
+    formula: '-PO4',
+    category: 'chains',
+    color: 'border-sky-500/60 text-sky-700 dark:text-sky-300',
+    apply: (s, spot) =>
+      spot === 'C21' || spot === 'C17b'
+        ? { next: { ...s, C17b: 'ketol', C21: 'phosphate' } }
+        : { error: 'گروه فسفات محلول در آب روی موقعیت C21 قرار می‌گیرد.' },
+  },
+  // ابزارهای ویرایش آزاد
+  {
+    id: 'flip_stereo',
+    label: 'تغییر آرایش فضایی (α ⇄ β)',
+    formula: 'α / β',
+    category: 'edit',
+    color: 'border-fuchsia-500/60 text-fuchsia-700 dark:text-fuchsia-300',
+    apply: (s, spot) => {
+      if (spot === 'C16' && s.C16 !== 'H') {
+        return { next: { ...s, C16Stereo: s.C16Stereo === 'alpha' ? 'beta' : 'alpha' } };
+      }
+      if (spot === 'C6' && s.C6 !== 'H') {
+        return { next: { ...s, C6Stereo: s.C6Stereo === 'alpha' ? 'beta' : 'alpha' } };
+      }
+      if (spot === 'C9' && s.C9 !== 'H') {
+        return { next: { ...s, C9Stereo: s.C9Stereo === 'alpha' ? 'beta' : 'alpha' } };
+      }
+      if (spot === 'C11' && s.C11 === 'OH') {
+        return { next: { ...s, C11Stereo: s.C11Stereo === 'alpha' ? 'beta' : 'alpha' } };
+      }
+      return { error: 'ابتدا یک استخلاف روی C6، C9، C11 یا C16 قرار دهید تا آرایش α/β آن تغییر کند.' };
+    },
+  },
+  {
+    id: 'eraser',
+    label: 'پاک‌کن (حذف گروه / تبدیل به H)',
+    formula: 'حذف',
+    category: 'edit',
+    color: 'border-rose-500/70 text-rose-700 dark:text-rose-300',
+    apply: (s, spot) => {
+      if (spot === 'C6') return { next: { ...s, C6: 'H' } };
+      if (spot === 'C9') return { next: { ...s, C9: 'H' } };
+      if (spot === 'C11') return { next: { ...s, C11: 'H' } };
+      if (spot === 'C16') return { next: { ...s, C16: 'H' } };
+      if (spot === 'C17a') return { next: { ...s, C17a: 'H' } };
+      if (spot === 'C17b') return { next: { ...s, C17b: 'H', C21: 'none' } };
+      if (spot === 'C19') return { next: { ...s, C19: 'H' } };
+      if (spot === 'C21') return { next: { ...s, C21: s.C17b === 'ketol' ? 'OH' : 'none' } };
+      return { error: 'این موقعیت را می‌توانید با انتخاب گروه دیگر جایگزین کنید.' };
+    },
+  },
+];
 
 function computeTokens(mode: SandboxMode, s: SandboxState): string[] {
   const tokens: string[] = [];
@@ -191,23 +400,37 @@ function computeTokens(mode: SandboxMode, s: SandboxState): string[] {
   return tokens;
 }
 
-function identifyFreeDrug(s: SandboxState): string | null {
-  if (s.ringA === 'delta4' && s.C9 === 'H' && s.C6 === 'H' && s.C16 === 'H') {
-    if (s.C11 === 'OH') return 'هیدروکورتیزون (Hydrocortisone — مرجع ۱x)';
-    if (s.C11 === '=O') return 'کورتیزون (Cortisone — پیش‌دارو)';
+function identifyDrug(s: SandboxState): string | null {
+  if (s.ringA === 'aromatic' && s.C17b === 'OH') {
+    if (s.C3 === 'OH' && s.C17a === 'H') return '17β-استرادیول (Estradiol)';
+    if (s.C3 === 'OH' && s.C17a === 'ethynyl') return 'اتینیل استرادیول (خوراکی)';
+    if (s.C3 === 'OCH3' && s.C17a === 'ethynyl') return 'مسترانول (خوراکی طولانی‌اثر)';
   }
-  if (s.ringA === 'delta4' && s.C9 === 'F' && s.C6 === 'H' && s.C16 === 'H' && s.C11 === 'OH') {
-    return 'فلودروکورتیزون (Fludrocortisone — مینرالوکورتیکوئید فوق‌قوی)';
+  if (s.ringA === 'delta4' && s.C19 === 'H' && s.C17a === 'ethynyl' && s.C17b === 'OH') {
+    if (s.C3 === '=N-OH') return 'نورژستیمات-مانند (پروژستین خوراکی طولانی‌اثر)';
+    if (s.C3 === '=O') return 'نورتیندرون (۱۹-نورپروژستین خوراکی)';
   }
-  if (s.ringA === 'delta14' && s.C9 === 'H' && s.C11 === 'OH' && s.C16 === 'H') {
-    if (s.C6 === 'H') return 'پردنیزولون (Prednisolone — ضدالتهاب ۴x)';
-    if (s.C6 === 'CH3') return 'متیل‌پردنیزولون (Methylprednisolone — ضدالتهاب ۵x)';
+  if (s.C11 === 'aryl' && s.C9 === 'H' && s.C16 === 'H') {
+    return 'آنتاگونیست 11β-آریل (مشابه میفپریستون — پادزهر)';
   }
-  if (s.ringA === 'delta14' && s.C9 === 'F' && s.C11 === 'OH') {
-    if (s.C16 === 'alpha-OH' && s.C6 === 'H') return 'تریامسینولون (Triamcinolone — بدون احتباس سدیم)';
-    if (s.C16 === 'alpha-OH' && s.C6 === 'F') return 'فلوسینولون (Fluocinolone — موضعی قوی)';
-    if (s.C16 === 'alpha-CH3' && s.C6 === 'H') return 'دگزامتازون (Dexamethasone — ضدالتهاب ۲۵ تا ۳۰x)';
-    if (s.C16 === 'beta-CH3' && s.C6 === 'H') return 'بتامتازون (Betamethasone — ضدالتهاب ۲۵ تا ۳۰x)';
+  if (s.C17b === 'ketol' && s.C19 === 'CH3') {
+    if (s.ringA === 'delta4' && s.C9 === 'H' && s.C6 === 'H' && s.C16 === 'H') {
+      if (s.C11 === 'OH' && s.C11Stereo === 'beta') return 'هیدروکورتیزون (مرجع ۱×)';
+      if (s.C11 === '=O') return 'کورتیزون (پیش‌دارو)';
+    }
+    if (s.ringA === 'delta4' && s.C9 === 'F' && s.C6 === 'H' && s.C16 === 'H' && s.C11 === 'OH') {
+      return 'فلودروکورتیزون (مینرالوکورتیکوئید فوق‌قوی)';
+    }
+    if (s.ringA === 'delta14' && s.C9 === 'H' && s.C11 === 'OH' && s.C16 === 'H') {
+      if (s.C6 === 'H') return 'پردنیزولون (ضدالتهاب ۴×)';
+      if (s.C6 === 'CH3') return 'متیل‌پردنیزولون (ضدالتهاب ۵×)';
+    }
+    if (s.ringA === 'delta14' && s.C9 === 'F' && s.C11 === 'OH') {
+      if (s.C16 === 'OH' && s.C6 === 'H') return 'تریامسینولون (بدون احتباس سدیم)';
+      if (s.C16 === 'OH' && s.C6 === 'F') return 'فلوسینولون (موضعی قوی)';
+      if (s.C16 === 'CH3' && s.C16Stereo === 'alpha' && s.C6 === 'H') return 'دگزامتازون (۲۵ تا ۳۰×)';
+      if (s.C16 === 'CH3' && s.C16Stereo === 'beta' && s.C6 === 'H') return 'بتامتازون (۲۵ تا ۳۰×)';
+    }
   }
   return null;
 }
@@ -216,22 +439,20 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
   if (mode === 'estrogen_oral') {
     const oral = s.C17a === 'ethynyl' ? 92 : 12;
     const halfLife = (s.C17a === 'ethynyl' ? 50 : 15) + (s.C3 === 'OCH3' ? 42 : 0);
-    const binding = s.C17b === 'H' ? 10 : s.C3 === 'OCH3' ? 86 : 95;
-    let insight = 'استرادیول طبیعی به دلیل اکسیداسیون سریع 17β-OH در کبد، فراهمی زیستی خوراکی بسیار پایینی دارد.';
+    const binding = s.C17b === 'H' ? 10 : s.ringA !== 'aromatic' ? 15 : s.C3 === 'OCH3' ? 86 : 95;
+    let insight = 'استرادیول طبیعی خوراکی نیست. از جعبه‌ابزار آزاد استفاده کن و روی کربن‌های مختلف آزمایش کن تا اثر خوراکی و طول اثر بالا برود.';
     if (s.C17b === 'H') {
-      insight = 'هشدار: حذف 17β-OH پیوند هیدروژنی کلیدی با His 524 در گیرنده ERα را از بین می‌برد و اثر دارو سقوط می‌کند!';
+      insight = 'حذف 17β-OH پیوند هیدروژنی کلیدی با گیرنده استروژن را از بین برد!';
     } else if (s.C17a === 'ethynyl' && s.C3 === 'OCH3') {
-      insight = 'عالی! گروه 17α-اتینیل جلوی اکسیداسیون کبدی را می‌گیرد و متیل‌اتر C3 (مسترانول) نیمه‌عمر و طول اثر را به‌شدت افزایش می‌دهد.';
+      insight = 'فوق‌العاده! ساختار اکنون هم خوراکی است و هم به شکل پیش‌دارو طول اثر بالایی دارد.';
     } else if (s.C17a === 'ethynyl') {
-      insight = 'افزودن 17α-اتینیل (اتینیل‌استرادیول) دارو را خوراکی کرد؛ برای طولانی‌تر شدن اثر، گروه فنولی C3 را نیز اصلاح کنید.';
-    } else if (s.C3 === 'OCH3') {
-      insight = 'متیله کردن C3 لیپوفیلیته و طول اثر را بالا برد، اما C17-OH هنوز در برابر اکسیداسیون کبدی آسیب‌پذیر است.';
+      insight = 'عالی، دارو خوراکی شد! برای افزایش طول اثر، روی حلقه A (کربن C3) هم فکر کن.';
     }
     return {
       meters: [
-        { label: 'فراهمی زیستی خوراکی (Oral Bioavailability)', value: oral, displayValue: `${toPersianDigits(oral)}٪`, colorClass: oral > 70 ? 'bg-emerald-500' : 'bg-amber-500' },
-        { label: 'طول اثر و نیمه‌عمر (Half-Life)', value: halfLife, displayValue: `${toPersianDigits(halfLife)}٪`, colorClass: halfLife > 75 ? 'bg-cyan-500' : 'bg-sky-500' },
-        { label: 'میل اتصال به گیرنده ERα (His 524 / Glu 353)', value: binding, displayValue: `${toPersianDigits(binding)}٪`, colorClass: binding < 40 ? 'bg-rose-500' : 'bg-emerald-500' },
+        { label: 'فراهمی زیستی خوراکی', value: oral, displayValue: `${toPersianDigits(oral)}٪`, colorClass: oral > 70 ? 'bg-emerald-500' : 'bg-amber-500' },
+        { label: 'طول اثر و نیمه‌عمر', value: halfLife, displayValue: `${toPersianDigits(halfLife)}٪`, colorClass: halfLife > 75 ? 'bg-cyan-500' : 'bg-sky-500' },
+        { label: 'اتصال به گیرنده استروژن', value: binding, displayValue: `${toPersianDigits(binding)}٪`, colorClass: binding < 40 ? 'bg-rose-500' : 'bg-emerald-500' },
       ],
       insight,
     };
@@ -245,20 +466,18 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
     const oral = s.C17a === 'ethynyl' ? 90 : 18;
     const halfLife = 25 + (s.C3 === '=N-OH' ? 50 : 0) + (s.C17a === 'ethynyl' ? 20 : 0);
     const androgenic = s.ringA === 'aromatic' ? 5 : s.C19 === 'H' ? 18 : 82;
-    let insight = 'اسکلت پایه دارای متیل C19 اثر آندروژنی بالا و فراهمی زیستی خوراکی ضعیف دارد.';
+    let insight = 'از جعبه‌ابزار کامل (از جمله پاک‌کن برای حذف گروه‌ها) استفاده کن تا ۳ هدف تخته دکتر ماریا هم‌زمان محقق شوند.';
     if (s.ringA === 'aromatic') {
-      insight = 'هشدار: آروماتیک شدن حلقه A مولکول را به لیگاند استروژنی تبدیل می‌کند و فعالیت پروژسترونی از بین می‌رود!';
+      insight = 'آروماتیک کردن حلقه A مولکول را شبیه استروژن کرد و خاصیت پروژسترونی از بین رفت!';
     } else if (s.C19 === 'H' && s.C17a === 'ethynyl' && s.C3 === '=N-OH') {
-      insight = 'طراحی ایده‌آل ۱۹-نورآندروستان! حذف C19 عوارض آندروژنی را مهار کرد، اتینیل 17α آن را خوراکی نمود و اکسیم C3 نیمه‌عمر را طولانی کرد.';
-    } else if (s.C19 === 'H') {
-      insight = 'حذف متیل زاویه‌ای C19 (مشتق ۱۹-نور) عوارض آندروژنی را کاهش و تمایل به گیرنده پروژسترون را افزایش داد.';
+      insight = 'دقیقاً همین بود! مشتق ۱۹-نورآندروستان خوراکی با طول اثر افزایش‌یافته ساخته شد.';
     }
     return {
       meters: [
-        { label: 'انتخاب‌پذیری گیرنده پروژسترون', value: progestin, displayValue: `${toPersianDigits(progestin)}٪`, colorClass: progestin > 75 ? 'bg-emerald-500' : 'bg-amber-500' },
-        { label: 'فعالیت خوراکی (Oral Activity)', value: oral, displayValue: `${toPersianDigits(oral)}٪`, colorClass: oral > 70 ? 'bg-cyan-500' : 'bg-amber-500' },
-        { label: 'طول اثر و نیمه‌عمر', value: halfLife, displayValue: `${toPersianDigits(halfLife)}٪`, colorClass: halfLife > 70 ? 'bg-sky-500' : 'bg-slate-400' },
-        { label: 'عوارض جانبی آندروژنی (هدف: کمینه)', value: androgenic, displayValue: `${toPersianDigits(androgenic)}٪`, colorClass: androgenic > 50 ? 'bg-rose-500' : 'bg-emerald-500' },
+        { label: 'اثر پروژسترونی', value: progestin, displayValue: `${toPersianDigits(progestin)}٪`, colorClass: progestin > 75 ? 'bg-emerald-500' : 'bg-amber-500' },
+        { label: 'مصرف خوراکی', value: oral, displayValue: `${toPersianDigits(oral)}٪`, colorClass: oral > 70 ? 'bg-cyan-500' : 'bg-amber-500' },
+        { label: 'طول اثر', value: halfLife, displayValue: `${toPersianDigits(halfLife)}٪`, colorClass: halfLife > 70 ? 'bg-sky-500' : 'bg-slate-400' },
+        { label: 'عوارض آندروژنی (هدف: کمینه)', value: androgenic, displayValue: `${toPersianDigits(androgenic)}٪`, colorClass: androgenic > 50 ? 'bg-rose-500' : 'bg-emerald-500' },
       ],
       insight,
     };
@@ -274,43 +493,45 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
     toxicity = Math.min(100, toxicity);
 
     const antagonism = s.C11 === 'aryl' ? 96 : 8;
-    const clearance = s.C21 === 'OH' ? 90 : 20;
+    const clearance = s.C21 === 'OH' || s.C21 === 'phosphate' ? 90 : 20;
 
-    let insight = 'مولکول اهریمن به دلیل حضور 9α-F، گروه سیانید (-C≡N) و استر لیپوفیل موضعی فوق‌العاده سمی و ماندگار است.';
+    let insight = 'از ابزار «پاک‌کن» و گروه‌های عاملی استفاده کن تا بخش‌های سمی اهریمن حذف شوند و مولکول به یک آنتاگونیست بی‌خطر تبدیل شود.';
     if (s.C6 === 'F') {
-      insight = 'خطر بحرانی! افزودن فلوئور دوم در 6α قدرت سمیت گلوکوکورتیکوئیدی و اتصال پایدار اهریمن را تشدید کرد!';
+      insight = 'خطر! افزودن فلوئور روی C6 سمیت مولکول را بیشتر کرد!';
     } else if (toxicity === 0 && antagonism > 90 && clearance >= 90) {
-      insight = 'پادزهر آنتاگونیست کامل شد! حذف 9α-F و سیانید سمیت را صفر کرد، گروه حجیم 11β-آریل هلیکس ۱۲ گیرنده را قفل می‌کند و هیدرولیز C21 دفع کلیوی را تضمین می‌نماید.';
-    } else if (s.C11 === 'aryl') {
-      insight = 'گروه حجیم 11β-آریل (مشابه میفپریستون) خاصیت آنتاگونیستی ایجاد کرد؛ اکنون گروه‌های سمی باقی‌مانده را نیز خنثی کنید.';
+      insight = 'پادزهر کامل شد! سمیت صفر است، گروه 11β-آریل گیرنده را مهار می‌کند و مولکول قطبی و قابل دفع شد.';
     }
     return {
       meters: [
         { label: 'شاخص سمیت اهریمن (هدف: ۰٪)', value: toxicity, displayValue: `${toPersianDigits(toxicity)}٪`, colorClass: toxicity === 0 ? 'bg-emerald-500' : 'bg-rose-500' },
-        { label: 'قدرت آنتاگونیستی (مهار هلیکس ۱۲ گیرنده)', value: antagonism, displayValue: `${toPersianDigits(antagonism)}٪`, colorClass: antagonism > 80 ? 'bg-emerald-500' : 'bg-amber-500' },
-        { label: 'قطبیت و دفع کلیوی (Clearance)', value: clearance, displayValue: `${toPersianDigits(clearance)}٪`, colorClass: clearance > 75 ? 'bg-cyan-500' : 'bg-amber-500' },
+        { label: 'قدرت آنتاگونیستی (پادزهر)', value: antagonism, displayValue: `${toPersianDigits(antagonism)}٪`, colorClass: antagonism > 80 ? 'bg-emerald-500' : 'bg-amber-500' },
+        { label: 'قطبیت و دفع کلیوی', value: clearance, displayValue: `${toPersianDigits(clearance)}٪`, colorClass: clearance > 75 ? 'bg-cyan-500' : 'bg-amber-500' },
       ],
       insight,
     };
   }
 
-  // حالت آزاد (Free-Play Glucocorticoid SAR Workbench)
+  // حالت آزاد کامل (Free-Play Universal SAR Bench)
   let gc = 1.0;
   if (s.C11 === '=O') gc *= 0.8;
+  if (s.C11 === 'H' || s.C11 === 'aryl') gc *= 0.1;
+  if (s.C11 === 'OH' && s.C11Stereo === 'alpha') gc *= 0.05;
   if (s.ringA === 'delta14') gc *= 4.0;
+  if (s.ringA === 'aromatic') gc *= 0.05;
   if (s.C6 === 'CH3') gc *= 1.3;
   if (s.C6 === 'F') gc *= 2.5;
   if (s.C9 === 'F') gc *= 8.0;
-  if (s.C16 === 'alpha-OH') gc *= 0.5;
-  if (s.C16 === 'alpha-CH3' || s.C16 === 'beta-CH3') gc *= 0.9;
+  if (s.C16 === 'OH') gc *= 0.5;
+  if (s.C16 === 'CH3') gc *= 0.9;
   const gcRounded = Math.round(gc * 10) / 10;
   const gcPercent = Math.min(100, Math.round((Math.log10(gc + 1) / Math.log10(60)) * 100));
 
   let mc = 1.0;
   if (s.ringA === 'delta14') mc *= 0.6;
+  if (s.ringA === 'aromatic') mc = 0;
   if (s.C6 === 'CH3') mc *= 0.2;
   if (s.C9 === 'F') mc *= 120;
-  if (s.C16 !== 'H') mc = 0; // هر استخلاف C16 اثر مینرالوکورتیکوئیدی را عملاً حذف می‌کند
+  if (s.C16 !== 'H') mc = 0;
   const mcPercent = mc === 0 ? 0 : Math.min(100, Math.round((Math.log10(mc + 1) / Math.log10(130)) * 100));
 
   let halfLifeHours = 10;
@@ -318,34 +539,38 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
   if (s.C6 !== 'H') halfLifeHours += 8;
   if (s.C9 === 'F') halfLifeHours += 18;
   if (s.C16 !== 'H') halfLifeHours += 10;
-  const hlPercent = Math.min(100, Math.round((halfLifeHours / 60) * 100));
+  if (s.C3 === 'OCH3' || s.C3 === '=N-OH') halfLifeHours += 12;
+  const hlPercent = Math.min(100, Math.round((halfLifeHours / 65) * 100));
 
   let logP = 1.6;
   if (s.C6 === 'CH3') logP += 0.5;
   if (s.C9 === 'F') logP += 0.2;
-  if (s.C16 === 'alpha-OH') logP -= 0.7;
-  if (s.C16 === 'alpha-CH3' || s.C16 === 'beta-CH3') logP += 0.5;
+  if (s.C16 === 'OH') logP -= 0.7;
+  if (s.C16 === 'CH3') logP += 0.5;
   if (s.C21 === 'ester') logP += 2.1;
   if (s.C21 === 'phosphate') logP -= 2.4;
+  if (s.C3 === 'OCH3') logP += 0.6;
   const logPPercent = Math.max(5, Math.min(100, Math.round(((logP + 1.5) / 6.5) * 100)));
 
-  let insight = 'گروه‌های عاملی را روی کربن‌های اسکلت استروئید بکشید تا اثر دقیق SAR را مشاهده کنید.';
-  if (s.C9 === 'F' && s.C16 === 'H') {
-    insight = 'نکته کلیدی SAR: فلوئور 9α هم قدرت ضدالتهابی و هم احتباس سدیم (مینرالوکورتیکوئیدی) را به‌شدت افزایش می‌دهد! یک گروه روی C16 بگذارید تا ببینید چه می‌شود.';
+  let insight = 'هر گروهی را از جعبه‌ابزار انتخاب کن و روی کربن دلخواه بگذار (یا با α/β آرایش فضایی‌اش را بچرخان) تا اثر واقعی SAR را ببینی.';
+  if (s.C11 === 'OH' && s.C11Stereo === 'alpha') {
+    insight = 'نکته کلیدی استریوشیمی: تنها ایزومر 11β-OH فعال است! چرخاندن به 11α-OH فعالیت گلوکوکورتیکوئیدی را تقریباً از بین می‌برد.';
+  } else if (s.C9 === 'F' && s.C16 === 'H') {
+    insight = 'فلوئور 9α هم قدرت ضدالتهابی و هم احتباس سدیم را به‌شدت بالا برد! حالا یک گروه روی C16 بگذار تا ببینیم اثر مینرال چه می‌شود.';
   } else if (s.C9 === 'F' && s.C16 !== 'H') {
-    insight = 'دقیقاً! افزودن استخلاف روی C16 (متیل یا هیدروکسیل) اثر احتباس سدیم ناشی از 9α-F را عملاً به صفر رساند در حالی که قدرت ضدالتهابی فوق‌العاده باقی ماند.';
+    insight = 'استخلاف روی C16 اثر احتباس سدیم ناشی از 9α-F را به صفر رساند در حالی که قدرت ضدالتهابی فوق‌العاده باقی ماند.';
   } else if (s.C21 === 'ester') {
-    insight = 'استریفیکاسیون لیپوفیل C21 (LogP بالا) ترکیب را برای نفوذ پوستی و تجویز موضعی ایده‌آل می‌کند.';
+    insight = 'استر لیپوفیل C21 (LogP بالا) ترکیب را برای مصرف موضعی و نفوذ پوستی ایده‌آل می‌کند.';
   } else if (s.C21 === 'phosphate') {
-    insight = 'افزودن فسفات قطبی روی C21 انحلال‌پذیری آبی را افزایش داده و دارو را برای تزریق وریدی (سیستمیک) آماده می‌سازد.';
+    insight = 'فسفات قطبی C21 انحلال‌پذیری آبی را افزایش داده و دارو را برای مصرف سیستمیک/تزریقی آماده می‌سازد.';
   }
 
   return {
     meters: [
       { label: 'قدرت ضدالتهابی (نسبت به کورتیزول)', value: gcPercent, displayValue: `${toPersianDigits(gcRounded)}×`, colorClass: 'bg-emerald-500' },
-      { label: 'احتباس آب و سدیم (مینرالوکورتیکوئیدی)', value: mcPercent, displayValue: mc === 0 ? '۰× (ناچیز)' : `${toPersianDigits(Math.round(mc * 10) / 10)}×`, colorClass: mc > 5 ? 'bg-rose-500' : 'bg-cyan-500' },
+      { label: 'احتباس آب و نمک (مینرالوکورتیکوئید)', value: mcPercent, displayValue: mc === 0 ? '۰× (ناچیز)' : `${toPersianDigits(Math.round(mc * 10) / 10)}×`, colorClass: mc > 5 ? 'bg-rose-500' : 'bg-cyan-500' },
       { label: 'نیمه‌عمر بیولوژیک تخمینی', value: hlPercent, displayValue: `~${toPersianDigits(halfLifeHours)} ساعت`, colorClass: 'bg-sky-500' },
-      { label: 'لیپوفیلیته تخمینی (LogP)', value: logPPercent, displayValue: toPersianDigits(logP.toFixed(1)), colorClass: 'bg-amber-500' },
+      { label: 'چربی‌دوستی تخمینی (LogP)', value: logPPercent, displayValue: toPersianDigits(logP.toFixed(1)), colorClass: 'bg-amber-500' },
     ],
     insight,
   };
@@ -360,20 +585,26 @@ export const SteroidSandbox: React.FC<Props> = ({
   const [state, setState] = useState<SandboxState>(() =>
     solved ? SOLVED_STATES[mode] : INITIAL_STATES[mode]
   );
-  const [selectedPaletteId, setSelectedPaletteId] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<ToolCategory>('groups');
+  const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
   const [dragOverSpot, setDragOverSpot] = useState<HotspotId | null>(null);
+  const [toolNotice, setToolNotice] = useState<string | null>(null);
 
-  const palette = PALETTES[mode];
   const isLocked = disabled || solved;
+  const selectedTool = UNIVERSAL_TOOLS.find((t) => t.id === selectedToolId) || null;
 
-  const applyModification = (target: HotspotId, value: string) => {
+  const applyToolToSpot = (tool: UniversalTool, spot: HotspotId) => {
     if (isLocked) return;
-    setState((prev) => {
-      const next = { ...prev, [target]: value } as SandboxState;
-      onTokensChange?.(computeTokens(mode, next));
-      return next;
-    });
-    setSelectedPaletteId(null);
+    const outcome = tool.apply(state, spot);
+    if (outcome.error) {
+      setToolNotice(outcome.error);
+      return;
+    }
+    if (outcome.next) {
+      setToolNotice(null);
+      setState(outcome.next);
+      onTokensChange?.(computeTokens(mode, outcome.next));
+    }
   };
 
   const handleReset = () => {
@@ -381,57 +612,25 @@ export const SteroidSandbox: React.FC<Props> = ({
     const resetState = INITIAL_STATES[mode];
     setState(resetState);
     onTokensChange?.(computeTokens(mode, resetState));
-    setSelectedPaletteId(null);
+    setToolNotice(null);
   };
-
-  const handleHotspotClick = (spot: HotspotId) => {
-    if (isLocked) return;
-    if (selectedPaletteId) {
-      const item = palette.find((p) => p.id === selectedPaletteId);
-      if (item && item.target === spot) {
-        applyModification(item.target, item.value);
-        return;
-      }
-    }
-    // اگر گروهی انتخاب نشده بود و روی نقطه کلیک شد، بین گزینه‌های مجاز همان نقطه چرخش کن
-    const spotItems = palette.filter((p) => p.target === spot);
-    if (spotItems.length > 0) {
-      const currentVal = String(state[spot]);
-      const idx = spotItems.findIndex((i) => i.value === currentVal);
-      const nextItem = spotItems[(idx + 1) % spotItems.length];
-      applyModification(spot, nextItem.value);
-    }
-  };
-
-  const activeHotspots = useMemo(
-    () => new Set<HotspotId>(palette.map((p) => p.target)),
-    [palette]
-  );
 
   const { meters, insight } = useMemo(() => computeMeters(mode, state), [mode, state]);
-  const recognizedDrug = useMemo(
-    () => (mode === 'free' ? identifyFreeDrug(state) : null),
-    [mode, state]
-  );
+  const recognizedDrug = useMemo(() => identifyDrug(state), [state]);
 
-  const selectedItem = palette.find((p) => p.id === selectedPaletteId) || null;
-
-  const hotspotStyle = (spot: HotspotId) => {
-    const isTargetOfSelected = selectedItem?.target === spot;
+  const renderHotspot = (spot: HotspotId, cx: number, cy: number, label: string) => {
+    if (isLocked) return null;
     const isHovered = dragOverSpot === spot;
-    if (isHovered || isTargetOfSelected) {
-      return { fill: 'rgba(34,211,238,0.35)', stroke: '#22d3ee', strokeWidth: 2.5 };
-    }
-    return { fill: 'rgba(56,189,248,0.12)', stroke: '#38bdf8', strokeWidth: 1.4 };
-  };
-
-  const renderHotspot = (spot: HotspotId, cx: number, cy: number, title: string) => {
-    if (!activeHotspots.has(spot) || isLocked) return null;
-    const st = hotspotStyle(spot);
     return (
       <g
         key={spot}
-        onClick={() => handleHotspotClick(spot)}
+        onClick={() => {
+          if (selectedTool) {
+            applyToolToSpot(selectedTool, spot);
+          } else {
+            setToolNotice(`ابتدا یک گروه یا ابزار (مثل پاک‌کن یا α/β) از جعبه‌ابزار بالا انتخاب کن و بعد روی ${label} کلیک کن یا آن را اینجا بکش.`);
+          }
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOverSpot(spot);
@@ -440,30 +639,46 @@ export const SteroidSandbox: React.FC<Props> = ({
         onDrop={(e) => {
           e.preventDefault();
           setDragOverSpot(null);
-          const pid = e.dataTransfer.getData('text/plain');
-          const item = palette.find((p) => p.id === pid);
-          if (item && item.target === spot) {
-            applyModification(item.target, item.value);
-          }
+          const tid = e.dataTransfer.getData('text/plain');
+          const tool = UNIVERSAL_TOOLS.find((t) => t.id === tid);
+          if (tool) applyToolToSpot(tool, spot);
         }}
-        className="cursor-pointer"
+        className="cursor-pointer group"
       >
-        <circle cx={cx} cy={cy} r={14} fill={st.fill} stroke={st.stroke} strokeWidth={st.strokeWidth} strokeDasharray="3,2" />
-        <title>{title}</title>
+        <circle
+          cx={cx}
+          cy={cy}
+          r={isHovered ? 16 : 12}
+          fill={isHovered ? 'rgba(34,211,238,0.38)' : 'rgba(56,189,248,0.14)'}
+          stroke={isHovered ? '#22d3ee' : '#38bdf8'}
+          strokeWidth={isHovered ? 2.5 : 1.3}
+          strokeDasharray="3,2"
+        />
+        <text
+          x={cx}
+          y={cy + 3}
+          textAnchor="middle"
+          fill="#bae6fd"
+          fontSize="7.5"
+          fontWeight="bold"
+          fontFamily="monospace"
+          className="pointer-events-none select-none opacity-80"
+        >
+          {spot === 'ringA' ? 'A' : spot}
+        </text>
+        <title>{label}</title>
       </g>
     );
   };
 
+  const visibleTools = UNIVERSAL_TOOLS.filter((t) => t.category === activeCategory);
+
   return (
-    <div className="rounded-2xl border border-cyan-500/30 bg-slate-50/80 dark:bg-[#07111f] p-4 sm:p-5 space-y-5">
+    <div className="rounded-2xl border border-cyan-500/30 bg-slate-50/80 dark:bg-[#07111f] p-4 sm:p-5 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-cyan-700 dark:text-cyan-300">
           <FlaskConical className="w-4 h-4 shrink-0" />
-          <span>
-            {mode === 'free'
-              ? 'میز کار تعاملی و آزاد SAR (گروه‌های عاملی را روی اسکلت استروئید بکشید یا کلیک کنید)'
-              : 'میز کار سنتز تعاملی — گروه‌های عاملی را روی نقاط مشخص‌شده (دایره‌های آبی) رها کنید'}
-          </span>
+          <span>میز کار آزاد مولکول‌سازی و تحلیل زنده SAR</span>
         </div>
         {!isLocked && (
           <button
@@ -476,56 +691,74 @@ export const SteroidSandbox: React.FC<Props> = ({
         )}
       </div>
 
-      {/* پالت گروه‌های عاملی */}
+      {/* جعبه‌ابزار جامع شیمی دارویی (یکسان و آزاد در همه صفحات) */}
       {!isLocked && (
-        <div className="space-y-1.5">
-          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-            پالت گروه‌های عاملی (بکشید و روی نقطه اتصال رها کنید، یا روی گروه کلیک کرده و سپس روی نقطه هدف کلیک نمایید):
+        <div className="space-y-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-3">
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2">
+            {(
+              [
+                { id: 'groups', label: 'گروه‌های عاملی' },
+                { id: 'rings', label: 'حلقه‌ها و پیوندها' },
+                { id: 'chains', label: 'زنجیره و استر' },
+                { id: 'edit', label: 'پاک‌کن و α/β' },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveCategory(tab.id)}
+                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition ${
+                  activeCategory === tab.id
+                    ? 'bg-cyan-500 text-slate-950'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-cyan-600'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
+
           <div className="flex flex-wrap gap-2">
-            {palette.map((item) => {
-              const isSelected = selectedPaletteId === item.id;
-              const isApplied = String(state[item.target]) === item.value;
+            {visibleTools.map((tool) => {
+              const isSelected = selectedToolId === tool.id;
               return (
                 <div
-                  key={item.id}
+                  key={tool.id}
                   draggable
                   onDragStart={(e) => {
-                    e.dataTransfer.setData('text/plain', item.id);
-                    setSelectedPaletteId(item.id);
+                    e.dataTransfer.setData('text/plain', tool.id);
+                    setSelectedToolId(tool.id);
                   }}
-                  onClick={() => {
-                    // اگر کاربر مستقیم روی دکمه کلیک کرد، برای راحتی بیشتر می‌تواند یا انتخاب کند یا اگر دوباره کلیک کرد مستقیم اعمال شود
-                    if (isSelected) {
-                      applyModification(item.target, item.value);
-                    } else {
-                      setSelectedPaletteId(item.id);
-                    }
-                  }}
-                  onDoubleClick={() => applyModification(item.target, item.value)}
-                  className={`rounded-xl border px-3 py-2 text-xs cursor-grab active:cursor-grabbing transition select-none flex items-center gap-2 ${
+                  onClick={() => setSelectedToolId(isSelected ? null : tool.id)}
+                  className={`rounded-xl border px-3 py-1.5 text-xs cursor-grab active:cursor-grabbing transition select-none flex items-center gap-2 ${
                     isSelected
-                      ? 'border-cyan-400 bg-cyan-500/20 ring-2 ring-cyan-400/50 font-bold'
-                      : isApplied
-                      ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200'
-                      : `${item.color} bg-white dark:bg-slate-900/90 hover:border-cyan-400`
+                      ? 'border-cyan-400 bg-cyan-500/20 ring-2 ring-cyan-400/50 font-bold text-cyan-900 dark:text-cyan-100'
+                      : `${tool.color} bg-slate-50 dark:bg-slate-950 hover:border-cyan-400`
                   }`}
                 >
-                  <span>{item.label}</span>
+                  {tool.id === 'eraser' && <Eraser className="w-3.5 h-3.5" />}
+                  {tool.id === 'flip_stereo' && <FlipHorizontal2 className="w-3.5 h-3.5" />}
+                  <span>{tool.label}</span>
                   <span dir="ltr" className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                    {item.formula}
+                    {tool.formula}
                   </span>
-                  {isApplied && <span className="text-emerald-500 font-bold">✓</span>}
                 </div>
               );
             })}
           </div>
-          {selectedItem && (
-            <div className="text-[11px] text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5 pt-1">
-              <Sparkles className="w-3.5 h-3.5" />
+
+          {selectedTool && (
+            <div className="text-[11px] text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
               <span>
-                گروه «{selectedItem.label}» انتخاب شد — {selectedItem.hint} (یا دوباره روی همین دکمه کلیک کنید تا مستقیم اعمال شود).
+                ابزار «{selectedTool.label}» فعال است — روی یکی از کربن‌های مشخص‌شده (دایره‌های آبی روی اسکلت) کلیک کن یا ابزار را روی آن بکش.
               </span>
+            </div>
+          )}
+
+          {toolNotice && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 text-[11px] text-amber-800 dark:text-amber-200">
+              {toolNotice}
             </div>
           )}
         </div>
@@ -537,12 +770,12 @@ export const SteroidSandbox: React.FC<Props> = ({
           {recognizedDrug && (
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-300">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>ساختار شناخته‌شده: {recognizedDrug}</span>
+              <span>ساختار ساخته‌شده: {recognizedDrug}</span>
             </div>
           )}
 
           <div dir="ltr" className="w-full flex justify-center">
-            <svg viewBox="0 0 385 225" className="w-full max-w-[420px] h-56">
+            <svg viewBox="0 0 395 230" className="w-full max-w-[430px] h-56">
               {/* حلقه A */}
               <polygon
                 points="68,118 101,99 134,118 134,156 101,175 68,156"
@@ -554,9 +787,7 @@ export const SteroidSandbox: React.FC<Props> = ({
                 <circle cx="101" cy="137" r="18" fill="none" stroke="#c084fc" strokeWidth="1.9" />
               ) : (
                 <>
-                  {/* پیوند Δ4 */}
                   <line x1="102" y1="168" x2="128" y2="153" stroke="#38bdf8" strokeWidth="2.1" />
-                  {/* پیوند Δ1 */}
                   {state.ringA === 'delta14' && (
                     <line x1="74" y1="122" x2="100" y2="107" stroke="#34d399" strokeWidth="2.3" />
                   )}
@@ -607,20 +838,36 @@ export const SteroidSandbox: React.FC<Props> = ({
                 strokeWidth="2.3"
               />
 
-              {/* استخلاف C6α */}
+              {/* استخلاف C6 */}
               {state.C6 !== 'H' && (
                 <g>
-                  <line x1="167" y1="175" x2="167" y2="199" stroke={state.C6 === 'F' ? '#f43f5e' : '#fbbf24'} strokeWidth="2.2" strokeDasharray="3,2" />
-                  <text x="159" y="212" fill={state.C6 === 'F' ? '#f43f5e' : '#fbbf24'} fontSize="11.5" fontWeight="bold" fontFamily="monospace">
+                  <line
+                    x1="167"
+                    y1="175"
+                    x2="167"
+                    y2="199"
+                    stroke={state.C6 === 'F' ? '#f43f5e' : '#fbbf24'}
+                    strokeWidth={state.C6Stereo === 'beta' ? 3.2 : 2.2}
+                    strokeDasharray={state.C6Stereo === 'alpha' ? '3,2' : undefined}
+                  />
+                  <text x="159" y="213" fill={state.C6 === 'F' ? '#f43f5e' : '#fbbf24'} fontSize="11.5" fontWeight="bold" fontFamily="monospace">
                     {state.C6}
                   </text>
                 </g>
               )}
 
-              {/* فلوئور C9α */}
+              {/* فلوئور C9 */}
               {state.C9 === 'F' && (
                 <g>
-                  <line x1="167" y1="99" x2="167" y2="128" stroke="#22d3ee" strokeWidth="2.5" strokeDasharray="3,2" />
+                  <line
+                    x1="167"
+                    y1="99"
+                    x2="167"
+                    y2="128"
+                    stroke="#22d3ee"
+                    strokeWidth={state.C9Stereo === 'beta' ? 3.4 : 2.5}
+                    strokeDasharray={state.C9Stereo === 'alpha' ? '3,2' : undefined}
+                  />
                   <text x="163" y="142" fill="#22d3ee" fontSize="13" fontWeight="bold" fontFamily="monospace">F</text>
                 </g>
               )}
@@ -636,8 +883,14 @@ export const SteroidSandbox: React.FC<Props> = ({
               {/* گروه C11 */}
               {state.C11 === 'OH' && (
                 <g>
-                  <polygon points="167,61 147,47 152,41" fill="#34d399" />
-                  <text x="128" y="42" fill="#34d399" fontSize="12" fontWeight="bold" fontFamily="monospace">HO</text>
+                  {state.C11Stereo === 'beta' ? (
+                    <polygon points="167,61 147,47 152,41" fill="#34d399" />
+                  ) : (
+                    <line x1="167" y1="61" x2="148" y2="45" stroke="#fbbf24" strokeWidth="2.2" strokeDasharray="3,2" />
+                  )}
+                  <text x="128" y="42" fill={state.C11Stereo === 'beta' ? '#34d399' : '#fbbf24'} fontSize="12" fontWeight="bold" fontFamily="monospace">
+                    HO
+                  </text>
                 </g>
               )}
               {state.C11 === '=O' && (
@@ -716,39 +969,39 @@ export const SteroidSandbox: React.FC<Props> = ({
                     y1="80"
                     x2="318"
                     y2="92"
-                    stroke={state.C16 === 'CN' ? '#f43f5e' : state.C16 === 'beta-CH3' ? '#e879f9' : '#fbbf24'}
-                    strokeWidth={state.C16 === 'beta-CH3' ? 3 : 2.2}
-                    strokeDasharray={state.C16.startsWith('alpha') ? '3,2' : undefined}
+                    stroke={state.C16 === 'CN' ? '#f43f5e' : state.C16Stereo === 'beta' ? '#e879f9' : '#fbbf24'}
+                    strokeWidth={state.C16Stereo === 'beta' ? 3.2 : 2.2}
+                    strokeDasharray={state.C16Stereo === 'alpha' ? '3,2' : undefined}
                   />
                   <text
                     x="321"
                     y="97"
-                    fill={state.C16 === 'CN' ? '#f43f5e' : state.C16 === 'beta-CH3' ? '#e879f9' : '#fbbf24'}
+                    fill={state.C16 === 'CN' ? '#f43f5e' : state.C16Stereo === 'beta' ? '#e879f9' : '#fbbf24'}
                     fontSize="11"
                     fontWeight="bold"
                     fontFamily="monospace"
                   >
-                    {state.C16 === 'CN' ? '-C≡N' : state.C16.replace('alpha-', '').replace('beta-', '')}
+                    {state.C16 === 'CN' ? '-C≡N' : state.C16}
                   </text>
                 </g>
               )}
 
-              {/* نقاط اتصال تعاملی (Hotspots) */}
-              {renderHotspot('ringA', 101, 137, 'حلقه A (پیوند Δ1 یا آروماتیک)')}
-              {renderHotspot('C3', 56, 162, 'موقعیت C3')}
-              {renderHotspot('C6', 167, 184, 'موقعیت C6α')}
-              {renderHotspot('C9', 167, 108, 'موقعیت C9α')}
-              {renderHotspot('C11', 158, 52, 'موقعیت C11β')}
-              {renderHotspot('C16', 302, 85, 'موقعیت C16')}
+              {/* تمام ۱۰ نقطه اتصال آزاد */}
+              {renderHotspot('ringA', 101, 137, 'حلقه A')}
+              {renderHotspot('C3', 56, 162, 'کربن C3')}
+              {renderHotspot('C6', 167, 184, 'کربن C6')}
+              {renderHotspot('C9', 167, 108, 'کربن C9')}
+              {renderHotspot('C11', 158, 52, 'کربن C11')}
+              {renderHotspot('C16', 302, 85, 'کربن C16')}
               {renderHotspot('C17a', 284, 59, 'موقعیت C17α')}
               {renderHotspot('C17b', 284, 38, 'موقعیت C17β')}
-              {renderHotspot('C19', 134, 98, 'موقعیت متیل C19')}
-              {renderHotspot('C21', 330, 46, 'موقعیت زنجیره C21')}
+              {renderHotspot('C19', 134, 98, 'موقعیت C19')}
+              {renderHotspot('C21', 332, 46, 'موقعیت C21')}
             </svg>
           </div>
         </div>
 
-        {/* داشبورد زنده SAR (فارماکودینامیک و فارماکوکینتیک) */}
+        {/* داشبورد زنده SAR */}
         <div className="lg:col-span-5 space-y-3">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
             <Activity className="w-4 h-4 text-cyan-500" />
