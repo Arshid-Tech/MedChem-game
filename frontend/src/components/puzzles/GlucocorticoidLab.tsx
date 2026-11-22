@@ -9,11 +9,13 @@ import {
   AlertTriangle,
   KeyRound,
   Sparkles,
+  Mail,
 } from 'lucide-react';
 import { SteroidMoleculeSVG, SteroidRenderProps } from '../molecules/SteroidMoleculeSVG';
 import { SteroidSandbox } from '../molecules/SteroidSandbox';
 import { ProgressiveHintBox } from './ProgressiveHintBox';
 import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
+import { deterministicShuffle } from '../../utils/shuffle';
 import { toPersianDigits } from '../../utils/persian';
 
 interface CompoundCard {
@@ -27,47 +29,49 @@ interface CompoundCard {
 const COMPOUNDS: CompoundCard[] = [
   {
     id: '1',
-    blindLabel: 'ترکیب شماره ۱',
+    blindLabel: 'ساختار ۱',
     revealedName: 'کورتیزون (Cortisone)',
-    revealedNote: 'دارای گروه 11-کتو (پیش‌دارو، نیازمند احیا به 11β-OH در کبد)',
+    revealedNote: 'دارای گروه 11-کتو (پیش‌دارو، نیازمند تبدیل به 11β-OH)',
     props: { has11BetaOH: false, has11Keto: true, hasDelta1: false, has9AlphaF: false },
   },
   {
     id: '2',
-    blindLabel: 'ترکیب شماره ۲',
+    blindLabel: 'ساختار ۲',
     revealedName: 'هیدروکورتیزون (Hydrocortisone)',
-    revealedNote: 'دارای گروه فعال 11β-OH بدون پیوند دوگانه Δ1 (قدرت مرجع = ۱)',
+    revealedNote: 'ساختار پایه با 11β-OH (قدرت مرجع = ۱)',
     props: { has11BetaOH: true, hasDelta1: false, has9AlphaF: false },
   },
   {
     id: '3',
-    blindLabel: 'ترکیب شماره ۳',
+    blindLabel: 'ساختار ۳',
     revealedName: 'تریامسینولون (Triamcinolone)',
-    revealedNote: 'دارای Δ1 + فلوئور 9α + هیدروکسیل 16α (قدرت ضدالتهابی بالا بدون احتباس سدیم)',
+    revealedNote: 'دارای Δ1 + فلوئور 9α + هیدروکسیل 16α',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: true, c16Sub: 'alpha-OH' },
   },
   {
     id: '4',
-    blindLabel: 'ترکیب شماره ۴',
+    blindLabel: 'ساختار ۴',
     revealedName: 'متیل‌پردنیزولون (Methylprednisolone)',
-    revealedNote: 'دارای پیوند دوگانه Δ1 و گروه متیل 6α بدون فلوئور',
+    revealedNote: 'دارای پیوند دوگانه Δ1 و متیل 6α',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: false, c6AlphaSub: 'CH3' },
   },
   {
     id: '5',
-    blindLabel: 'ترکیب شماره ۵',
+    blindLabel: 'ساختار ۵',
     revealedName: 'بتامتازون / دگزامتازون',
-    revealedNote: 'دارای Δ1 + فلوئور 9α + استخلاف متیل در موقعیت C16 (بیشترین قدرت ضدالتهابی)',
+    revealedNote: 'دارای Δ1 + فلوئور 9α + متیل در C16 (بیشترین قدرت)',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: true, c16Sub: 'beta-CH3' },
   },
   {
     id: '6',
-    blindLabel: 'ترکیب شماره ۶',
+    blindLabel: 'ساختار ۶',
     revealedName: 'پردنیزولون (Prednisolone)',
-    revealedNote: 'دارای پیوند دوگانه Δ1 (C1=C2) و گروه 11β-OH (قدرت ۴ برابر کورتیزول)',
+    revealedNote: 'دارای پیوند دوگانه Δ1 و 11β-OH (قدرت ۴ برابر کورتیزول)',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: false },
   },
 ];
+
+const INITIAL_SHUFFLED_ORDER = deterministicShuffle(['1', '2', '3', '4', '5', '6'], 'gc-potency-order-v3');
 
 interface Props {
   conformationSolved: boolean;
@@ -96,12 +100,12 @@ export const GlucocorticoidLab: React.FC<Props> = ({
   const [confLoading, setConfLoading] = useState(false);
 
   const [order, setOrder] = useState<string[]>(
-    sarSolved ? ['5', '3', '4', '6', '2', '1'] : ['1', '2', '3', '4', '5', '6']
+    sarSolved ? ['5', '3', '4', '6', '2', '1'] : INITIAL_SHUFFLED_ORDER
   );
   const sarTimer = usePuzzleTimer(conformationSolved, sarSolved);
   const [sarFeedback, setSarFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [sarLoading, setSarLoading] = useState(false);
-  const [showSandbox, setShowSandbox] = useState(false);
+  const [showWallSandbox, setShowWallSandbox] = useState(true);
 
   const handleConfSubmit = async () => {
     setConfLoading(true);
@@ -146,34 +150,22 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         <div>
           <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold text-lg">
             <FlaskConical className="w-6 h-6" />
-            <span>دپارتمان اول: آزمایشگاه گلوکوکورتیکوئیدها (دفتر سابق دکتر ارول)</span>
+            <span>🧠 اتاق چنگال استرس — اتاق پروفسور کژتاب (گلوکوکورتیکوئیدها)</span>
           </div>
-          <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
-            یادداشت روی دیوار آزمایشگاه: <em>«هر چقدر قدرت ضدالتهابی را بیشتر کنی، به فرمول اهریمن نزدیک‌تر می‌شوی...»</em>
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm mt-1 leading-6">
+            پروفسور کژتاب (برادر زهتاب) وسوسه شد روی مشتقات کورتیزول کار کنه، اما اولین نسخه اهریمن به هیپوکامپ خودش آسیب زد و حافظه کوتاه‌مدتش رو از دست داد...
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 self-start md:self-center">
-          <button
-            type="button"
-            onClick={() => setShowSandbox((prev) => !prev)}
-            className="rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-2 text-xs font-bold text-cyan-700 dark:text-cyan-300 transition flex items-center gap-1.5"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{showSandbox ? 'بستن میز کار آزاد SAR' : 'باز کردن میز کار آزاد SAR'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={onBackToMap}
-            className="rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
-          >
-            بازگشت به نقشه شرکت
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onBackToMap}
+          className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
+        >
+          بازگشت به نقشه کارخانه
+        </button>
       </div>
 
-      {showSandbox && <SteroidSandbox mode="free" />}
-
-      {/* معمای ۱: قفل کانفورماسیون استریوشیمیایی */}
+      {/* گام ۱: صفحه لمسی روی در اتاق */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -182,7 +174,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             ) : (
               <Lock className="w-5 h-5 text-amber-500" />
             )}
-            <span>معمای {toPersianDigits(1)}: تنظیم کانفورماسیون فضایی هیدروژن‌های اتصال حلقه‌ها</span>
+            <span>گام {toPersianDigits(1)}: قفل لمسی در اتاق (آرایش هیدروژن‌ها)</span>
           </h3>
           <span
             className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
@@ -191,13 +183,12 @@ export const GlucocorticoidLab: React.FC<Props> = ({
                 : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
             }`}
           >
-            {conformationSolved ? 'قفل باز شده ✓' : 'قفل امنیتی فعال'}
+            {conformationSolved ? 'در اتاق باز شد ✓' : 'قفل لمسی فعال'}
           </span>
         </div>
 
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-7">
-          برای دسترسی به سیستم کامپیوتر دکتر ارول، آرایش فضایی (آلفا با پیوند خط‌چین به سمت پشت صفحه یا بتا با گوه توپر به سمت جلوی صفحه)
-          را برای سه اتم هیدروژن کلیدی در اتصالات حلقه‌های <strong>B/C</strong> و <strong>C/D</strong> (کربن‌های ۸، ۹ و ۱۴) در گلوکوکورتیکوئیدهای فعال بیولوژیک تنظیم کنید:
+          روی درِ اتاق یه صفحه لمسی با ساختار پایه گلوکوکورتیکوئید هست. باید جهت درست سه هیدروژن روی اتصالات حلقه‌ها (<strong>H8، H9 و H14</strong>) رو تنظیم کنی تا قفل باز شه:
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -242,8 +233,8 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         <ProgressiveHintBox
           solved={conformationSolved}
           hints={[
-            'در تمام هورمون‌های استروئیدی طبیعی و گلوکوکورتیکوئیدهای فعال، اتصالات حلقه‌های B/C و C/D به شکل ترانس (trans-anti-trans) هستند تا اسکلت مسطح باقی بماند.',
-            'برای ایجاد اتصال ترانس، H8 هم‌جهت با متیل‌های زاویه‌ای C18/C19 (یعنی β) است، در حالی که H9 و H14 در جهت مخالف (α) قرار می‌گیرند.',
+            'در استروئیدهای فعال بیولوژیک، حلقه‌های B/C و C/D به شکل ترانس به هم وصل‌اند تا اسکلت مسطح بماند.',
+            'برای اتصال ترانس، H8 به سمت جلو (β) و دو هیدروژن H9 و H14 به سمت پشت صفحه (α) قرار می‌گیرند.',
           ]}
         />
 
@@ -272,13 +263,40 @@ export const GlucocorticoidLab: React.FC<Props> = ({
               onClick={handleConfSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
             >
-              {confLoading ? 'در حال بررسی...' : 'ثبت آرایش فضایی و باز کردن کامپیوتر'}
+              {confLoading ? 'در حال بررسی...' : 'باز کردن قفل در اتاق'}
             </button>
           </div>
         )}
       </div>
 
-      {/* معمای ۲: مرتب‌سازی قدرت اثر SAR گلوکوکورتیکوئیدها */}
+      {/* گام ۲ (دیوار اتاق کژتاب): قوی‌تر کردن کورتیزول روی میز کار زنده */}
+      <div
+        className={`rounded-2xl border p-6 space-y-4 transition ${
+          conformationSolved
+            ? 'border-amber-500/40 bg-white dark:bg-slate-900/75 shadow-sm'
+            : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
+        }`}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 font-bold text-base text-amber-700 dark:text-amber-300">
+            <Sparkles className="w-5 h-5" />
+            <span>گام {toPersianDigits(2)} (یادداشت روی دیوار اتاق کژتاب)</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowWallSandbox((s) => !s)}
+            className="text-xs font-bold text-cyan-700 dark:text-cyan-300 hover:underline"
+          >
+            {showWallSandbox ? 'جمع کردن میز آزمایش' : 'باز کردن میز آزمایش'}
+          </button>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-7">
+          روی دیوار اتاق با خط درشت نوشته: <strong>«هر چقدر قوی‌ترش کنی، به اهریمن نزدیک‌تر می‌شی!»</strong> — روی میز کار زیر، گروه‌های مختلف رو روی کورتیزول امتحان کن و ببین کدام تغییرات قدرت ضدالتهابی رو به حداکثر می‌رسونن (این بهت کمک می‌کنه ایمیل ارول رو سریع‌تر حل کنی):
+        </p>
+        {showWallSandbox && conformationSolved && <SteroidSandbox mode="free" />}
+      </div>
+
+      {/* گام ۳: ایمیل دکتر ارول توی کامپیوتر کژتاب */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           conformationSolved
@@ -286,19 +304,19 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
         }`}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-cyan-500" />
-            <span>معمای {toPersianDigits(2)}: تحلیل رابطه ساختار-اثر (SAR) و رتبه‌بندی قدرت ضدالتهابی</span>
+            <Mail className="w-5 h-5 text-cyan-500" />
+            <span>گام {toPersianDigits(3)}: ایمیل دکتر ارول روی کامپیوتر کژتاب</span>
           </h3>
           <span className="text-xs text-slate-500 dark:text-slate-400">
             از قوی‌ترین (رتبه {toPersianDigits(1)}) به ضعیف‌ترین (رتبه {toPersianDigits(6)})
           </span>
         </div>
 
-        <p className="text-sm text-slate-600 dark:text-slate-300 leading-7">
-          در ایمیل بازیابی‌شده از دکتر ارول آمده است: <em>«این ۶ ساختار کورتیکواستروئیدی را صرفاً با تحلیل استخلاف‌های روی حلقه‌ها از قوی‌ترین به ضعیف‌ترین مرتب کن تا ویژگی مشترک ترکیبات فوق‌قوی برایت آشکار شود.»</em>
-        </p>
+        <div className="rounded-xl border border-cyan-500/30 bg-cyan-50/70 dark:bg-cyan-950/25 p-3.5 text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-7">
+          <strong>ایمیل از طرف دکتر اِرول:</strong> <em>«پروفسور کژتاب، شنیدم داری قویش می‌کنی! این ۶ تا مولکول رو بر اساس قدرت از قوی‌ترین به ضعیف‌ترین مرتب کن و شباهت اون دو تا مولکول قوی رو خوب یادت باشه...»</em>
+        </div>
 
         <div className="space-y-3">
           {order.map((compId, idx) => {
@@ -327,7 +345,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
                       </div>
                     ) : (
                       <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        ساختار شیمیایی را تحلیل کرده و رتبه قدرت آن را مشخص کنید
+                        فقط از روی تصویر ساختار، رتبه قدرت آن را بالا یا پایین ببر
                       </div>
                     )}
                   </div>
@@ -367,8 +385,8 @@ export const GlucocorticoidLab: React.FC<Props> = ({
           solved={sarSolved}
           disabled={!conformationSolved}
           hints={[
-            'حضور پیوند دوگانه Δ1 (C1=C2) قدرت را حدود ۴ برابر و افزودن اتم فلوئور 9α قدرت را بسیار بیشتر می‌کند. همچنین ترکیب دارای 11=O پیش‌داروست و ضعیف‌ترین رتبه را دارد.',
-            'بین دو ترکیب دارای فلوئور 9α (شماره ۳ و ۵)، متیل روی C16 (شماره ۵) قدرت ضدالتهابی بسیار بالاتری نسبت به هیدروکسیل 16α (شماره ۳) ایجاد می‌کند.',
+            'پیوند دوگانه Δ1 قدرت را ۴ برابر و اتم فلوئور روی C9 قدرت را چندین برابر می‌کند. ترکیبی که روی C11 کتون (=O) دارد ضعیف‌ترین است.',
+            'بین دو ترکیب فلوئوردار (۳ و ۵)، متیل روی C16 (ساختار ۵) بسیار قوی‌تر از OH روی C16 (ساختار ۳) است.',
           ]}
         />
 
@@ -394,9 +412,10 @@ export const GlucocorticoidLab: React.FC<Props> = ({
             <button
               type="button"
               onClick={onBackToMap}
-              className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
+              className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition flex items-center gap-1.5"
             >
-              ذخیره سرنخ اول و بازگشت به نقشه ←
+              <KeyRound className="w-4 h-4" />
+              <span>ذخیره سرنخ اول (گلوکوکورتیکوئید قوی با F) و بازگشت ←</span>
             </button>
           ) : (
             <button
@@ -405,7 +424,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
               onClick={handleSarSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
-              {sarLoading ? 'در حال اعتبارسنجی ترتیب...' : 'ثبت ترتیب قدرت و استخراج سرنخ'}
+              {sarLoading ? 'در حال بررسی...' : 'ثبت ترتیب قدرت و استخراج سرنخ'}
             </button>
           )}
         </div>

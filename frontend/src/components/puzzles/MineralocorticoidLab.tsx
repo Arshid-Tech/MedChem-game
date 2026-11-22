@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Droplets,
   ArrowUp,
@@ -7,11 +7,14 @@ import {
   AlertTriangle,
   Layers,
   RotateCcw,
+  PhoneCall,
+  ScrollText,
 } from 'lucide-react';
 import { SteroidMoleculeSVG } from '../molecules/SteroidMoleculeSVG';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
 import { ProgressiveHintBox } from './ProgressiveHintBox';
 import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
+import { deterministicShuffle } from '../../utils/shuffle';
 import { toPersianDigits } from '../../utils/persian';
 
 interface RouteCompound {
@@ -26,64 +29,64 @@ const ROUTE_COMPOUNDS: RouteCompound[] = [
   {
     id: '1',
     blindLabel: 'ترکیب ۱',
-    revealedName: 'پردنیزولون فسفات (Prednisolone Phosphate)',
-    revealedNote: 'استر فسفات قطبی و محلول در آب در C21 — مناسب مصرف سیستمیک',
+    revealedName: 'پردنیزولون فسفات (سیستمیک)',
+    revealedNote: 'گروه فسفات قطبی و محلول در آب روی C21',
     smiles: 'C[C@]12C=CC(=O)C=C1CC[C@@H]3[C@@H]2[C@@H](O)C[C@]4(C)[C@H]3CC[C@]4(O)C(=O)COP(=O)(O)O',
   },
   {
     id: '2',
     blindLabel: 'ترکیب ۲',
-    revealedName: 'فلوسینولون استونید (Fluocinolone Acetonide)',
-    revealedNote: 'کتال 16α,17α-استونید لیپوفیل + دو فلوئور — مناسب مصرف موضعی پوستی',
+    revealedName: 'فلوسینولون استونید (موضعی)',
+    revealedNote: 'کتال حلقوی استونید 16,17 + دو فلوئور با نفوذ پوستی بالا',
     smiles: 'CC1(C)O[C@@H]2C[C@H]3[C@@H]4C[C@H](F)C5=CC(=O)C=C[C@]5(C)[C@@]4(F)[C@@H](O)C[C@]3(C)[C@@]2(O1)C(=O)CO',
   },
   {
     id: '3',
     blindLabel: 'ترکیب ۳',
-    revealedName: 'فلوتیکازون پروپیونات (Fluticasone Propionate)',
-    revealedNote: 'فلوئورومتیل کربوتیوآت در C17β با متابولیسم عبور اول کبدی بسیار سریع — استنشاقی',
+    revealedName: 'فلوتیکازون پروپیونات (استنشاقی)',
+    revealedNote: 'تیواستر فلوئورومتیل با متابولیسم کبدی سریع',
     smiles: 'CCC(=O)O[C@@]1(C(=O)SCF)[C@H](C)C[C@H]2[C@@H]3C[C@H](F)C4=CC(=O)C=C[C@]4(C)[C@@]3(F)[C@@H](O)C[C@@]12C',
   },
   {
     id: '4',
     blindLabel: 'ترکیب ۴',
-    revealedName: 'بودزوناید (Budesonide)',
-    revealedNote: 'استال نامتقارن بوتیرآلدهید در 16α,17α با کلیرانس کبدی سریع — استنشاقی',
+    revealedName: 'بودزوناید (استنشاقی)',
+    revealedNote: 'استال نامتقارن روی C16,C17 با کلیرانس کبدی بالا',
     smiles: 'CCCC1O[C@@H]2C[C@H]3[C@@H]4CCC5=CC(=O)C=C[C@]5(C)[C@H]4[C@@H](O)C[C@]3(C)[C@@]2(O1)C(=O)CO',
   },
   {
     id: '5',
     blindLabel: 'ترکیب ۵',
-    revealedName: 'هیدروکورتیزون همی‌سوکسینات',
-    revealedNote: 'استر همی‌سوکسینات محلول در آب در C21 — تزریقی/سیستمیک',
+    revealedName: 'هیدروکورتیزون همی‌سوکسینات (سیستمیک)',
+    revealedNote: 'استر قطبی محلول در آب روی C21',
     smiles: 'C[C@]12CCC(=O)C=C1CC[C@@H]3[C@@H]2[C@@H](O)C[C@]4(C)[C@H]3CC[C@]4(O)C(=O)COC(=O)CCC(=O)O',
   },
   {
     id: '6',
     blindLabel: 'ترکیب ۶',
-    revealedName: 'بتامتازون والرات (Betamethasone Valerate)',
-    revealedNote: 'استر والرات لیپوفیل در C17α با نفوذ بالای پوستی — موضعی',
+    revealedName: 'بتامتازون والرات (موضعی)',
+    revealedNote: 'استر لیپوفیل والرات روی C17 برای اثر موضعی پوستی',
     smiles: 'CCCCC(=O)O[C@@]1(C(=O)CO)[C@@H](C)C[C@H]2[C@@H]3CCC4=CC(=O)C=C[C@]4(C)[C@@]3(F)[C@@H](O)C[C@@]12C',
   },
   {
     id: '7',
     blindLabel: 'ترکیب ۷',
-    revealedName: 'تریامسینولون استونید (Triamcinolone Acetonide)',
-    revealedNote: 'کتال حلقوی C16,C17 با لیپوفیلیته بالا و جذب سیستمیک ناچیز — موضعی',
+    revealedName: 'تریامسینولون استونید (موضعی)',
+    revealedNote: 'کتال حلقوی استونید با جذب سیستمیک ناچیز',
     smiles: 'CC1(C)O[C@@H]2C[C@H]3[C@@H]4CCC5=CC(=O)C=C[C@]5(C)[C@@]4(F)[C@@H](O)C[C@]3(C)[C@@]2(O1)C(=O)CO',
   },
   {
     id: '8',
     blindLabel: 'ترکیب ۸',
-    revealedName: 'متیل‌پردنیزولون (Methylprednisolone)',
-    revealedNote: 'هیدروکسیل آزاد C21 و متیل 6α — خوراکی/سیستمیک',
+    revealedName: 'متیل‌پردنیزولون (سیستمیک)',
+    revealedNote: 'هیدروکسیل آزاد C21 و متیل 6α برای مصرف خوراکی',
     smiles: 'C[C@H]1C[C@H]2[C@@H]3CC[C@](O)(C(=O)CO)[C@@]3(C)C[C@H](O)[C@@H]2[C@@]4(C)C=CC(=O)C=C14',
   },
   {
     id: '9',
     blindLabel: 'ترکیب ۹',
-    revealedName: 'مومتازون فوروئات (Mometasone Furoate)',
-    revealedNote: 'استر فوروئات C17α و کلر C9α/C21 — افشانه تنفسی/استنشاقی',
+    revealedName: 'مومتازون فوروئات (استنشاقی)',
+    revealedNote: 'استر فوروئات C17 و کلر C21 برای افشانه تنفسی',
     smiles: 'C[C@@H]1C[C@H]2[C@@H]3CCC4=CC(=O)C=C[C@]4(C)[C@@]3(Cl)[C@@H](O)C[C@]2(C)[C@@]1(OC(=O)c5ccco5)C(=O)CCl',
   },
 ];
@@ -120,15 +123,21 @@ export const MineralocorticoidLab: React.FC<Props> = ({
   const [arrowFeedback, setArrowFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [arrowLoading, setArrowLoading] = useState(false);
 
+  const [phoneAnswered, setPhoneAnswered] = useState(routesSolved);
   const [buckets, setBuckets] = useState<Record<BucketKey, string[]>>(
     routesSolved
       ? { systemic: ['1', '5', '8'], topical: ['2', '6', '7'], inhalation: ['3', '4', '9'] }
       : { systemic: [], topical: [], inhalation: [] }
   );
   const [selectedChip, setSelectedChip] = useState<string | null>(null);
-  const routeTimer = usePuzzleTimer(arrowsSolved, routesSolved);
+  const routeTimer = usePuzzleTimer(arrowsSolved && phoneAnswered, routesSolved);
   const [routeFeedback, setRouteFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
+
+  const shuffledCompounds = useMemo(
+    () => deterministicShuffle(ROUTE_COMPOUNDS, 'mc-route-cards-v3'),
+    []
+  );
 
   const handleArrowSubmit = async () => {
     setArrowLoading(true);
@@ -188,10 +197,10 @@ export const MineralocorticoidLab: React.FC<Props> = ({
         <div>
           <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold text-lg">
             <Droplets className="w-6 h-6" />
-            <span>دپارتمان دوم: بخش مینرالوکورتیکوئیدها و فارماکوکینتیک موضعی</span>
+            <span>🧂 اتاق گوله نمک — اتاق پروفسور زهتاب (مینرالوکورتیکوئیدها)</span>
           </div>
-          <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
-            یادداشت رمزگشایی‌شده: <em>«اثر احتباس آب و سدیم را به حداقل برسان؛ اهریمن قرار نیست کل بدن را درگیر کند، فقط یک بافت هدف موضعی...»</em>
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm mt-1 leading-6">
+            پروفسور زهتاب، برادر پروفسور کژتاب، برخلاف برادرش رفت سراغ مینرالوکورتیکوئیدها و کنترل آب و نمک بدن...
           </p>
         </div>
         <button
@@ -199,34 +208,34 @@ export const MineralocorticoidLab: React.FC<Props> = ({
           onClick={onBackToMap}
           className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
         >
-          بازگشت به نقشه شرکت
+          بازگشت به نقشه کارخانه
         </button>
       </div>
 
-      {/* معمای ۱: مقایسه ساختاری ترکیب ۱ و ۲ */}
+      {/* گام ۱: ورود به اتاق با مقایسه دو ساختار */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          معمای {toPersianDigits(1)}: مقایسه فارماکولوژیک ساختار ۱ نسبت به ساختار ۲
+          گام {toPersianDigits(1)}: برای ورود به اتاق، این دو ساختار رو با هم مقایسه کن و فلش‌هاشونو بزن
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <SteroidMoleculeSVG
             name={arrowsSolved ? 'ساختار ۱ — متیل‌پردنیزولون' : 'ساختار ۱'}
-            formulaNote={arrowsSolved ? 'دارای پیوند دوگانه Δ1 و گروه متیل 6α' : undefined}
+            formulaNote={arrowsSolved ? 'دارای پیوند دوگانه Δ1 و متیل 6α' : undefined}
             hasDelta1
             c6AlphaSub="CH3"
           />
           <SteroidMoleculeSVG
             name={arrowsSolved ? 'ساختار ۲ — هیدروکورتیزون' : 'ساختار ۲'}
-            formulaNote={arrowsSolved ? 'ساختار مرجع بدون Δ1 و بدون متیل 6α' : undefined}
+            formulaNote={arrowsSolved ? 'ساختار پایه بدون Δ1 و متیل 6α' : undefined}
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { key: 'anti_inflammatory' as const, label: 'اثر ضدالتهابی ساختار ۱ نسبت به ۲' },
-            { key: 'half_life' as const, label: 'نیمه‌عمر پلاسمایی ساختار ۱ نسبت به ۲' },
-            { key: 'mineralocorticoid' as const, label: 'اثر مینرالوکورتیکوئیدی ساختار ۱ نسبت به ۲' },
+            { key: 'anti_inflammatory' as const, label: 'اثر ضدالتهابی ترکیب ۱ نسبت به ۲' },
+            { key: 'half_life' as const, label: 'نیمه‌عمر ترکیب ۱ نسبت به ۲' },
+            { key: 'mineralocorticoid' as const, label: 'اثر مینرالوکورتیکوئید ترکیب ۱ نسبت به ۲' },
           ].map((item) => (
             <div key={item.key} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-3">
               <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">{item.label}</div>
@@ -263,8 +272,8 @@ export const MineralocorticoidLab: React.FC<Props> = ({
         <ProgressiveHintBox
           solved={arrowsSolved}
           hints={[
-            'ساختار ۱ نسبت به ساختار ۲ دو تغییر کلیدی دارد: پیوند دوگانه Δ1 در حلقه A و گروه متیل 6α در حلقه B.',
-            'Δ1 و متیل 6α متابولیسم کبدی حلقه A را کند می‌کنند (افزایش نیمه‌عمر و اثر ضدالتهابی) و هم‌زمان اثر احتباس سدیم را کاهش می‌دهند.',
+            'به دو تفاوت روی حلقه‌های A و B ساختار ۱ نسبت به ساختار ۲ نگاه کن: پیوند دوگانه Δ1 و گروه متیل روی C6.',
+            'این دو تغییر اثر ضدالتهابی و نیمه‌عمر را بالا می‌برند اما اثر احتباس سدیم (مینرالوکورتیکوئیدی) را کم می‌کنند.',
           ]}
         />
 
@@ -289,16 +298,71 @@ export const MineralocorticoidLab: React.FC<Props> = ({
               onClick={handleArrowSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
             >
-              {arrowLoading ? 'در حال بررسی...' : 'ثبت تحلیل مقایسه‌ای'}
+              {arrowLoading ? 'در حال بررسی...' : 'باز کردن در اتاق گوله نمک'}
             </button>
           </div>
         )}
       </div>
 
-      {/* معمای ۲: دسته‌بندی مسیر تجویز ۹ ساختار واقعی */}
+      {/* گام ۲ (نامه کژتاب روی میز) + زنگ خوردن تلفن زهتاب */}
+      {arrowsSolved && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-amber-500/40 bg-amber-50/70 dark:bg-amber-950/20 p-5 space-y-2.5 shadow-sm">
+            <div className="flex items-center gap-2 text-xs font-extrabold text-amber-800 dark:text-amber-300">
+              <ScrollText className="w-4 h-4" />
+              <span>نامه پروفسور کژتاب روی میز زهتاب</span>
+            </div>
+            <p className="text-xs leading-7 text-slate-700 dark:text-slate-200 italic">
+              «زهتاب جان، می‌دونم از من دلخوری. راست می‌گی، من اشتباه کردم رفتم سراغ گلوکو... ولی الان فرصت ندارم حرفامو بزنم. یه چیزی می‌خوام ازت: <strong>اثر مینرال ترکیبم رو کم کن!</strong>»
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              (می‌تونی با دکمه شناور «میز کار مولکول‌سازی» پایین صفحه، امتحان کنی چطور اضافه کردن گروه روی C16 اثر مینرال رو صفر می‌کنه!)
+            </p>
+          </div>
+
+          <div
+            className={`rounded-2xl border p-5 space-y-3 shadow-sm transition ${
+              phoneAnswered
+                ? 'border-emerald-500/40 bg-emerald-50/60 dark:bg-emerald-950/20'
+                : 'border-rose-500/50 bg-rose-50/80 dark:bg-rose-950/30 animate-pulse'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-xs font-extrabold text-rose-700 dark:text-rose-300">
+                <PhoneCall className="w-4 h-4" />
+                <span>{phoneAnswered ? 'تماس تلفنی شنود شد!' : 'تلفن میز زهتاب داره زنگ می‌خوره!'}</span>
+              </div>
+              {!phoneAnswered && (
+                <button
+                  type="button"
+                  onClick={() => setPhoneAnswered(true)}
+                  className="rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold px-3.5 py-1.5 text-xs shadow"
+                >
+                  برداشتن گوشی 📞
+                </button>
+              )}
+            </div>
+            {phoneAnswered ? (
+              <p className="text-xs leading-7 text-slate-700 dark:text-slate-200">
+                صدای ناشناس پشت خط: <strong>«قراره اهریمن رو موضعی بسازیم...»</strong>
+                <br />
+                <span className="text-cyan-700 dark:text-cyan-300 font-semibold">
+                  🎧 همکار پشت بی‌سیم: یعنی دکتر ارول نمی‌خواد کل بدن رو درگیر کنه، فقط یه نقطه خاص! توی چرک‌نویسای دکتر ترکیبات رو جدا کن تا موضعی‌ها رو پیدا کنی.
+                </span>
+              </p>
+            ) : (
+              <p className="text-xs text-slate-600 dark:text-slate-300">
+                زود گوشی رو بردار و ببین کی پشت خطه!
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* گام ۳: چرک‌نویس ۹ ترکیب با ترتیب تصادفی */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
-          arrowsSolved
+          arrowsSolved && phoneAnswered
             ? 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 shadow-sm'
             : 'border-slate-200 dark:border-slate-800 opacity-60 pointer-events-none'
         }`}
@@ -306,7 +370,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Layers className="w-5 h-5 text-cyan-500" />
-            <span>معمای {toPersianDigits(2)}: تفکیک ساختارها بر اساس مسیر تجویز (سیستمیک، موضعی، استنشاقی)</span>
+            <span>گام {toPersianDigits(3)}: جداسازی چرک‌نویس ترکیبات زهتاب (سیستمیک، موضعی، استنشاقی)</span>
           </h3>
           {!routesSolved && assignedIds.length > 0 && (
             <button
@@ -320,40 +384,42 @@ export const MineralocorticoidLab: React.FC<Props> = ({
         </div>
 
         <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
-          با بررسی گروه‌های عاملی (استرهای قطبی، استونیدها، تیواسترها و فوروئات) هر یک از {toPersianDigits(9)} ساختار زیر را با <strong>Drag & Drop</strong> (یا کلیک روی کارت و سپس کلیک روی سبد مقصد) در دسته دارویی مناسب قرار دهید. برای مشاهده دقیق‌تر هر ساختار، روی آیکون بزرگ‌نمایی کلیک کنید:
+          هر کدوم از {toPersianDigits(9)} ساختار زیر رو با <strong>Drag & Drop</strong> (یا کلیک روی کارت و سپس سبد مقصد) توی دسته خودش بذار. برای دیدن جزئیات دقیق‌تر می‌تونی روی آیکون بزرگ‌نمایی کلیک کنی:
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {ROUTE_COMPOUNDS.filter((c) => !assignedIds.includes(c.id)).map((comp) => (
-            <div
-              key={comp.id}
-              draggable={!routesSolved}
-              onDragStart={(e) => e.dataTransfer.setData('text/plain', comp.id)}
-              onClick={() => setSelectedChip(selectedChip === comp.id ? null : comp.id)}
-              className={`rounded-xl transition cursor-pointer ${
-                selectedChip === comp.id
-                  ? 'ring-2 ring-cyan-500 shadow-md'
-                  : 'hover:ring-1 hover:ring-cyan-400/60'
-              }`}
-            >
-              <MoleculeStructureCard
-                smiles={comp.smiles}
-                label={comp.blindLabel}
-                revealed={routesSolved}
-                revealedName={comp.revealedName}
-                revealedNote={comp.revealedNote}
-                compact
-              />
-            </div>
-          ))}
+          {shuffledCompounds
+            .filter((c) => !assignedIds.includes(c.id))
+            .map((comp) => (
+              <div
+                key={comp.id}
+                draggable={!routesSolved}
+                onDragStart={(e) => e.dataTransfer.setData('text/plain', comp.id)}
+                onClick={() => setSelectedChip(selectedChip === comp.id ? null : comp.id)}
+                className={`rounded-xl transition cursor-pointer ${
+                  selectedChip === comp.id
+                    ? 'ring-2 ring-cyan-500 shadow-md'
+                    : 'hover:ring-1 hover:ring-cyan-400/60'
+                }`}
+              >
+                <MoleculeStructureCard
+                  smiles={comp.smiles}
+                  label={comp.blindLabel}
+                  revealed={routesSolved}
+                  revealedName={comp.revealedName}
+                  revealedNote={comp.revealedNote}
+                  compact
+                />
+              </div>
+            ))}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
           {(
             [
-              { key: 'systemic', title: 'سبد ۱: مصرف سیستمیک (خوراکی/تزریقی)', color: 'border-sky-500/40' },
-              { key: 'topical', title: 'سبد ۲: مصرف موضعی (پوستی/درماتولوژیک)', color: 'border-amber-500/40' },
-              { key: 'inhalation', title: 'سبد ۳: مصرف استنشاقی (ریوی/بینی)', color: 'border-purple-500/40' },
+              { key: 'systemic', title: 'سبد ۱: سیستمیک (خوراکی/تزریقی)', color: 'border-sky-500/40' },
+              { key: 'topical', title: 'سبد ۲: موضعی (پوستی)', color: 'border-amber-500/40' },
+              { key: 'inhalation', title: 'سبد ۳: استنشاقی (تنفسی)', color: 'border-purple-500/40' },
             ] as const
           ).map((b) => (
             <div
@@ -380,7 +446,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
                         e.stopPropagation();
                         removeFromBucket(b.key, id);
                       }}
-                      className="rounded-lg bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 p-2 text-xs text-slate-800 dark:text-slate-100 cursor-pointer hover:border-rose-400 space-y-1.5"
+                      className="rounded-lg bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 p-2 text-xs text-slate-800 dark:text-slate-100 cursor-pointer hover:border-rose-400 space-y-1"
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-bold">
@@ -399,7 +465,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
                 })}
                 {buckets[b.key].length === 0 && (
                   <div className="text-[11px] text-slate-400 pt-4 text-center">
-                    ساختارها را اینجا رها کنید
+                    ساختارها را اینجا رها کن
                   </div>
                 )}
               </div>
@@ -409,10 +475,10 @@ export const MineralocorticoidLab: React.FC<Props> = ({
 
         <ProgressiveHintBox
           solved={routesSolved}
-          disabled={!arrowsSolved}
+          disabled={!arrowsSolved || !phoneAnswered}
           hints={[
-            'ترکیبات دارای گروه‌های یونی/قطبی (فسفات، همی‌سوکسینات) یا هیدروکسیل آزاد بدون استر لیپوفیل برای مصرف سیستمیک هستند.',
-            'کتال‌های 16,17-استونید متقارن و والرات C17 (۲، ۶، ۷) موضعی‌اند؛ در حالی که تیواستر فلوئورومتیل (۳)، استال نامتقارن بوتیرآلدهید (۴) و فوروئات کلردار (۹) استنشاقی هستند.',
+            'ترکیبات دارای گروه‌های قطبی محلول در آب (فسفات، همی‌سوکسینات) یا OH آزاد بدون استر لیپوفیل سیستمیک هستند.',
+            'کتال‌های حلقوی استونید و استر والرات (۲، ۶، ۷) موضعی‌اند؛ تیواستر فلوئورومتیل (۳)، استال نامتقارن (۴) و فوروئات کلردار (۹) استنشاقی هستند.',
           ]}
         />
 
@@ -436,7 +502,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
               onClick={onBackToMap}
               className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
-              ذخیره سرنخ دوم و بازگشت به نقشه ←
+              ذخیره سرنخ دوم (اهریمن موضعی است) و بازگشت ←
             </button>
           ) : (
             <button
@@ -445,7 +511,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
               onClick={handleRouteSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
-              {routeLoading ? 'در حال بررسی دسته‌بندی...' : 'تایید دسته‌بندی و استخراج سرنخ'}
+              {routeLoading ? 'در حال بررسی...' : 'تایید دسته‌بندی و کشف سرنخ'}
             </button>
           )}
         </div>

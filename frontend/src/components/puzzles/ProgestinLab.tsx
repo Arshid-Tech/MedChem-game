@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { Shield, Lock, Unlock, CheckCircle2, AlertTriangle, Wrench } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Shield, Lock, Unlock, CheckCircle2, AlertTriangle, Wrench, FlaskRound } from 'lucide-react';
 import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
 import { SteroidSandbox } from '../molecules/SteroidSandbox';
 import { ProgressiveHintBox } from './ProgressiveHintBox';
 import { usePuzzleTimer } from '../../utils/usePuzzleTimer';
+import { deterministicShuffle } from '../../utils/shuffle';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -22,28 +23,28 @@ const PROGESTIN_STRUCTURES = [
     id: '1',
     blindLabel: 'ساختار ۱',
     revealedName: 'مژسترول استات (Megestrol Acetate)',
-    revealedNote: 'مشتق پرگنان با متیل C6 و استات C17α (کاهش عوارض آندروژنی)',
+    revealedNote: 'مشتق پرگنان با کاهش عوارض آندروژنی',
     smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C=C(C)C4=CC(=O)CC[C@]4(C)[C@H]3CC[C@@]12C',
   },
   {
     id: '2',
     blindLabel: 'ساختار ۲',
     revealedName: 'نورژستیمات (Norgestimate)',
-    revealedNote: 'مشتق ۱۹-نورآندروستان دارای اکسیم C3، اتینیل 17α و استات 17β (افزایش نیمه‌عمر و کاهش آندروژنیسیته)',
+    revealedNote: 'دارای اکسیم C3 و اتینیل 17α (افزایش نیمه‌عمر و کاهش آندروژنیسیته)',
     smiles: 'C#C[C@]1(OC(C)=O)CC[C@H]2[C@@H]3CCC4=CC(=NO)CC[C@@H]4[C@H]3CC[C@@]12CC',
   },
   {
     id: '3',
     blindLabel: 'ساختار ۳',
     revealedName: 'پیش‌داروی اکسیم-استر 6α-متیل',
-    revealedNote: 'دارای اکسیم C3، استات C17α و متیل ممانعت‌کننده در C6α (بهبود فراهمی زیستی، نیمه‌عمر و کاهش آندروژنیسیته)',
+    revealedNote: 'بهبود فراهمی زیستی، افزایش نیمه‌عمر و کاهش آندروژنیسیته',
     smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C[C@H](C)C4=CC(=NO)CC[C@]4(C)[C@H]3CC[C@@]12C',
   },
   {
     id: '4',
     blindLabel: 'ساختار ۴',
     revealedName: 'اتینودیول دی‌استات (Ethynodiol Diacetate)',
-    revealedNote: 'دارای دی‌استات 3β,17β و اتینیل 17α (افزایش فراهمی زیستی خوراکی و نیمه‌عمر)',
+    revealedNote: 'دی‌استات 3β,17β و اتینیل 17α (افزایش فراهمی زیستی و نیمه‌عمر)',
     smiles: 'C#C[C@]1(OC(C)=O)CC[C@H]2[C@@H]3CCC4=C[C@@H](OC(C)=O)CC[C@@H]4[C@H]3CC[C@@]12C',
   },
 ];
@@ -73,6 +74,11 @@ export const ProgestinLab: React.FC<Props> = ({
   const designTimer = usePuzzleTimer(codeSolved, designSolved);
   const [designFeedback, setDesignFeedback] = useState<{ ok: boolean; text: string } | null>(null);
   const [designLoading, setDesignLoading] = useState(false);
+
+  const shuffledStructures = useMemo(
+    () => deterministicShuffle(PROGESTIN_STRUCTURES, 'prog-structures-v3'),
+    []
+  );
 
   const toggleCheck = (row: keyof typeof checks, num: string) => {
     if (codeSolved) return;
@@ -119,10 +125,10 @@ export const ProgestinLab: React.FC<Props> = ({
         <div>
           <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold text-lg">
             <Shield className="w-6 h-6" />
-            <span>دپارتمان چهارم: بخش پروژستین‌ها و مشتقات ۱۹-نورآندروستان</span>
+            <span>🍼 اتاق نی‌نی کوچولو — اتاق دکتر ماریا، همسر ارول (پروژسترون)</span>
           </div>
-          <p className="text-slate-600 dark:text-slate-300 text-sm mt-1 leading-6">
-            محققان این بخش یادداشتی درباره نحوه خنثی‌سازی اثرات پروژسترونی ترکیب اهریمن در گاوصندوق رمزگذاری کرده‌اند.
+          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm mt-1 leading-6">
+            بچه دکتر ماریا و ارول به‌تازگی به دنیا اومده و ماریا مخفیانه دنبال راه فرار از دست پروژه اهریمن می‌گرده...
           </p>
         </div>
         <button
@@ -130,32 +136,31 @@ export const ProgestinLab: React.FC<Props> = ({
           onClick={onBackToMap}
           className="self-start md:self-center rounded-xl border border-slate-300 dark:border-slate-600 hover:border-cyan-500 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
         >
-          بازگشت به نقشه شرکت
+          بازگشت به نقشه کارخانه
         </button>
       </div>
 
-      {/* معمای ۱: رمزگشایی کد گاوصندوق با تحلیل ۴ ساختار واقعی */}
+      {/* گام ۱: رمز تاریخ تولد بچه */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
             {codeSolved ? <Unlock className="w-5 h-5 text-emerald-500" /> : <Lock className="w-5 h-5 text-amber-500" />}
-            <span>معمای {toPersianDigits(1)}: رمزگشایی کد دیجیتال گاوصندوق بر اساس تحلیل ساختاری</span>
+            <span>گام {toPersianDigits(1)}: رمز ورود به اتاق (تاریخ تولد بچه ماریا و ارول!)</span>
           </h3>
           <div
             dir="ltr"
-            className="font-mono text-xs bg-slate-100 dark:bg-slate-950 border border-cyan-500/40 px-3 py-1 rounded-lg text-cyan-700 dark:text-cyan-300 font-bold"
+            className="font-mono text-xs bg-slate-100 dark:bg-slate-950 border border-cyan-500/40 px-3 py-1.5 rounded-lg text-cyan-700 dark:text-cyan-300 font-bold"
           >
-            CODE: {toPersianDigits(sumDigits(checks.bioavailability))} / {toPersianDigits(sumDigits(checks.half_life))} /{' '}
-            {toPersianDigits(sumDigits(checks.low_androgen))}
+            تاریخ تولد: {toPersianDigits(202)}{toPersianDigits(sumDigits(checks.low_androgen))} / {toPersianDigits(sumDigits(checks.half_life))} / {toPersianDigits(sumDigits(checks.bioavailability))}
           </div>
         </div>
 
         <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
-          چهار ساختار زیر را بررسی کرده و برای هر ویژگی فارماکوکینتیک یا فارماکودینامیک، شماره ساختارهایی که آن ویژگی را دارند انتخاب کنید:
+          تاریخ تولد بچه‌شونو رمز ورود به اتاق گذاشتن! برای هر ویژگی، ساختارهای درست رو انتخاب کن تا جمع اعدادشون رمز تاریخ تولد رو بسازه (اعدادی که انتخاب نکنی صفر محسوب می‌شن):
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {PROGESTIN_STRUCTURES.map((s) => (
+          {shuffledStructures.map((s) => (
             <MoleculeStructureCard
               key={s.id}
               smiles={s.smiles}
@@ -170,9 +175,9 @@ export const ProgestinLab: React.FC<Props> = ({
         <div className="space-y-3">
           {(
             [
-              { key: 'bioavailability', label: '↑ افزایش فراهمی زیستی (Bioavailability)' },
-              { key: 'half_life', label: '↑ افزایش نیمه‌عمر (Half-life)' },
-              { key: 'low_androgen', label: '↓ کاهش عوارض آندروژنی (Low Androgenicity)' },
+              { key: 'bioavailability', label: '↑ افزایش فراهمی زیستی' },
+              { key: 'half_life', label: '↑ افزایش نیمه‌عمر' },
+              { key: 'low_androgen', label: '↓ کاهش اثر آندروژنی' },
             ] as const
           ).map((row) => (
             <div
@@ -207,8 +212,8 @@ export const ProgestinLab: React.FC<Props> = ({
         <ProgressiveHintBox
           solved={codeSolved}
           hints={[
-            'گروه‌های محافظت‌کننده روی C3 (اکسیم یا استر 3β) و ممانعت فضایی C6 متابولیسم عبور اول را کاهش داده و نیمه‌عمر را بالا می‌برند.',
-            'ساختارهای ۳ و ۴ بیشترین بهبود فراهمی زیستی را دارند؛ ساختارهای ۲، ۳ و ۴ نیمه‌عمر طولانی‌تر و ساختارهای ۱، ۲ و ۳ عوارض آندروژنی کمتری نشان می‌دهند.',
+            'اکسیم روی C3، استرهای محافظت‌کننده و متیل روی C6 نیمه‌عمر و پایداری را افزایش می‌دهند.',
+            'برای فراهمی زیستی ساختارهای ۳ و ۴ (جمع = ۷)، برای نیمه‌عمر ۲ و ۳ و ۴ (جمع = ۹) و برای کاهش آندروژنیسیته ۱ و ۲ و ۳ (جمع = ۶ ← سال ۲۰۲۶) درست هستند.',
           ]}
         />
 
@@ -238,13 +243,13 @@ export const ProgestinLab: React.FC<Props> = ({
               onClick={handleCodeSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-5 py-2.5 text-sm transition"
             >
-              {codeLoading ? 'در حال بررسی رمز...' : 'وارد کردن رمز گاوصندوق'}
+              {codeLoading ? 'در حال بررسی رمز...' : 'وارد کردن تاریخ تولد و ورود به اتاق'}
             </button>
           </div>
         )}
       </div>
 
-      {/* معمای ۲: طراحی تعاملی پروژستین ۱۹-نورآندروستان با SteroidSandbox */}
+      {/* گام ۲: تخته تحقیقات دکتر ماریا */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           codeSolved
@@ -254,12 +259,19 @@ export const ProgestinLab: React.FC<Props> = ({
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
           <Wrench className="w-5 h-5 text-cyan-500" />
-          <span>معمای {toPersianDigits(2)}: سنتز تعاملی پروژستین خوراکی و طولانی‌اثر (مشتق ۱۹-نورآندروستان)</span>
+          <span>گام {toPersianDigits(2)}: تخته تحقیقات دکتر ماریا</span>
         </h3>
 
-        <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
-          روی اسکلت پایه زیر، گروه‌های عاملی را تغییر دهید تا عوارض آندروژنی به حداقل برسد، فعالیت خوراکی فعال شود و نیمه‌عمر دارو افزایش یابد:
-        </p>
+        <div className="rounded-xl border border-purple-500/30 bg-purple-50/70 dark:bg-purple-950/20 p-4 text-xs text-slate-700 dark:text-slate-200 space-y-1.5">
+          <div className="font-bold text-purple-800 dark:text-purple-300">
+            روی تخته ۳ تا هدف نوشته شده که باید روی میز کار عملی کنی:
+          </div>
+          <ul className="list-disc list-inside space-y-1">
+            <li>پروژسترونی که مشتق ۱۹-نورآندروستان باشه</li>
+            <li>قابل مصرف خوراکی باشه</li>
+            <li>طول اثر افزایش‌یافته داشته باشه</li>
+          </ul>
+        </div>
 
         <SteroidSandbox
           mode="progestin_nor"
@@ -281,6 +293,19 @@ export const ProgestinLab: React.FC<Props> = ({
           </div>
         )}
 
+        {/* گام ۳ (شیشه قفسه ماریا): پس از حل تخته تحقیقات */}
+        {designSolved && (
+          <div className="rounded-2xl border border-emerald-500/40 bg-emerald-50/70 dark:bg-emerald-950/25 p-4 flex items-start gap-3">
+            <FlaskRound className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <div className="text-xs leading-6 text-slate-700 dark:text-slate-200">
+              <strong className="text-emerald-800 dark:text-emerald-300 block mb-0.5">
+                شیشه مخفی روی قفسه مواد دکتر ماریا پیدا شد!
+              </strong>
+              روی برچسب شیشه با خط ریز نوشته شده: <em>«برای فرار از خواص پروژسترونی اهریمن»</em> — پس <strong>اهریمن خاصیت پروژسترونی هم داره!</strong>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-end">
           {designSolved ? (
             <button
@@ -288,7 +313,7 @@ export const ProgestinLab: React.FC<Props> = ({
               onClick={onBackToMap}
               className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
-              ذخیره سرنخ چهارم و بازگشت به نقشه ←
+              ذخیره سرنخ چهارم (خاصیت پروژسترونی) و بازگشت ←
             </button>
           ) : (
             <button
@@ -297,7 +322,7 @@ export const ProgestinLab: React.FC<Props> = ({
               onClick={handleDesignSubmit}
               className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-6 py-2.5 text-sm transition"
             >
-              {designLoading ? 'در حال سنتز...' : 'تایید ساختار سنتزشده'}
+              {designLoading ? 'در حال بررسی ساختار...' : 'ثبت ساختار طراحی‌شده'}
             </button>
           )}
         </div>
