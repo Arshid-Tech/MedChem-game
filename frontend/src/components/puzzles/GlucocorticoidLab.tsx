@@ -14,46 +14,53 @@ import { toPersianDigits } from '../../utils/persian';
 
 interface CompoundCard {
   id: string;
-  codeName: string;
-  subtitle: string;
+  blindLabel: string;
+  revealedName: string;
+  revealedNote: string;
   props: SteroidRenderProps;
 }
 
 const COMPOUNDS: CompoundCard[] = [
   {
     id: '1',
-    codeName: 'ترکیب شماره ۱ (کورتیزون)',
-    subtitle: 'دارای گروه 11-کتو (پیش‌دارو، نیازمند احیا به 11β-OH)',
+    blindLabel: 'ترکیب شماره ۱',
+    revealedName: 'کورتیزون (Cortisone)',
+    revealedNote: 'دارای گروه 11-کتو (پیش‌دارو، نیازمند احیا به 11β-OH در کبد)',
     props: { has11BetaOH: false, has11Keto: true, hasDelta1: false, has9AlphaF: false },
   },
   {
     id: '2',
-    codeName: 'ترکیب شماره ۲ (هیدروکورتیزون)',
-    subtitle: 'دارای گروه فعال 11β-OH بدون پیوند دوگانه Δ1',
+    blindLabel: 'ترکیب شماره ۲',
+    revealedName: 'هیدروکورتیزون (Hydrocortisone)',
+    revealedNote: 'دارای گروه فعال 11β-OH بدون پیوند دوگانه Δ1 (قدرت مرجع = ۱)',
     props: { has11BetaOH: true, hasDelta1: false, has9AlphaF: false },
   },
   {
     id: '3',
-    codeName: 'ترکیب شماره ۳ (تریامسینولون)',
-    subtitle: 'دارای Δ1 + فلوئور 9α + هیدروکسیل 16α',
+    blindLabel: 'ترکیب شماره ۳',
+    revealedName: 'تریامسینولون (Triamcinolone)',
+    revealedNote: 'دارای Δ1 + فلوئور 9α + هیدروکسیل 16α (قدرت ضدالتهابی بالا بدون احتباس سدیم)',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: true, c16Sub: 'alpha-OH' },
   },
   {
     id: '4',
-    codeName: 'ترکیب شماره ۴ (متیل‌پردنیزولون)',
-    subtitle: 'دارای پیوند دوگانه Δ1 و گروه متیل 6α بدون فلوئور',
+    blindLabel: 'ترکیب شماره ۴',
+    revealedName: 'متیل‌پردنیزولون (Methylprednisolone)',
+    revealedNote: 'دارای پیوند دوگانه Δ1 و گروه متیل 6α بدون فلوئور',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: false, c6AlphaSub: 'CH3' },
   },
   {
     id: '5',
-    codeName: 'ترکیب شماره ۵ (بتامتازون / دگزامتازون)',
-    subtitle: 'دارای Δ1 + فلوئور 9α + استخلاف متیل در موقعیت C16',
+    blindLabel: 'ترکیب شماره ۵',
+    revealedName: 'بتامتازون / دگزامتازون',
+    revealedNote: 'دارای Δ1 + فلوئور 9α + استخلاف متیل در موقعیت C16 (بیشترین قدرت ضدالتهابی)',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: true, c16Sub: 'beta-CH3' },
   },
   {
     id: '6',
-    codeName: 'ترکیب شماره ۶ (پردنیزولون)',
-    subtitle: 'دارای پیوند دوگانه Δ1 (C1=C2) و گروه 11β-OH',
+    blindLabel: 'ترکیب شماره ۶',
+    revealedName: 'پردنیزولون (Prednisolone)',
+    revealedNote: 'دارای پیوند دوگانه Δ1 (C1=C2) و گروه 11β-OH (قدرت ۴ برابر کورتیزول)',
     props: { has11BetaOH: true, hasDelta1: true, has9AlphaF: false },
   },
 ];
@@ -173,7 +180,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
 
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-7">
           برای دسترسی به سیستم کامپیوتر دکتر ارول، آرایش فضایی (آلفا با پیوند خط‌چین به سمت پشت صفحه یا بتا با گوه توپر به سمت جلوی صفحه)
-          را برای سه اتم هیدروژن کلیدی در اتصالات حلقه‌های <strong>B/C</strong> و <strong>C/D</strong> (کربن‌های 8، 9 و 14) در گلوکوکورتیکوئیدهای فعال بیولوژیک تنظیم کنید:
+          را برای سه اتم هیدروژن کلیدی در اتصالات حلقه‌های <strong>B/C</strong> و <strong>C/D</strong> (کربن‌های ۸، ۹ و ۱۴) در گلوکوکورتیکوئیدهای فعال بیولوژیک تنظیم کنید:
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -246,7 +253,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* معمای ۲: مرتب‌سازی قدرت اثر SAR گلوکوکورتیکوئیدها */}
+      {/* معمای ۲: مرتب‌سازی قدرت اثر SAR گلوکوکورتیکوئیدها (بر اساس ساختار بدون نمایش نام) */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           conformationSolved
@@ -265,8 +272,7 @@ export const GlucocorticoidLab: React.FC<Props> = ({
         </div>
 
         <p className="text-sm text-slate-600 dark:text-slate-300 leading-7">
-          در ایمیل بازیابی‌شده از دکتر ارول آمده است: <em>«این ۶ مشتق کورتیکواستروئیدی را از قوی‌ترین به ضعیف‌ترین مرتب کن تا ویژگی مشترک دو ترکیب فوق‌قوی برایت آشکار شود.»</em>
-          با دکمه‌های بالا و پایین، ترتیب کارت‌ها را از <strong>قوی‌ترین (بالا)</strong> به <strong>ضعیف‌ترین (پایین)</strong> بچینید:
+          در ایمیل بازیابی‌شده از دکتر ارول آمده است: <em>«این ۶ ساختار کورتیکواستروئیدی را صرفاً با تحلیل استخلاف‌های روی حلقه‌ها از قوی‌ترین به ضعیف‌ترین مرتب کن تا ویژگی مشترک ترکیبات فوق‌قوی برایت آشکار شود.»</em>
         </p>
 
         <div className="space-y-3">
@@ -282,8 +288,23 @@ export const GlucocorticoidLab: React.FC<Props> = ({
                     {toPersianDigits(idx + 1)}
                   </div>
                   <div>
-                    <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">{comp.codeName}</div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{comp.subtitle}</div>
+                    <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                      {comp.blindLabel}
+                      {sarSolved && (
+                        <span className="mr-2 text-emerald-600 dark:text-emerald-400 font-semibold">
+                          — {comp.revealedName}
+                        </span>
+                      )}
+                    </div>
+                    {sarSolved ? (
+                      <div className="text-xs text-emerald-700 dark:text-emerald-300/90 mt-0.5">
+                        {comp.revealedNote}
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        ساختار شیمیایی را تحلیل کرده و رتبه قدرت آن را مشخص کنید
+                      </div>
+                    )}
                   </div>
                 </div>
 

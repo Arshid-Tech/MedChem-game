@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Shield, Lock, Unlock, CheckCircle2, AlertTriangle, Wrench } from 'lucide-react';
+import { MoleculeStructureCard } from '../molecules/MoleculeStructureCard';
 import { toPersianDigits } from '../../utils/persian';
 
 interface Props {
@@ -14,17 +15,41 @@ interface Props {
 }
 
 const PROGESTIN_STRUCTURES = [
-  { id: '1', name: 'ترکیب ۱ (مژسترول استات)', note: 'مشتق پرگنان با متیل C6 و استات C17α (بدون اکسیم C3)' },
-  { id: '2', name: 'ترکیب ۲ (نورژستیمات)', note: 'مشتق ۱۹-نورآندروستان دارای اکسیم C3، اتینیل 17α و استات 17β' },
-  { id: '3', name: 'ترکیب ۳ (پیش‌داروی اکسیم-استر 6α-متیل)', note: 'دارای اکسیم C3، استات C17α و متیل ممانعت‌کننده در C6α' },
-  { id: '4', name: 'ترکیب ۴ (اتینودیول دی‌استات)', note: 'دارای استرهای 3β و 17β-دی‌استات و اتینیل 17α (بدون اکسیم C3)' },
+  {
+    id: '1',
+    blindLabel: 'ساختار ۱',
+    revealedName: 'مژسترول استات (Megestrol Acetate)',
+    revealedNote: 'مشتق پرگنان با متیل C6 و استات C17α (کاهش عوارض آندروژنی)',
+    smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C=C(C)C4=CC(=O)CC[C@]4(C)[C@H]3CC[C@@]12C',
+  },
+  {
+    id: '2',
+    blindLabel: 'ساختار ۲',
+    revealedName: 'نورژستیمات (Norgestimate)',
+    revealedNote: 'مشتق ۱۹-نورآندروستان دارای اکسیم C3، اتینیل 17α و استات 17β (افزایش نیمه‌عمر و کاهش آندروژنیسیته)',
+    smiles: 'C#C[C@]1(OC(C)=O)CC[C@H]2[C@@H]3CCC4=CC(=NO)CC[C@@H]4[C@H]3CC[C@@]12CC',
+  },
+  {
+    id: '3',
+    blindLabel: 'ساختار ۳',
+    revealedName: 'پیش‌داروی اکسیم-استر 6α-متیل',
+    revealedNote: 'دارای اکسیم C3، استات C17α و متیل ممانعت‌کننده در C6α (بهبود فراهمی زیستی، نیمه‌عمر و کاهش آندروژنیسیته)',
+    smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C[C@H](C)C4=CC(=NO)CC[C@]4(C)[C@H]3CC[C@@]12C',
+  },
+  {
+    id: '4',
+    blindLabel: 'ساختار ۴',
+    revealedName: 'اتینودیول دی‌استات (Ethynodiol Diacetate)',
+    revealedNote: 'دارای دی‌استات 3β,17β و اتینیل 17α (افزایش فراهمی زیستی خوراکی و نیمه‌عمر)',
+    smiles: 'C#C[C@]1(OC(C)=O)CC[C@H]2[C@@H]3CCC4=C[C@@H](OC(C)=O)CC[C@@H]4[C@H]3CC[C@@]12C',
+  },
 ];
 
 const DESIGN_MODIFICATIONS = [
   {
     id: 'remove_c19_methyl',
     title: 'حذف گروه متیل زاویه‌ای C19 (تبدیل به اسکلت ۱۹-نورآندروستان)',
-    effect: 'کاهش شدید خواص آندروژنی و تقویت انتخاب‌پذیری گیرنده پروژسترون',
+    effect: 'کاهش خواص آندروژنی و تقویت انتخاب‌پذیری گیرنده پروژسترون',
   },
   {
     id: 'c17_alpha_ethynyl',
@@ -38,8 +63,8 @@ const DESIGN_MODIFICATIONS = [
   },
   {
     id: 'aromatize_ring_a',
-    title: 'آروماتیک کردن حلقه A مشابه استروژن‌ها',
-    effect: 'ایجاد پیوند هیدروژنی فنولیک با Glu 353 و Arg 394',
+    title: 'آروماتیک کردن حلقه A با هیدروکسیل فنولیک C3',
+    effect: 'ایجاد پیوند هیدروژنی فنولیک با آمینواسیدهای قطبی گیرنده',
   },
 ];
 
@@ -134,12 +159,12 @@ export const ProgestinLab: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* معمای ۱: رمزگشایی کد گاوصندوق */}
+      {/* معمای ۱: رمزگشایی کد گاوصندوق با تحلیل ۴ ساختار واقعی */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-2">
             {codeSolved ? <Unlock className="w-5 h-5 text-emerald-500" /> : <Lock className="w-5 h-5 text-amber-500" />}
-            <span>معمای {toPersianDigits(1)}: رمزگشایی کد دیجیتال گاوصندوق بر اساس ویژگی‌های فارماکوکینتیک</span>
+            <span>معمای {toPersianDigits(1)}: رمزگشایی کد دیجیتال گاوصندوق بر اساس تحلیل ساختاری</span>
           </h3>
           <div
             dir="ltr"
@@ -150,12 +175,20 @@ export const ProgestinLab: React.FC<Props> = ({
           </div>
         </div>
 
+        <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
+          چهار ساختار زیر را بررسی کرده و برای هر ویژگی فارماکوکینتیک یا فارماکودینامیک، شماره ساختارهایی که آن ویژگی را دارند انتخاب کنید:
+        </p>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {PROGESTIN_STRUCTURES.map((s) => (
-            <div key={s.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-3">
-              <div className="font-bold text-xs text-cyan-700 dark:text-cyan-300">{s.name}</div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{s.note}</div>
-            </div>
+            <MoleculeStructureCard
+              key={s.id}
+              smiles={s.smiles}
+              label={s.blindLabel}
+              revealed={codeSolved}
+              revealedName={s.revealedName}
+              revealedNote={s.revealedNote}
+            />
           ))}
         </div>
 
