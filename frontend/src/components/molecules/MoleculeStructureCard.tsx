@@ -16,10 +16,39 @@ export interface MoleculeStructureCardProps {
 }
 
 /**
- * رندر ۲بعدی استاندارد و باکیفیت ساختارهای شیمیایی از روی رشته SMILES (با OpenChemLib).
- * پیش از حل معما (revealed=false) تنها شماره/کد ترکیب و تصویر ساختار نمایش داده می‌شود
- * تا نام دارو یا نکته علمی، پاسخ معما را لو ندهد.
+ * Overrides OpenChemLib default SVG styles to match the Tactile Lab Workbook palette:
+ * - Transparent background
+ * - Carbon bonds: 2px thick in #18181B
+ * - Heteroatoms: #E11D48 (Oxygen), #2563EB (Nitrogen), #0D9488 (Halogens)
  */
+function styleChemistrySvg(rawSvg: string): string {
+  return rawSvg
+    // Ensure transparent background
+    .replace(/background-color:[^;"]+;?/gi, '')
+    // Carbon bonds & black strokes -> #18181B at 2px
+    .replace(/stroke="rgb\(0,0,0\)"/gi, 'stroke="#18181B"')
+    .replace(/stroke="#000000"/gi, 'stroke="#18181B"')
+    .replace(/stroke="black"/gi, 'stroke="#18181B"')
+    .replace(/fill="rgb\(0,0,0\)"/gi, 'fill="#18181B"')
+    .replace(/fill="#000000"/gi, 'fill="#18181B"')
+    .replace(/stroke-width="[0-9.]+"/gi, 'stroke-width="2"')
+    // Oxygen (red) -> #E11D48
+    .replace(/rgb\(255,0,0\)/gi, '#E11D48')
+    .replace(/rgb\(160,0,0\)/gi, '#E11D48')
+    .replace(/#ff0000/gi, '#E11D48')
+    // Nitrogen (blue) -> #2563EB
+    .replace(/rgb\(0,0,255\)/gi, '#2563EB')
+    .replace(/rgb\(0,0,160\)/gi, '#2563EB')
+    .replace(/#0000ff/gi, '#2563EB')
+    // Halogens (green/teal) -> #0D9488
+    .replace(/rgb\(0,128,0\)/gi, '#0D9488')
+    .replace(/rgb\(0,160,0\)/gi, '#0D9488')
+    .replace(/rgb\(0,255,0\)/gi, '#0D9488')
+    .replace(/#008000/gi, '#0D9488')
+    // Monospace font for atom labels
+    .replace(/font-family="[^"]*"/gi, 'font-family="JetBrains Mono, monospace"');
+}
+
 export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
   smiles,
   label,
@@ -37,15 +66,16 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
   const svgMarkup = useMemo(() => {
     try {
       const mol = Molecule.fromSmiles(smiles);
-      return mol.toSVG(width, height, undefined, {
+      const raw = mol.toSVG(width, height, undefined, {
         suppressChiralText: true,
         suppressCIPParity: true,
         suppressESR: true,
         noStereoProblem: true,
         autoCrop: true,
         autoCropMargin: 10,
-        factorTextSize: 1.15,
+        factorTextSize: 1.18,
       });
+      return styleChemistrySvg(raw);
     } catch {
       return null;
     }
@@ -55,15 +85,16 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
     if (!zoomed) return null;
     try {
       const mol = Molecule.fromSmiles(smiles);
-      return mol.toSVG(640, 380, undefined, {
+      const raw = mol.toSVG(640, 380, undefined, {
         suppressChiralText: true,
         suppressCIPParity: true,
         suppressESR: true,
         noStereoProblem: true,
         autoCrop: true,
         autoCropMargin: 14,
-        factorTextSize: 1.2,
+        factorTextSize: 1.25,
       });
+      return styleChemistrySvg(raw);
     } catch {
       return null;
     }
@@ -72,10 +103,10 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
   return (
     <>
       <div
-        className={`flex flex-col rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 overflow-hidden ${className}`}
+        className={`flex flex-col rounded-[8px] border-2 border-[#18181B] bg-[#FFFFFF] shadow-[3px_3px_0px_#18181B] overflow-hidden ${className}`}
       >
-        <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900">
-          <span className="text-xs font-bold text-cyan-700 dark:text-cyan-300">{label}</span>
+        <div className="flex items-center justify-between px-3 py-1.5 border-b-2 border-[#18181B] bg-[#EFECE6]">
+          <span className="text-xs font-bold text-[#18181B] font-heading">{label}</span>
           {showZoom && svgMarkup && (
             <button
               type="button"
@@ -85,7 +116,7 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
               }}
               title="بزرگ‌نمایی ساختار شیمیایی"
               aria-label={`بزرگ‌نمایی ${label}`}
-              className="p-1 rounded-md text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition"
+              className="p-1 rounded-[6px] border border-[#18181B] bg-[#FFFFFF] text-[#18181B] hover:bg-[#0D9488] hover:text-white transition"
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
@@ -94,32 +125,28 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
 
         <div
           dir="ltr"
-          className={`flex items-center justify-center bg-white p-2 ${
+          className={`flex items-center justify-center molecule-dot-grid p-2 ${
             compact ? 'min-h-[108px]' : 'min-h-[145px]'
           }`}
         >
           {svgMarkup ? (
             <div
-              className="w-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:h-auto"
+              className="w-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:bg-transparent"
               style={{ maxHeight: compact ? 115 : 165 }}
               dangerouslySetInnerHTML={{ __html: svgMarkup }}
             />
           ) : (
-            <span className="text-[11px] font-mono text-slate-400">ساختار در دسترس نیست</span>
+            <span className="text-[11px] font-mono text-[#52525B]">ساختار در دسترس نیست</span>
           )}
         </div>
 
         {revealed && (revealedName || revealedNote) && (
-          <div className="px-3 py-2 border-t border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-950/30 text-right space-y-0.5">
+          <div className="px-3 py-2 border-t-2 border-[#18181B] bg-[#EFECE6] text-right space-y-0.5">
             {revealedName && (
-              <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                {revealedName}
-              </div>
+              <div className="text-xs font-extrabold text-[#16A34A]">{revealedName}</div>
             )}
             {revealedNote && (
-              <div className="text-[11px] text-slate-600 dark:text-slate-300 leading-5">
-                {revealedNote}
-              </div>
+              <div className="text-[11px] text-[#52525B] leading-5">{revealedNote}</div>
             )}
           </div>
         )}
@@ -130,14 +157,14 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label={`نمای بزرگ ${label}`}
-          className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[110] bg-[#18181B]/70 flex items-center justify-center p-4"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setZoomed(false);
           }}
         >
-          <div className="w-full max-w-2xl rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0d1b2e] overflow-hidden shadow-2xl">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="font-bold text-sm text-slate-900 dark:text-white">
+          <div className="w-full max-w-2xl lab-card overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b-2 border-[#18181B] bg-[#EFECE6]">
+              <div className="font-heading font-bold text-sm text-[#18181B]">
                 {label}
                 {revealed && revealedName ? ` — ${revealedName}` : ''}
               </div>
@@ -145,18 +172,18 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
                 type="button"
                 onClick={() => setZoomed(false)}
                 aria-label="بستن بزرگ‌نمایی"
-                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                className="btn-tactile btn-tactile-surface p-1.5"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             <div
               dir="ltr"
-              className="bg-white p-6 flex items-center justify-center [&>svg]:max-w-full [&>svg]:h-auto"
+              className="molecule-dot-grid p-6 flex items-center justify-center [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:bg-transparent"
               dangerouslySetInnerHTML={{ __html: zoomedSvgMarkup }}
             />
             {revealed && revealedNote && (
-              <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/70">
+              <div className="px-5 py-3 border-t-2 border-[#18181B] text-xs text-[#18181B] bg-[#EFECE6]">
                 {revealedNote}
               </div>
             )}

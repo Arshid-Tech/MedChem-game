@@ -44,14 +44,13 @@ export interface SandboxState {
   C21: 'none' | 'OH' | 'ester' | 'phosphate';
 }
 
-type ToolCategory = 'rings' | 'groups' | 'chains' | 'edit';
+type ToolCategory = 'groups' | 'rings' | 'chains' | 'edit';
 
 interface UniversalTool {
   id: string;
   label: string;
   formula: string;
   category: ToolCategory;
-  color: string;
   apply: (state: SandboxState, spot: HotspotId) => { next?: SandboxState; error?: string };
 }
 
@@ -60,6 +59,8 @@ interface MeterSpec {
   value: number;
   displayValue: string;
   colorClass: string;
+  targetMin?: number;
+  targetMax?: number;
 }
 
 interface Props {
@@ -159,13 +160,11 @@ const SOLVED_STATES: Record<SandboxMode, SandboxState> = {
 };
 
 const UNIVERSAL_TOOLS: UniversalTool[] = [
-  // حلقه‌ها و پیوندها
   {
     id: 'delta14',
     label: 'پیوند دوگانه Δ1',
     formula: 'C1=C2',
     category: 'rings',
-    color: 'border-emerald-500/60 text-emerald-700 dark:text-emerald-300',
     apply: (s, spot) =>
       spot === 'ringA'
         ? { next: { ...s, ringA: 'delta14' } }
@@ -176,7 +175,6 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'حلقه Δ4 ساده',
     formula: 'C4=C5',
     category: 'rings',
-    color: 'border-sky-500/60 text-sky-700 dark:text-sky-300',
     apply: (s, spot) =>
       spot === 'ringA'
         ? { next: { ...s, ringA: 'delta4' } }
@@ -187,19 +185,16 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'آروماتیک کردن حلقه A',
     formula: 'Aromatic',
     category: 'rings',
-    color: 'border-purple-500/60 text-purple-700 dark:text-purple-300',
     apply: (s, spot) =>
       spot === 'ringA'
         ? { next: { ...s, ringA: 'aromatic', C19: 'H', C3: s.C3 === '=O' ? 'OH' : s.C3 } }
         : { error: 'آروماتیک کردن فقط روی حلقه A امکان‌پذیر است.' },
   },
-  // گروه‌های عاملی و استخلاف‌ها
   {
     id: 'fluorine',
     label: 'اتم فلوئور',
     formula: '-F',
     category: 'groups',
-    color: 'border-cyan-500/60 text-cyan-700 dark:text-cyan-300',
     apply: (s, spot) => {
       if (spot === 'C9') return { next: { ...s, C9: 'F', C9Stereo: 'alpha' } };
       if (spot === 'C6') return { next: { ...s, C6: 'F', C6Stereo: 'alpha' } };
@@ -211,7 +206,6 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'گروه متیل',
     formula: '-CH3',
     category: 'groups',
-    color: 'border-amber-500/60 text-amber-700 dark:text-amber-300',
     apply: (s, spot) => {
       if (spot === 'C6') return { next: { ...s, C6: 'CH3', C6Stereo: 'alpha' } };
       if (spot === 'C16') return { next: { ...s, C16: 'CH3' } };
@@ -224,7 +218,6 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'هیدروکسیل',
     formula: '-OH',
     category: 'groups',
-    color: 'border-emerald-500/60 text-emerald-700 dark:text-emerald-300',
     apply: (s, spot) => {
       if (spot === 'C3') return { next: { ...s, C3: 'OH' } };
       if (spot === 'C11') return { next: { ...s, C11: 'OH', C11Stereo: 'beta' } };
@@ -240,7 +233,6 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'گروه کتون',
     formula: '=O',
     category: 'groups',
-    color: 'border-rose-500/60 text-rose-700 dark:text-rose-300',
     apply: (s, spot) => {
       if (spot === 'C3') return { next: { ...s, C3: '=O' } };
       if (spot === 'C11') return { next: { ...s, C11: '=O' } };
@@ -249,10 +241,9 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
   },
   {
     id: 'methoxy',
-    label: 'متیل اتر (متیلاسیون)',
+    label: 'متیل اتر',
     formula: '-OCH3',
     category: 'groups',
-    color: 'border-teal-500/60 text-teal-700 dark:text-teal-300',
     apply: (s, spot) =>
       spot === 'C3'
         ? { next: { ...s, C3: 'OCH3' } }
@@ -263,7 +254,6 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'گروه اکسیم',
     formula: '=N-OH',
     category: 'groups',
-    color: 'border-amber-500/60 text-amber-700 dark:text-amber-300',
     apply: (s, spot) =>
       spot === 'C3'
         ? { next: { ...s, C3: '=N-OH' } }
@@ -274,7 +264,6 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'گروه اتینیل',
     formula: '-C≡CH',
     category: 'groups',
-    color: 'border-cyan-500/60 text-cyan-700 dark:text-cyan-300',
     apply: (s, spot) =>
       spot === 'C17a'
         ? { next: { ...s, C17a: 'ethynyl' } }
@@ -285,19 +274,16 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'گروه سیانید',
     formula: '-C≡N',
     category: 'groups',
-    color: 'border-rose-500/60 text-rose-700 dark:text-rose-300',
     apply: (s, spot) =>
       spot === 'C16'
         ? { next: { ...s, C16: 'CN' } }
         : { error: 'گروه سیانید را می‌توانید روی موقعیت C16 آزمایش کنید.' },
   },
-  // زنجیره‌ها و گروه‌های حجیم
   {
     id: 'aryl',
     label: 'آریل حجیم آنتاگونیست',
     formula: 'Ar-NMe2',
     category: 'chains',
-    color: 'border-emerald-500/60 text-emerald-700 dark:text-emerald-300',
     apply: (s, spot) =>
       spot === 'C11'
         ? { next: { ...s, C11: 'aryl', C11Stereo: 'beta' } }
@@ -308,7 +294,6 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'زنجیره کتول C17β',
     formula: '-CO-CH2OH',
     category: 'chains',
-    color: 'border-sky-500/60 text-sky-700 dark:text-sky-300',
     apply: (s, spot) =>
       spot === 'C17b' || spot === 'C21'
         ? { next: { ...s, C17b: 'ketol', C21: 'OH' } }
@@ -319,7 +304,6 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'استر لیپوفیل (موضعی)',
     formula: '-OCOR',
     category: 'chains',
-    color: 'border-amber-500/60 text-amber-700 dark:text-amber-300',
     apply: (s, spot) =>
       spot === 'C21' || spot === 'C17b'
         ? { next: { ...s, C17b: 'ketol', C21: 'ester' } }
@@ -330,19 +314,16 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     label: 'فسفات قطبی (تزریقی)',
     formula: '-PO4',
     category: 'chains',
-    color: 'border-sky-500/60 text-sky-700 dark:text-sky-300',
     apply: (s, spot) =>
       spot === 'C21' || spot === 'C17b'
         ? { next: { ...s, C17b: 'ketol', C21: 'phosphate' } }
         : { error: 'گروه فسفات محلول در آب روی موقعیت C21 قرار می‌گیرد.' },
   },
-  // ابزارهای ویرایش آزاد
   {
     id: 'flip_stereo',
-    label: 'تغییر آرایش فضایی (α ⇄ β)',
-    formula: 'α / β',
+    label: 'تغییر فضایی (α ⇄ β)',
+    formula: 'α/β',
     category: 'edit',
-    color: 'border-fuchsia-500/60 text-fuchsia-700 dark:text-fuchsia-300',
     apply: (s, spot) => {
       if (spot === 'C16' && s.C16 !== 'H') {
         return { next: { ...s, C16Stereo: s.C16Stereo === 'alpha' ? 'beta' : 'alpha' } };
@@ -361,10 +342,9 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
   },
   {
     id: 'eraser',
-    label: 'پاک‌کن (حذف گروه / تبدیل به H)',
-    formula: 'حذف',
+    label: 'پاک‌کن (حذف گروه)',
+    formula: 'DEL',
     category: 'edit',
-    color: 'border-rose-500/70 text-rose-700 dark:text-rose-300',
     apply: (s, spot) => {
       if (spot === 'C6') return { next: { ...s, C6: 'H' } };
       if (spot === 'C9') return { next: { ...s, C9: 'H' } };
@@ -402,34 +382,34 @@ function computeTokens(mode: SandboxMode, s: SandboxState): string[] {
 
 function identifyDrug(s: SandboxState): string | null {
   if (s.ringA === 'aromatic' && s.C17b === 'OH') {
-    if (s.C3 === 'OH' && s.C17a === 'H') return '17β-استرادیول (Estradiol)';
-    if (s.C3 === 'OH' && s.C17a === 'ethynyl') return 'اتینیل استرادیول (خوراکی)';
-    if (s.C3 === 'OCH3' && s.C17a === 'ethynyl') return 'مسترانول (خوراکی طولانی‌اثر)';
+    if (s.C3 === 'OH' && s.C17a === 'H') return '17β-Estradiol';
+    if (s.C3 === 'OH' && s.C17a === 'ethynyl') return 'Ethinyl Estradiol (Oral)';
+    if (s.C3 === 'OCH3' && s.C17a === 'ethynyl') return 'Mestranol (Oral Long-Acting)';
   }
   if (s.ringA === 'delta4' && s.C19 === 'H' && s.C17a === 'ethynyl' && s.C17b === 'OH') {
-    if (s.C3 === '=N-OH') return 'نورژستیمات-مانند (پروژستین خوراکی طولانی‌اثر)';
-    if (s.C3 === '=O') return 'نورتیندرون (۱۹-نورپروژستین خوراکی)';
+    if (s.C3 === '=N-OH') return 'Norgestimate-like (19-Nor Progestin)';
+    if (s.C3 === '=O') return 'Norethindrone (Oral 19-Nor)';
   }
   if (s.C11 === 'aryl' && s.C9 === 'H' && s.C16 === 'H') {
-    return 'آنتاگونیست 11β-آریل (مشابه میفپریستون — پادزهر)';
+    return '11β-Aryl Antagonist (Antidote)';
   }
   if (s.C17b === 'ketol' && s.C19 === 'CH3') {
     if (s.ringA === 'delta4' && s.C9 === 'H' && s.C6 === 'H' && s.C16 === 'H') {
-      if (s.C11 === 'OH' && s.C11Stereo === 'beta') return 'هیدروکورتیزون (مرجع ۱×)';
-      if (s.C11 === '=O') return 'کورتیزون (پیش‌دارو)';
+      if (s.C11 === 'OH' && s.C11Stereo === 'beta') return 'Hydrocortisone (1× Ref)';
+      if (s.C11 === '=O') return 'Cortisone (Prodrug)';
     }
     if (s.ringA === 'delta4' && s.C9 === 'F' && s.C6 === 'H' && s.C16 === 'H' && s.C11 === 'OH') {
-      return 'فلودروکورتیزون (مینرالوکورتیکوئید فوق‌قوی)';
+      return 'Fludrocortisone (High MC)';
     }
     if (s.ringA === 'delta14' && s.C9 === 'H' && s.C11 === 'OH' && s.C16 === 'H') {
-      if (s.C6 === 'H') return 'پردنیزولون (ضدالتهاب ۴×)';
-      if (s.C6 === 'CH3') return 'متیل‌پردنیزولون (ضدالتهاب ۵×)';
+      if (s.C6 === 'H') return 'Prednisolone (4×)';
+      if (s.C6 === 'CH3') return 'Methylprednisolone (5×)';
     }
     if (s.ringA === 'delta14' && s.C9 === 'F' && s.C11 === 'OH') {
-      if (s.C16 === 'OH' && s.C6 === 'H') return 'تریامسینولون (بدون احتباس سدیم)';
-      if (s.C16 === 'OH' && s.C6 === 'F') return 'فلوسینولون (موضعی قوی)';
-      if (s.C16 === 'CH3' && s.C16Stereo === 'alpha' && s.C6 === 'H') return 'دگزامتازون (۲۵ تا ۳۰×)';
-      if (s.C16 === 'CH3' && s.C16Stereo === 'beta' && s.C6 === 'H') return 'بتامتازون (۲۵ تا ۳۰×)';
+      if (s.C16 === 'OH' && s.C6 === 'H') return 'Triamcinolone (Zero MC)';
+      if (s.C16 === 'OH' && s.C6 === 'F') return 'Fluocinolone (Topical)';
+      if (s.C16 === 'CH3' && s.C16Stereo === 'alpha' && s.C6 === 'H') return 'Dexamethasone (25–30×)';
+      if (s.C16 === 'CH3' && s.C16Stereo === 'beta' && s.C6 === 'H') return 'Betamethasone (25–30×)';
     }
   }
   return null;
@@ -450,9 +430,9 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
     }
     return {
       meters: [
-        { label: 'فراهمی زیستی خوراکی', value: oral, displayValue: `${toPersianDigits(oral)}٪`, colorClass: oral > 70 ? 'bg-emerald-500' : 'bg-amber-500' },
-        { label: 'طول اثر و نیمه‌عمر', value: halfLife, displayValue: `${toPersianDigits(halfLife)}٪`, colorClass: halfLife > 75 ? 'bg-cyan-500' : 'bg-sky-500' },
-        { label: 'اتصال به گیرنده استروژن', value: binding, displayValue: `${toPersianDigits(binding)}٪`, colorClass: binding < 40 ? 'bg-rose-500' : 'bg-emerald-500' },
+        { label: 'Oral Bioavailability', value: oral, displayValue: `${oral}%`, colorClass: oral > 70 ? 'bg-[#16A34A]' : 'bg-[#F59E0B]', targetMin: 75 },
+        { label: 'Half-Life / Duration', value: halfLife, displayValue: `${halfLife}%`, colorClass: halfLife > 75 ? 'bg-[#0D9488]' : 'bg-[#F59E0B]', targetMin: 80 },
+        { label: 'ERα Binding Affinity', value: binding, displayValue: `${binding}%`, colorClass: binding < 40 ? 'bg-[#E11D48]' : 'bg-[#16A34A]', targetMin: 70 },
       ],
       insight,
     };
@@ -474,10 +454,10 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
     }
     return {
       meters: [
-        { label: 'اثر پروژسترونی', value: progestin, displayValue: `${toPersianDigits(progestin)}٪`, colorClass: progestin > 75 ? 'bg-emerald-500' : 'bg-amber-500' },
-        { label: 'مصرف خوراکی', value: oral, displayValue: `${toPersianDigits(oral)}٪`, colorClass: oral > 70 ? 'bg-cyan-500' : 'bg-amber-500' },
-        { label: 'طول اثر', value: halfLife, displayValue: `${toPersianDigits(halfLife)}٪`, colorClass: halfLife > 70 ? 'bg-sky-500' : 'bg-slate-400' },
-        { label: 'عوارض آندروژنی (هدف: کمینه)', value: androgenic, displayValue: `${toPersianDigits(androgenic)}٪`, colorClass: androgenic > 50 ? 'bg-rose-500' : 'bg-emerald-500' },
+        { label: 'PR Selectivity', value: progestin, displayValue: `${progestin}%`, colorClass: progestin > 75 ? 'bg-[#16A34A]' : 'bg-[#F59E0B]', targetMin: 80 },
+        { label: 'Oral Activity', value: oral, displayValue: `${oral}%`, colorClass: oral > 70 ? 'bg-[#0D9488]' : 'bg-[#F59E0B]', targetMin: 75 },
+        { label: 'Half-Life', value: halfLife, displayValue: `${halfLife}%`, colorClass: halfLife > 70 ? 'bg-[#0D9488]' : 'bg-[#52525B]', targetMin: 75 },
+        { label: 'Androgenicity (Low)', value: androgenic, displayValue: `${androgenic}%`, colorClass: androgenic > 50 ? 'bg-[#E11D48]' : 'bg-[#16A34A]', targetMax: 30 },
       ],
       insight,
     };
@@ -503,15 +483,14 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
     }
     return {
       meters: [
-        { label: 'شاخص سمیت اهریمن (هدف: ۰٪)', value: toxicity, displayValue: `${toPersianDigits(toxicity)}٪`, colorClass: toxicity === 0 ? 'bg-emerald-500' : 'bg-rose-500' },
-        { label: 'قدرت آنتاگونیستی (پادزهر)', value: antagonism, displayValue: `${toPersianDigits(antagonism)}٪`, colorClass: antagonism > 80 ? 'bg-emerald-500' : 'bg-amber-500' },
-        { label: 'قطبیت و دفع کلیوی', value: clearance, displayValue: `${toPersianDigits(clearance)}٪`, colorClass: clearance > 75 ? 'bg-cyan-500' : 'bg-amber-500' },
+        { label: 'Toxicity Index', value: toxicity, displayValue: `${toxicity}%`, colorClass: toxicity === 0 ? 'bg-[#16A34A]' : 'bg-[#E11D48]', targetMax: 10 },
+        { label: 'GR Antagonism', value: antagonism, displayValue: `${antagonism}%`, colorClass: antagonism > 80 ? 'bg-[#16A34A]' : 'bg-[#F59E0B]', targetMin: 85 },
+        { label: 'Renal Clearance', value: clearance, displayValue: `${clearance}%`, colorClass: clearance > 75 ? 'bg-[#0D9488]' : 'bg-[#F59E0B]', targetMin: 80 },
       ],
       insight,
     };
   }
 
-  // حالت آزاد کامل (Free-Play Universal SAR Bench)
   let gc = 1.0;
   if (s.C11 === '=O') gc *= 0.8;
   if (s.C11 === 'H' || s.C11 === 'aryl') gc *= 0.1;
@@ -567,10 +546,10 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
 
   return {
     meters: [
-      { label: 'قدرت ضدالتهابی (نسبت به کورتیزول)', value: gcPercent, displayValue: `${toPersianDigits(gcRounded)}×`, colorClass: 'bg-emerald-500' },
-      { label: 'احتباس آب و نمک (مینرالوکورتیکوئید)', value: mcPercent, displayValue: mc === 0 ? '۰× (ناچیز)' : `${toPersianDigits(Math.round(mc * 10) / 10)}×`, colorClass: mc > 5 ? 'bg-rose-500' : 'bg-cyan-500' },
-      { label: 'نیمه‌عمر بیولوژیک تخمینی', value: hlPercent, displayValue: `~${toPersianDigits(halfLifeHours)} ساعت`, colorClass: 'bg-sky-500' },
-      { label: 'چربی‌دوستی تخمینی (LogP)', value: logPPercent, displayValue: toPersianDigits(logP.toFixed(1)), colorClass: 'bg-amber-500' },
+      { label: 'GC Potency', value: gcPercent, displayValue: `${gcRounded}x`, colorClass: 'bg-[#16A34A]', targetMin: 60 },
+      { label: 'MC Activity', value: mcPercent, displayValue: mc === 0 ? '0.0x' : `${Math.round(mc * 10) / 10}x`, colorClass: mc > 5 ? 'bg-[#E11D48]' : 'bg-[#0D9488]', targetMax: 15 },
+      { label: 'Half-Life (t½)', value: hlPercent, displayValue: `${halfLifeHours}h`, colorClass: 'bg-[#0D9488]', targetMin: 50 },
+      { label: 'cLogP', value: logPPercent, displayValue: logP.toFixed(1), colorClass: 'bg-[#F59E0B]', targetMin: 40, targetMax: 75 },
     ],
     insight,
   };
@@ -628,7 +607,7 @@ export const SteroidSandbox: React.FC<Props> = ({
           if (selectedTool) {
             applyToolToSpot(selectedTool, spot);
           } else {
-            setToolNotice(`ابتدا یک گروه یا ابزار (مثل پاک‌کن یا α/β) از جعبه‌ابزار بالا انتخاب کن و بعد روی ${label} کلیک کن یا آن را اینجا بکش.`);
+            setToolNotice(`ابتدا یک گروه یا ابزار (مثل پاک‌کن یا α/β) از پنل کنترل انتخاب کن و سپس روی ${label} کلیک کن.`);
           }
         }}
         onDragOver={(e) => {
@@ -643,26 +622,27 @@ export const SteroidSandbox: React.FC<Props> = ({
           const tool = UNIVERSAL_TOOLS.find((t) => t.id === tid);
           if (tool) applyToolToSpot(tool, spot);
         }}
-        className="cursor-pointer group"
+        className="cursor-pointer"
       >
+        {/* Empty functional group attachment slot: 2px dashed #71717A */}
         <circle
           cx={cx}
           cy={cy}
-          r={isHovered ? 16 : 12}
-          fill={isHovered ? 'rgba(34,211,238,0.38)' : 'rgba(56,189,248,0.14)'}
-          stroke={isHovered ? '#22d3ee' : '#38bdf8'}
-          strokeWidth={isHovered ? 2.5 : 1.3}
-          strokeDasharray="3,2"
+          r={isHovered ? 16 : 13}
+          fill={isHovered ? 'rgba(13, 148, 136, 0.22)' : 'rgba(255, 255, 255, 0.82)'}
+          stroke={isHovered ? '#0D9488' : '#71717A'}
+          strokeWidth="2"
+          strokeDasharray="4,3"
         />
         <text
           x={cx}
           y={cy + 3}
           textAnchor="middle"
-          fill="#bae6fd"
+          fill="#18181B"
           fontSize="7.5"
           fontWeight="bold"
-          fontFamily="monospace"
-          className="pointer-events-none select-none opacity-80"
+          fontFamily="JetBrains Mono, monospace"
+          className="pointer-events-none select-none"
         >
           {spot === 'ringA' ? 'A' : spot}
         </text>
@@ -674,350 +654,311 @@ export const SteroidSandbox: React.FC<Props> = ({
   const visibleTools = UNIVERSAL_TOOLS.filter((t) => t.category === activeCategory);
 
   return (
-    <div className="rounded-2xl border border-cyan-500/30 bg-slate-50/80 dark:bg-[#07111f] p-4 sm:p-5 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-cyan-700 dark:text-cyan-300">
-          <FlaskConical className="w-4 h-4 shrink-0" />
-          <span>میز کار آزاد مولکول‌سازی و تحلیل زنده SAR</span>
+    <div className="lab-card-cream p-4 sm:p-5 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b-2 border-[#18181B]">
+        <div className="flex items-center gap-2 text-xs sm:text-sm font-heading font-bold text-[#18181B]">
+          <FlaskConical className="w-4 h-4 text-[#0D9488] shrink-0" />
+          <span>میز کار تعاملی سنتز و تحلیل زنده SAR</span>
         </div>
         {!isLocked && (
           <button
             type="button"
             onClick={handleReset}
-            className="text-xs text-slate-500 hover:text-rose-500 flex items-center gap-1"
+            className="btn-tactile btn-tactile-surface px-3 py-1 text-xs"
           >
             <RotateCcw className="w-3.5 h-3.5" /> بازنشانی ساختار
           </button>
         )}
       </div>
 
-      {/* جعبه‌ابزار جامع شیمی دارویی (یکسان و آزاد در همه صفحات) */}
-      {!isLocked && (
-        <div className="space-y-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-3">
-          <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-2">
-            {(
-              [
-                { id: 'groups', label: 'گروه‌های عاملی' },
-                { id: 'rings', label: 'حلقه‌ها و پیوندها' },
-                { id: 'chains', label: 'زنجیره و استر' },
-                { id: 'edit', label: 'پاک‌کن و α/β' },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveCategory(tab.id)}
-                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition ${
-                  activeCategory === tab.id
-                    ? 'bg-cyan-500 text-slate-950'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-cyan-600'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {visibleTools.map((tool) => {
-              const isSelected = selectedToolId === tool.id;
-              return (
-                <div
-                  key={tool.id}
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('text/plain', tool.id);
-                    setSelectedToolId(tool.id);
-                  }}
-                  onClick={() => setSelectedToolId(isSelected ? null : tool.id)}
-                  className={`rounded-xl border px-3 py-1.5 text-xs cursor-grab active:cursor-grabbing transition select-none flex items-center gap-2 ${
-                    isSelected
-                      ? 'border-cyan-400 bg-cyan-500/20 ring-2 ring-cyan-400/50 font-bold text-cyan-900 dark:text-cyan-100'
-                      : `${tool.color} bg-slate-50 dark:bg-slate-950 hover:border-cyan-400`
-                  }`}
-                >
-                  {tool.id === 'eraser' && <Eraser className="w-3.5 h-3.5" />}
-                  {tool.id === 'flip_stereo' && <FlipHorizontal2 className="w-3.5 h-3.5" />}
-                  <span>{tool.label}</span>
-                  <span dir="ltr" className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                    {tool.formula}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {selectedTool && (
-            <div className="text-[11px] text-cyan-700 dark:text-cyan-300 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                ابزار «{selectedTool.label}» فعال است — روی یکی از کربن‌های مشخص‌شده (دایره‌های آبی روی اسکلت) کلیک کن یا ابزار را روی آن بکش.
+      {/* 65/35 Split on Desktop, Stacked on Mobile */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)] gap-4 items-start">
+        {/* Primary Workspace (65%): Molecule Canvas on 20px dot-grid */}
+        <div className="space-y-3">
+          <div className="rounded-[8px] border-2 border-[#18181B] molecule-dot-grid p-4 flex flex-col items-center shadow-[3px_3px_0px_#18181B]">
+            <div className="w-full flex flex-wrap items-center justify-between gap-2 mb-2">
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-[6px] border border-[#18181B] bg-[#EFECE6] text-[#18181B]">
+                2D SCAFFOLD CANVAS
               </span>
+              {recognizedDrug && (
+                <span className="inline-flex items-center gap-1.5 rounded-[6px] border-2 border-[#18181B] bg-[#16A34A] px-2.5 py-0.5 text-[11px] font-mono font-bold text-white">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>{recognizedDrug}</span>
+                </span>
+              )}
             </div>
-          )}
 
-          {toolNotice && (
-            <div className="rounded-lg border border-amber-500/40 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 text-[11px] text-amber-800 dark:text-amber-200">
-              {toolNotice}
+            <div dir="ltr" className="w-full flex justify-center">
+              <svg viewBox="0 0 395 230" className="w-full max-w-[460px] h-60 bg-transparent">
+                {/* Ring A */}
+                <polygon
+                  points="68,118 101,99 134,118 134,156 101,175 68,156"
+                  fill={state.ringA === 'aromatic' ? 'rgba(13,148,136,0.1)' : 'none'}
+                  stroke="#18181B"
+                  strokeWidth="2"
+                />
+                {state.ringA === 'aromatic' ? (
+                  <circle cx="101" cy="137" r="18" fill="none" stroke="#18181B" strokeWidth="2" />
+                ) : (
+                  <>
+                    <line x1="102" y1="168" x2="128" y2="153" stroke="#18181B" strokeWidth="2" />
+                    {state.ringA === 'delta14' && (
+                      <line x1="74" y1="122" x2="100" y2="107" stroke="#0D9488" strokeWidth="2.2" />
+                    )}
+                  </>
+                )}
+
+                {/* C3 */}
+                {state.C3 === '=O' && (
+                  <g>
+                    <line x1="46" y1="166" x2="67" y2="154" stroke="#E11D48" strokeWidth="2" />
+                    <line x1="49" y1="171" x2="70" y2="159" stroke="#E11D48" strokeWidth="2" />
+                    <text x="29" y="176" fill="#E11D48" fontSize="13" fontWeight="bold" fontFamily="JetBrains Mono, monospace">O</text>
+                  </g>
+                )}
+                {state.C3 === 'OH' && (
+                  <g>
+                    <line x1="46" y1="168" x2="68" y2="156" stroke="#18181B" strokeWidth="2" />
+                    <text x="22" y="175" fill="#E11D48" fontSize="12" fontWeight="bold" fontFamily="JetBrains Mono, monospace">HO</text>
+                  </g>
+                )}
+                {state.C3 === 'OCH3' && (
+                  <g>
+                    <line x1="46" y1="168" x2="68" y2="156" stroke="#18181B" strokeWidth="2" />
+                    <text x="4" y="176" fill="#E11D48" fontSize="11.5" fontWeight="bold" fontFamily="JetBrains Mono, monospace">CH3O</text>
+                  </g>
+                )}
+                {state.C3 === '=N-OH' && (
+                  <g>
+                    <line x1="46" y1="166" x2="67" y2="154" stroke="#2563EB" strokeWidth="2" />
+                    <line x1="49" y1="171" x2="70" y2="159" stroke="#2563EB" strokeWidth="2" />
+                    <text x="8" y="177" fill="#2563EB" fontSize="11" fontWeight="bold" fontFamily="JetBrains Mono, monospace">HO-N</text>
+                  </g>
+                )}
+
+                {/* C19 Methyl */}
+                {state.C19 === 'CH3' && (
+                  <g>
+                    <polygon points="134,118 130,88 138,88" fill="#18181B" />
+                    <text x="123" y="83" fill="#18181B" fontSize="10.5" fontWeight="bold" fontFamily="JetBrains Mono, monospace">CH3</text>
+                  </g>
+                )}
+
+                {/* Ring B */}
+                <polygon
+                  points="134,118 167,99 200,118 200,156 167,175 134,156"
+                  fill="none"
+                  stroke="#18181B"
+                  strokeWidth="2"
+                />
+
+                {/* C6 */}
+                {state.C6 !== 'H' && (
+                  <g>
+                    <line
+                      x1="167"
+                      y1="175"
+                      x2="167"
+                      y2="199"
+                      stroke={state.C6 === 'F' ? '#0D9488' : '#18181B'}
+                      strokeWidth={state.C6Stereo === 'beta' ? 3 : 2}
+                      strokeDasharray={state.C6Stereo === 'alpha' ? '3,2' : undefined}
+                    />
+                    <text x="159" y="213" fill={state.C6 === 'F' ? '#0D9488' : '#18181B'} fontSize="11.5" fontWeight="bold" fontFamily="JetBrains Mono, monospace">
+                      {state.C6}
+                    </text>
+                  </g>
+                )}
+
+                {/* C9-F (Halogen -> #0D9488) */}
+                {state.C9 === 'F' && (
+                  <g>
+                    <line
+                      x1="167"
+                      y1="99"
+                      x2="167"
+                      y2="128"
+                      stroke="#0D9488"
+                      strokeWidth={state.C9Stereo === 'beta' ? 3.2 : 2.2}
+                      strokeDasharray={state.C9Stereo === 'alpha' ? '3,2' : undefined}
+                    />
+                    <text x="163" y="142" fill="#0D9488" fontSize="13" fontWeight="bold" fontFamily="JetBrains Mono, monospace">F</text>
+                  </g>
+                )}
+
+                {/* Ring C */}
+                <polygon
+                  points="167,99 167,61 200,42 233,61 233,99 200,118"
+                  fill="none"
+                  stroke="#18181B"
+                  strokeWidth="2"
+                />
+
+                {/* C11 */}
+                {state.C11 === 'OH' && (
+                  <g>
+                    {state.C11Stereo === 'beta' ? (
+                      <polygon points="167,61 147,47 152,41" fill="#18181B" />
+                    ) : (
+                      <line x1="167" y1="61" x2="148" y2="45" stroke="#18181B" strokeWidth="2" strokeDasharray="3,2" />
+                    )}
+                    <text x="128" y="42" fill="#E11D48" fontSize="12" fontWeight="bold" fontFamily="JetBrains Mono, monospace">
+                      HO
+                    </text>
+                  </g>
+                )}
+                {state.C11 === '=O' && (
+                  <g>
+                    <line x1="167" y1="58" x2="148" y2="45" stroke="#E11D48" strokeWidth="2" />
+                    <line x1="164" y1="63" x2="145" y2="50" stroke="#E11D48" strokeWidth="2" />
+                    <text x="132" y="46" fill="#E11D48" fontSize="12" fontWeight="bold" fontFamily="JetBrains Mono, monospace">O</text>
+                  </g>
+                )}
+                {state.C11 === 'aryl' && (
+                  <g>
+                    <polygon points="167,61 147,47 152,41" fill="#18181B" />
+                    <polygon points="120,20 140,20 150,36 140,52 120,52 110,36" fill="rgba(13,148,136,0.12)" stroke="#18181B" strokeWidth="2" />
+                    <text x="54" y="39" fill="#2563EB" fontSize="10" fontWeight="bold" fontFamily="JetBrains Mono, monospace">Ar-NMe2</text>
+                  </g>
+                )}
+
+                {/* C18 Methyl */}
+                <polygon points="233,61 229,33 237,33" fill="#18181B" />
+                <text x="223" y="27" fill="#18181B" fontSize="10.5" fontWeight="bold" fontFamily="JetBrains Mono, monospace">CH3</text>
+
+                {/* Ring D */}
+                <polygon
+                  points="233,61 269,50 291,80 269,110 233,99"
+                  fill="none"
+                  stroke="#18181B"
+                  strokeWidth="2"
+                />
+
+                {/* C17β + C21 */}
+                {state.C17b === 'OH' && (
+                  <g>
+                    <polygon points="269,50 294,34 298,40" fill="#18181B" />
+                    <text x="300" y="38" fill="#E11D48" fontSize="12" fontWeight="bold" fontFamily="JetBrains Mono, monospace">OH</text>
+                  </g>
+                )}
+                {state.C17b === 'ketol' && (
+                  <g>
+                    <polygon points="269,50 294,34 298,40" fill="#18181B" />
+                    <line x1="295" y1="36" x2="295" y2="18" stroke="#E11D48" strokeWidth="1.8" />
+                    <line x1="299" y1="36" x2="299" y2="18" stroke="#E11D48" strokeWidth="1.8" />
+                    <text x="292" y="15" fill="#E11D48" fontSize="11" fontWeight="bold" fontFamily="JetBrains Mono, monospace">O</text>
+                    <line x1="296" y1="36" x2="318" y2="46" stroke="#18181B" strokeWidth="2" />
+                    <text
+                      x="320"
+                      y="50"
+                      fill={state.C21 === 'ester' ? '#F59E0B' : state.C21 === 'phosphate' ? '#2563EB' : '#E11D48'}
+                      fontSize="10.5"
+                      fontWeight="bold"
+                      fontFamily="JetBrains Mono, monospace"
+                    >
+                      {state.C21 === 'ester' ? 'CH2-OCOR' : state.C21 === 'phosphate' ? 'CH2-PO4' : 'CH2OH'}
+                    </text>
+                  </g>
+                )}
+
+                {/* C17α */}
+                {state.C17a === 'OH' && (
+                  <g>
+                    <line x1="269" y1="50" x2="293" y2="63" stroke="#18181B" strokeWidth="2" strokeDasharray="3,2" />
+                    <text x="296" y="69" fill="#E11D48" fontSize="10.5" fontWeight="bold" fontFamily="JetBrains Mono, monospace">OH</text>
+                  </g>
+                )}
+                {state.C17a === 'ethynyl' && (
+                  <g>
+                    <line x1="269" y1="50" x2="296" y2="64" stroke="#18181B" strokeWidth="2" strokeDasharray="3,2" />
+                    <text x="299" y="69" fill="#0D9488" fontSize="11" fontWeight="bold" fontFamily="JetBrains Mono, monospace">-C≡CH</text>
+                  </g>
+                )}
+
+                {/* C16 */}
+                {state.C16 !== 'H' && (
+                  <g>
+                    <line
+                      x1="291"
+                      y1="80"
+                      x2="318"
+                      y2="92"
+                      stroke={state.C16 === 'CN' ? '#2563EB' : '#18181B'}
+                      strokeWidth={state.C16Stereo === 'beta' ? 3 : 2}
+                      strokeDasharray={state.C16Stereo === 'alpha' ? '3,2' : undefined}
+                    />
+                    <text
+                      x="321"
+                      y="97"
+                      fill={state.C16 === 'CN' ? '#2563EB' : state.C16 === 'OH' ? '#E11D48' : '#18181B'}
+                      fontSize="11"
+                      fontWeight="bold"
+                      fontFamily="JetBrains Mono, monospace"
+                    >
+                      {state.C16 === 'CN' ? '-C≡N' : state.C16}
+                    </text>
+                  </g>
+                )}
+
+                {/* Dashed attachment hotspots */}
+                {renderHotspot('ringA', 101, 137, 'حلقه A')}
+                {renderHotspot('C3', 56, 162, 'کربن C3')}
+                {renderHotspot('C6', 167, 184, 'کربن C6')}
+                {renderHotspot('C9', 167, 108, 'کربن C9')}
+                {renderHotspot('C11', 158, 52, 'کربن C11')}
+                {renderHotspot('C16', 302, 85, 'کربن C16')}
+                {renderHotspot('C17a', 284, 59, 'موقعیت C17α')}
+                {renderHotspot('C17b', 284, 38, 'موقعیت C17β')}
+                {renderHotspot('C19', 134, 98, 'موقعیت C19')}
+                {renderHotspot('C21', 332, 46, 'موقعیت C21')}
+              </svg>
             </div>
-          )}
-        </div>
-      )}
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
-        {/* بوم SVG اسکلت استروئیدی تعاملی */}
-        <div className="lg:col-span-7 rounded-2xl border border-slate-700 bg-[#060f1c] p-4 flex flex-col items-center">
-          {recognizedDrug && (
-            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-300">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>ساختار ساخته‌شده: {recognizedDrug}</span>
-            </div>
-          )}
-
-          <div dir="ltr" className="w-full flex justify-center">
-            <svg viewBox="0 0 395 230" className="w-full max-w-[430px] h-56">
-              {/* حلقه A */}
-              <polygon
-                points="68,118 101,99 134,118 134,156 101,175 68,156"
-                fill={state.ringA === 'aromatic' ? 'rgba(192,132,252,0.12)' : 'none'}
-                stroke={state.ringA === 'aromatic' ? '#c084fc' : '#cbd5e1'}
-                strokeWidth="2.3"
-              />
-              {state.ringA === 'aromatic' ? (
-                <circle cx="101" cy="137" r="18" fill="none" stroke="#c084fc" strokeWidth="1.9" />
-              ) : (
-                <>
-                  <line x1="102" y1="168" x2="128" y2="153" stroke="#38bdf8" strokeWidth="2.1" />
-                  {state.ringA === 'delta14' && (
-                    <line x1="74" y1="122" x2="100" y2="107" stroke="#34d399" strokeWidth="2.3" />
-                  )}
-                </>
-              )}
-
-              {/* گروه C3 */}
-              {state.C3 === '=O' && (
-                <g>
-                  <line x1="46" y1="166" x2="67" y2="154" stroke="#f87171" strokeWidth="2.2" />
-                  <line x1="49" y1="171" x2="70" y2="159" stroke="#f87171" strokeWidth="2.2" />
-                  <text x="29" y="176" fill="#f87171" fontSize="13" fontWeight="bold" fontFamily="monospace">O</text>
-                </g>
-              )}
-              {state.C3 === 'OH' && (
-                <g>
-                  <line x1="46" y1="168" x2="68" y2="156" stroke="#34d399" strokeWidth="2.2" />
-                  <text x="22" y="175" fill="#34d399" fontSize="12" fontWeight="bold" fontFamily="monospace">HO</text>
-                </g>
-              )}
-              {state.C3 === 'OCH3' && (
-                <g>
-                  <line x1="46" y1="168" x2="68" y2="156" stroke="#34d399" strokeWidth="2.3" />
-                  <text x="6" y="176" fill="#34d399" fontSize="11.5" fontWeight="bold" fontFamily="monospace">CH3O</text>
-                </g>
-              )}
-              {state.C3 === '=N-OH' && (
-                <g>
-                  <line x1="46" y1="166" x2="67" y2="154" stroke="#fbbf24" strokeWidth="2.2" />
-                  <line x1="49" y1="171" x2="70" y2="159" stroke="#fbbf24" strokeWidth="2.2" />
-                  <text x="10" y="177" fill="#fbbf24" fontSize="11" fontWeight="bold" fontFamily="monospace">HO-N</text>
-                </g>
-              )}
-
-              {/* متیل C19 */}
-              {state.C19 === 'CH3' && (
-                <g>
-                  <polygon points="134,118 130,88 138,88" fill="#e2e8f0" />
-                  <text x="123" y="83" fill="#94a3b8" fontSize="10.5" fontFamily="monospace">CH3</text>
-                </g>
-              )}
-
-              {/* حلقه B */}
-              <polygon
-                points="134,118 167,99 200,118 200,156 167,175 134,156"
-                fill="none"
-                stroke="#cbd5e1"
-                strokeWidth="2.3"
-              />
-
-              {/* استخلاف C6 */}
-              {state.C6 !== 'H' && (
-                <g>
-                  <line
-                    x1="167"
-                    y1="175"
-                    x2="167"
-                    y2="199"
-                    stroke={state.C6 === 'F' ? '#f43f5e' : '#fbbf24'}
-                    strokeWidth={state.C6Stereo === 'beta' ? 3.2 : 2.2}
-                    strokeDasharray={state.C6Stereo === 'alpha' ? '3,2' : undefined}
-                  />
-                  <text x="159" y="213" fill={state.C6 === 'F' ? '#f43f5e' : '#fbbf24'} fontSize="11.5" fontWeight="bold" fontFamily="monospace">
-                    {state.C6}
-                  </text>
-                </g>
-              )}
-
-              {/* فلوئور C9 */}
-              {state.C9 === 'F' && (
-                <g>
-                  <line
-                    x1="167"
-                    y1="99"
-                    x2="167"
-                    y2="128"
-                    stroke="#22d3ee"
-                    strokeWidth={state.C9Stereo === 'beta' ? 3.4 : 2.5}
-                    strokeDasharray={state.C9Stereo === 'alpha' ? '3,2' : undefined}
-                  />
-                  <text x="163" y="142" fill="#22d3ee" fontSize="13" fontWeight="bold" fontFamily="monospace">F</text>
-                </g>
-              )}
-
-              {/* حلقه C */}
-              <polygon
-                points="167,99 167,61 200,42 233,61 233,99 200,118"
-                fill="none"
-                stroke="#cbd5e1"
-                strokeWidth="2.3"
-              />
-
-              {/* گروه C11 */}
-              {state.C11 === 'OH' && (
-                <g>
-                  {state.C11Stereo === 'beta' ? (
-                    <polygon points="167,61 147,47 152,41" fill="#34d399" />
-                  ) : (
-                    <line x1="167" y1="61" x2="148" y2="45" stroke="#fbbf24" strokeWidth="2.2" strokeDasharray="3,2" />
-                  )}
-                  <text x="128" y="42" fill={state.C11Stereo === 'beta' ? '#34d399' : '#fbbf24'} fontSize="12" fontWeight="bold" fontFamily="monospace">
-                    HO
-                  </text>
-                </g>
-              )}
-              {state.C11 === '=O' && (
-                <g>
-                  <line x1="167" y1="58" x2="148" y2="45" stroke="#f87171" strokeWidth="2" />
-                  <line x1="164" y1="63" x2="145" y2="50" stroke="#f87171" strokeWidth="2" />
-                  <text x="132" y="46" fill="#f87171" fontSize="12" fontWeight="bold" fontFamily="monospace">O</text>
-                </g>
-              )}
-              {state.C11 === 'aryl' && (
-                <g>
-                  <polygon points="167,61 147,47 152,41" fill="#34d399" />
-                  <polygon points="120,20 140,20 150,36 140,52 120,52 110,36" fill="rgba(52,211,153,0.18)" stroke="#34d399" strokeWidth="2" />
-                  <text x="58" y="39" fill="#34d399" fontSize="10" fontWeight="bold" fontFamily="monospace">Ar-NMe2</text>
-                </g>
-              )}
-
-              {/* متیل C18 */}
-              <polygon points="233,61 229,33 237,33" fill="#e2e8f0" />
-              <text x="223" y="27" fill="#94a3b8" fontSize="10.5" fontFamily="monospace">CH3</text>
-
-              {/* حلقه D */}
-              <polygon
-                points="233,61 269,50 291,80 269,110 233,99"
-                fill="none"
-                stroke="#cbd5e1"
-                strokeWidth="2.3"
-              />
-
-              {/* زنجیره C17β + C21 */}
-              {state.C17b === 'OH' && (
-                <g>
-                  <polygon points="269,50 294,34 298,40" fill="#34d399" />
-                  <text x="300" y="38" fill="#34d399" fontSize="12" fontWeight="bold" fontFamily="monospace">OH</text>
-                </g>
-              )}
-              {state.C17b === 'ketol' && (
-                <g>
-                  <polygon points="269,50 294,34 298,40" fill="#38bdf8" />
-                  <line x1="295" y1="36" x2="295" y2="18" stroke="#f87171" strokeWidth="1.8" />
-                  <line x1="299" y1="36" x2="299" y2="18" stroke="#f87171" strokeWidth="1.8" />
-                  <text x="292" y="15" fill="#f87171" fontSize="11" fontWeight="bold" fontFamily="monospace">O</text>
-                  <line x1="296" y1="36" x2="318" y2="46" stroke="#cbd5e1" strokeWidth="2" />
-                  <text
-                    x="320"
-                    y="50"
-                    fill={state.C21 === 'ester' ? '#fbbf24' : state.C21 === 'phosphate' ? '#38bdf8' : '#34d399'}
-                    fontSize="10.5"
-                    fontWeight="bold"
-                    fontFamily="monospace"
-                  >
-                    {state.C21 === 'ester' ? 'CH2-OCOR' : state.C21 === 'phosphate' ? 'CH2-PO4' : 'CH2OH'}
-                  </text>
-                </g>
-              )}
-
-              {/* گروه C17α */}
-              {state.C17a === 'OH' && (
-                <g>
-                  <line x1="269" y1="50" x2="293" y2="63" stroke="#34d399" strokeWidth="2" strokeDasharray="3,2" />
-                  <text x="296" y="69" fill="#34d399" fontSize="10.5" fontWeight="bold" fontFamily="monospace">OH</text>
-                </g>
-              )}
-              {state.C17a === 'ethynyl' && (
-                <g>
-                  <line x1="269" y1="50" x2="296" y2="64" stroke="#22d3ee" strokeWidth="2.3" strokeDasharray="3,2" />
-                  <text x="299" y="69" fill="#22d3ee" fontSize="11" fontWeight="bold" fontFamily="monospace">-C≡CH</text>
-                </g>
-              )}
-
-              {/* گروه C16 */}
-              {state.C16 !== 'H' && (
-                <g>
-                  <line
-                    x1="291"
-                    y1="80"
-                    x2="318"
-                    y2="92"
-                    stroke={state.C16 === 'CN' ? '#f43f5e' : state.C16Stereo === 'beta' ? '#e879f9' : '#fbbf24'}
-                    strokeWidth={state.C16Stereo === 'beta' ? 3.2 : 2.2}
-                    strokeDasharray={state.C16Stereo === 'alpha' ? '3,2' : undefined}
-                  />
-                  <text
-                    x="321"
-                    y="97"
-                    fill={state.C16 === 'CN' ? '#f43f5e' : state.C16Stereo === 'beta' ? '#e879f9' : '#fbbf24'}
-                    fontSize="11"
-                    fontWeight="bold"
-                    fontFamily="monospace"
-                  >
-                    {state.C16 === 'CN' ? '-C≡N' : state.C16}
-                  </text>
-                </g>
-              )}
-
-              {/* تمام ۱۰ نقطه اتصال آزاد */}
-              {renderHotspot('ringA', 101, 137, 'حلقه A')}
-              {renderHotspot('C3', 56, 162, 'کربن C3')}
-              {renderHotspot('C6', 167, 184, 'کربن C6')}
-              {renderHotspot('C9', 167, 108, 'کربن C9')}
-              {renderHotspot('C11', 158, 52, 'کربن C11')}
-              {renderHotspot('C16', 302, 85, 'کربن C16')}
-              {renderHotspot('C17a', 284, 59, 'موقعیت C17α')}
-              {renderHotspot('C17b', 284, 38, 'موقعیت C17β')}
-              {renderHotspot('C19', 134, 98, 'موقعیت C19')}
-              {renderHotspot('C21', 332, 46, 'موقعیت C21')}
-            </svg>
+          <div className="rounded-[8px] border-2 border-[#18181B] bg-[#FFFFFF] p-3 text-xs leading-6 text-[#18181B] flex items-start gap-2">
+            <Info className="w-4 h-4 text-[#0D9488] shrink-0 mt-0.5" />
+            <span>{insight}</span>
           </div>
         </div>
 
-        {/* داشبورد زنده SAR */}
-        <div className="lg:col-span-5 space-y-3">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
-            <Activity className="w-4 h-4 text-cyan-500" />
-            <span>شاخص‌های زنده رابطه ساختار-اثر (Live SAR)</span>
-          </div>
+        {/* Lab Readout & Controls Panel (35%) */}
+        <div className="space-y-4">
+          {/* Live ADMET / SAR Metrics with Target Range Markers */}
+          <div className="rounded-[8px] border-2 border-[#18181B] bg-[#FFFFFF] p-3.5 space-y-3 shadow-[3px_3px_0px_#18181B]">
+            <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-2">
+              <span className="flex items-center gap-1.5 text-xs font-heading font-bold text-[#18181B]">
+                <Activity className="w-4 h-4 text-[#0D9488]" />
+                <span>ADMET & SAR Readout</span>
+              </span>
+              <span className="font-mono text-[10px] font-bold text-[#52525B]">LIVE</span>
+            </div>
 
-          <div className="space-y-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 p-4">
             {meters.map((m) => (
               <div key={m.label} className="space-y-1">
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">{m.label}</span>
-                  <span className="font-extrabold text-slate-900 dark:text-white">{m.displayValue}</span>
+                  <span className="font-semibold text-[#52525B]">{m.label}</span>
+                  <span dir="ltr" className="font-mono font-extrabold text-[#18181B] metric-mono">
+                    {m.displayValue}
+                  </span>
                 </div>
-                <div className="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                <div className="relative h-3 w-full rounded-[4px] border-2 border-[#18181B] bg-[#EFECE6] overflow-hidden">
+                  {/* Target range markers */}
+                  {m.targetMin !== undefined && (
+                    <div
+                      title="Target min"
+                      className="absolute top-0 bottom-0 w-0.5 bg-[#18181B] z-10"
+                      style={{ left: `${m.targetMin}%` }}
+                    />
+                  )}
+                  {m.targetMax !== undefined && (
+                    <div
+                      title="Target max"
+                      className="absolute top-0 bottom-0 w-0.5 bg-[#E11D48] z-10"
+                      style={{ left: `${m.targetMax}%` }}
+                    />
+                  )}
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${m.colorClass}`}
+                    className={`h-full transition-all duration-200 ${m.colorClass}`}
                     style={{ width: `${Math.max(4, Math.min(100, m.value))}%` }}
                   />
                 </div>
@@ -1025,10 +966,83 @@ export const SteroidSandbox: React.FC<Props> = ({
             ))}
           </div>
 
-          <div className="rounded-xl border border-cyan-500/30 bg-cyan-50/70 dark:bg-cyan-950/30 p-3 text-xs leading-6 text-cyan-900 dark:text-cyan-200 flex items-start gap-2">
-            <Info className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5" />
-            <span>{insight}</span>
-          </div>
+          {/* Selectable Reagent & Functional Group Tiles */}
+          {!isLocked && (
+            <div className="rounded-[8px] border-2 border-[#18181B] bg-[#FFFFFF] p-3.5 space-y-2.5 shadow-[3px_3px_0px_#18181B]">
+              <div className="grid grid-cols-2 gap-1.5">
+                {(
+                  [
+                    { id: 'groups', label: 'گروه‌ها' },
+                    { id: 'rings', label: 'حلقه‌ها' },
+                    { id: 'chains', label: 'زنجیره' },
+                    { id: 'edit', label: 'پاک‌کن / αβ' },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveCategory(tab.id)}
+                    className={`px-2 py-1 rounded-[6px] border-2 border-[#18181B] text-[11px] font-bold transition ${
+                      activeCategory === tab.id
+                        ? 'bg-[#0D9488] text-white'
+                        : 'bg-[#EFECE6] text-[#18181B] hover:bg-[#E5E0D6]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 gap-1.5 max-h-[210px] overflow-y-auto pr-0.5">
+                {visibleTools.map((tool) => {
+                  const isSelected = selectedToolId === tool.id;
+                  return (
+                    <div
+                      key={tool.id}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', tool.id);
+                        setSelectedToolId(tool.id);
+                      }}
+                      onClick={() => setSelectedToolId(isSelected ? null : tool.id)}
+                      className={`rounded-[6px] border-2 border-[#18181B] px-2.5 py-1.5 text-xs cursor-grab active:cursor-grabbing transition select-none flex items-center justify-between gap-2 ${
+                        isSelected
+                          ? 'bg-[#0D9488] text-white shadow-[2px_2px_0px_#18181B]'
+                          : 'bg-[#F7F5F0] text-[#18181B] hover:bg-[#EFECE6]'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5 font-bold">
+                        {tool.id === 'eraser' && <Eraser className="w-3.5 h-3.5" />}
+                        {tool.id === 'flip_stereo' && <FlipHorizontal2 className="w-3.5 h-3.5" />}
+                        <span>{tool.label}</span>
+                      </span>
+                      <span
+                        dir="ltr"
+                        className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-[4px] border border-[#18181B] ${
+                          isSelected ? 'bg-[#FFFFFF] text-[#18181B]' : 'bg-[#FFFFFF] text-[#52525B]'
+                        }`}
+                      >
+                        {tool.formula}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {selectedTool && (
+                <div className="text-[11px] font-semibold text-[#0D9488] flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span>روی دایره خط‌چین کربن هدف کلیک کن یا بکش.</span>
+                </div>
+              )}
+
+              {toolNotice && (
+                <div className="rounded-[6px] border-2 border-[#18181B] bg-[#FEF3C7] px-2.5 py-1.5 text-[11px] font-semibold text-[#18181B]">
+                  {toolNotice}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

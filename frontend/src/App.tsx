@@ -4,7 +4,6 @@ import {
   Trophy,
   Award,
   LogOut,
-  FlaskConical,
   Lock,
   CheckCircle2,
   AlertOctagon,
@@ -16,10 +15,9 @@ import {
   UserRound,
   CircleHelp,
   ChevronLeft,
-  Sun,
-  Moon,
   Radio,
   Eye,
+  Flame,
 } from 'lucide-react';
 import { api, ApiError, clearTokens, getAccessToken } from './api';
 import { Badge, GameSession, LeaderboardEntry, StudentUser } from './types';
@@ -38,6 +36,13 @@ import { MeegaSurveyModal } from './components/MeegaSurveyModal';
 import { KnowledgeQuizModal } from './components/KnowledgeQuizModal';
 import { StoryCommsModal } from './components/StoryCommsModal';
 import { FloatingLabBench } from './components/FloatingLabBench';
+import { LabWatermarks } from './components/visuals/LabWatermarks';
+import {
+  ReagentVialBadge,
+  MolecularTrophyBadge,
+  AtomicOrbitalBadge,
+  SteroidScaffoldBadge,
+} from './components/visuals/ChemBadges';
 import { STORY_BEATS, StoryBeat } from './data/storyData';
 import { toPersianDigits } from './utils/persian';
 
@@ -52,48 +57,53 @@ type ActiveView =
   | 'final'
   | 'leaderboard';
 
+const ALL_STAGES = [
+  'entrance',
+  'glucocorticoid',
+  'mineralocorticoid',
+  'estrogen',
+  'progestin',
+  'androgen',
+  'final',
+] as const;
+
 const DEPARTMENTS = [
   {
     code: 'glucocorticoid',
-    emoji: '🧠',
     roomName: 'اتاق چنگال استرس',
-    hormoneTag: 'گلوکوکورتیکوئیدها',
+    hormoneTag: 'Glucocorticoids',
     title: 'اتاق ۱: چنگال استرس (پروفسور کژتاب)',
     shortTitle: '۱. چنگال استرس',
     subtitle: 'اتاق پروفسور کژتاب — قفل لمسی کانفورماسیون، قوی‌تر کردن کورتیزول و ایمیل ارول',
   },
   {
     code: 'mineralocorticoid',
-    emoji: '🧂',
     roomName: 'اتاق گوله نمک',
-    hormoneTag: 'مینرالوکورتیکوئیدها',
+    hormoneTag: 'Mineralocorticoids',
     title: 'اتاق ۲: گوله نمک (پروفسور زهتاب)',
     shortTitle: '۲. گوله نمک',
     subtitle: 'اتاق پروفسور زهتاب — نامه کژتاب، تماس تلفنی مرموز و جداسازی ترکیبات موضعی',
   },
   {
     code: 'estrogen',
-    emoji: '🍯',
     roomName: 'اتاق ماه عسل',
-    hormoneTag: 'استروژن‌ها',
+    hormoneTag: 'Estrogens',
     title: 'اتاق ۳: ماه عسل (آقا و خانم لارنس)',
     shortTitle: '۳. ماه عسل',
     subtitle: 'آزمایشگاه حیوانات لارنس — متابولیسم، فرم خوراکی، فرار ۱۰ ثانیه‌ای و راز سیانید',
   },
   {
     code: 'progestin',
-    emoji: '🍼',
     roomName: 'اتاق نی‌نی کوچولو',
-    hormoneTag: 'پروژسترون',
+    hormoneTag: 'Progestins',
     title: 'اتاق ۴: نی‌نی کوچولو (دکتر ماریا)',
     shortTitle: '۴. نی‌نی کوچولو',
     subtitle: 'اتاق همسر دکتر ارول — رمز تاریخ تولد بچه و تخته تحقیقات ۱۹-نورآندروستان',
   },
   {
     code: 'androgen',
-    emoji: '🧔',
     roomName: 'اتاق ریش و سیبیل',
-    hormoneTag: 'آندروژن‌ها',
+    hormoneTag: 'Androgens',
     title: 'اتاق ۵: ریش و سیبیل (آقای زیگموند)',
     shortTitle: '۵. ریش و سیبیل',
     subtitle: 'خیانت ارول به زیگموند — متابولیت فلوتامید، ساخت SARM و کمپلکس ۵-آلفا ردوکتاز',
@@ -109,21 +119,21 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     target: '[data-tour="progress"]',
-    title: 'بی‌سیم داستان، زمان عملیات و آزمون‌ها',
+    title: 'نوار پیشرفت و امتیاز (XP)',
     description:
-      'با دکمه «بی‌سیم داستان» دیالوگ شخصیت‌های کارخانه را مرور کنید و وضعیت زمان، امتیاز، پیش/پس‌آزمون و پرسشنامه MEEGA+ را ببینید.',
+      'پیشرفت مرحله‌به‌مرحله در کارخانه، زمان باقی‌مانده، امتیاز کل، پیش/پس‌آزمون و پرسشنامه MEEGA+ را از نوار بالای صفحه دنبال کنید.',
   },
   {
     target: '[data-tour="workspace"]',
-    title: 'محیط تعاملی حل معماها و ساخت مولکول',
+    title: 'محیط تعاملی دفترچه آزمایشگاه',
     description:
-      'ساختارهای شیمیایی را تحلیل کنید، قطعات و گروه‌های عاملی را آزادانه روی اسکلت مولکول بچینید و در هر صفحه از دکمه شناور «میز کار مولکول‌سازی» استفاده کنید.',
+      'ساختارهای شیمیایی را روی بوم نقطه‌ای تحلیل کنید، قطعات و گروه‌های عاملی را بچینید و در هر صفحه از دکمه شناور «میز کار مولکول‌سازی» استفاده کنید.',
   },
   {
     target: '[data-tour="clues"]',
     title: 'پرونده سرنخ‌های اهریمن و مدال‌ها',
     description:
-      'پنج سرنخ کشف‌شده از ساختار مولکول اهریمن و مدال‌های شما در این ستون جمع‌آوری می‌شوند.',
+      'پنج سرنخ کشف‌شده از ساختار مولکول اهریمن و نشان‌های شیمیایی شما در این ستون جمع‌آوری می‌شوند.',
   },
   {
     target: '[data-tour="profile"]',
@@ -172,22 +182,9 @@ export function App() {
   const [activeStoryBeat, setActiveStoryBeat] = useState<StoryBeat | null>(null);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
   const toastTimerRef = useRef<number | null>(null);
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    return localStorage.getItem('medchem_theme') !== 'light';
-  });
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-      localStorage.setItem('medchem_theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('medchem_theme', 'light');
-    }
-  }, [darkMode]);
-
-  useEffect(() => {
+    document.documentElement.classList.remove('dark');
     return () => {
       if (toastTimerRef.current !== null) {
         window.clearTimeout(toastTimerRef.current);
@@ -308,7 +305,7 @@ export function App() {
       .toString()
       .padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
-    return toPersianDigits(`${m}:${s}`);
+    return `${m}:${s}`;
   };
 
   const handlePuzzleSubmit = async (
@@ -327,7 +324,7 @@ export function App() {
     setSession(res.session);
     if (res.new_badge) {
       setBadges((prev) => [...prev, res.new_badge]);
-      showNotification(`مدال جدید دریافت شد: ${res.new_badge.title}`);
+      showNotification(`نشان جدید دریافت شد: ${res.new_badge.title}`);
     } else if (res.unlocked_clue) {
       showNotification(`سرنخ جدید کشف شد: ${res.unlocked_clue.title}`);
     }
@@ -375,8 +372,14 @@ export function App() {
 
   if (loadingApp) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#060d18] flex items-center justify-center text-cyan-600 dark:text-cyan-400 text-sm">
-        در حال اتصال به بی‌سیم عملیات کارخانه مولکول دکتر ارول...
+      <div className="min-h-screen workbook-bg flex items-center justify-center p-4">
+        <LabWatermarks />
+        <div className="relative z-10 lab-card px-6 py-5 flex items-center gap-3">
+          <ReagentVialBadge className="w-10 h-10" />
+          <div className="text-sm font-bold text-[#18181B]">
+            در حال باز کردن دفترچه آزمایشگاه دکتر ارول...
+          </div>
+        </div>
       </div>
     );
   }
@@ -384,17 +387,15 @@ export function App() {
   if (!user) {
     if (getAccessToken() && startupError) {
       return (
-        <div className="min-h-screen bg-slate-50 dark:bg-[#060d18] lab-grid-bg flex items-center justify-center p-4">
-          <section
-            role="alert"
-            className="w-full max-w-lg rounded-2xl border border-rose-500/40 bg-white dark:bg-slate-900 p-6 text-center shadow-xl space-y-4"
-          >
-            <AlertOctagon className="mx-auto h-9 w-9 text-rose-500" />
-            <h1 className="text-lg font-extrabold text-slate-900 dark:text-white">
+        <div className="min-h-screen workbook-bg flex items-center justify-center p-4">
+          <LabWatermarks />
+          <section role="alert" className="relative z-10 w-full max-w-lg lab-card p-6 text-center space-y-4">
+            <AlertOctagon className="mx-auto h-9 w-9 text-[#E11D48]" />
+            <h1 className="text-lg font-heading font-bold text-[#18181B]">
               اتصال به سرور آزمایشگاه برقرار نشد
             </h1>
-            <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">{startupError}</p>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="text-xs leading-6 text-[#52525B]">{startupError}</p>
+            <p className="text-[11px] text-[#52525B]">
               نکته: در پلن رایگان سرور، بیدار شدن سرویس پس از وقفه ممکن است ۳۰ تا ۵۰ ثانیه زمان ببرد.
             </p>
             <div className="flex justify-center gap-3 pt-2">
@@ -404,14 +405,14 @@ export function App() {
                   setLoadingApp(true);
                   void loadInitialData();
                 }}
-                className="rounded-xl bg-cyan-500 hover:bg-cyan-400 px-5 py-2 text-xs font-bold text-slate-950 transition"
+                className="btn-tactile btn-tactile-primary px-5 py-2 text-xs"
               >
                 تلاش دوباره
               </button>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-xs text-slate-700 dark:text-slate-200"
+                className="btn-tactile btn-tactile-surface px-4 py-2 text-xs"
               >
                 خروج از حساب
               </button>
@@ -440,6 +441,7 @@ export function App() {
     'androgen',
   ].every((d) => session?.completed_stages?.includes(d));
   const gameCompleted = session?.status === 'completed' || session?.completed_stages?.includes('final');
+  const completedCount = session?.completed_stages?.length ?? 0;
 
   const currentStoryBeatId =
     activeView === 'entrance'
@@ -454,195 +456,188 @@ export function App() {
 
   const currentViewLabel =
     activeView === 'entrance'
-      ? 'ورودی کارخانه دکتر ارول'
+      ? 'ورودی کارخانه'
       : activeView === 'final'
-      ? 'اتاق مخفی دکتر ارول و سنتز پادزهر'
+      ? 'اتاق مخفی ارول'
       : activeView === 'leaderboard'
       ? 'جدول رده‌بندی'
-      : DEPARTMENTS.find((d) => d.code === activeView)?.title || 'نقشه کارخانه مولکول';
+      : DEPARTMENTS.find((d) => d.code === activeView)?.roomName || 'نقشه کارخانه';
 
   const activeQuizPhase: 'pre' | 'post' = gameCompleted ? 'post' : 'pre';
   const activeQuizDone = activeQuizPhase === 'post' ? Boolean(postAssessment) : Boolean(preAssessment);
 
   return (
-    <div
-      className={`min-h-screen flex flex-col overflow-x-hidden pb-16 transition-colors duration-200 ${
-        darkMode
-          ? 'bg-[#060d18] text-slate-100 lab-grid-bg'
-          : 'bg-slate-50 text-slate-800 lab-grid-light-bg'
-      }`}
-    >
-      {/* نوار وضعیت بالای صفحه (HUD) */}
-      <header className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#07111f]/95 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+    <div className="min-h-screen workbook-bg workbook-scope flex flex-col overflow-x-hidden pb-20 text-[#18181B]">
+      <LabWatermarks />
+
+      {/* Compact Single-Row Top HUD Bar */}
+      <header className="sticky top-0 z-40 border-b-2 border-[#18181B] bg-[#FFFFFF]">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2.5">
+          {/* Start: Current Module/Level Badge */}
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
-              <FlaskConical className="w-5 h-5" />
-            </div>
+            <ReagentVialBadge className="w-9 h-9 shrink-0" />
             <div>
-              <div className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <span>کارخانه مولکول دکتر ارول</span>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                    gameCompleted
-                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                      : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
-                  }`}
-                >
-                  {gameCompleted ? 'ماموریت موفق · مرور آزاد ✓' : 'پروژه اهریمن'}
+              <div className="flex items-center gap-2">
+                <span className="font-heading font-bold text-xs sm:text-sm text-[#18181B]">
+                  کارخانه مولکول دکتر ارول
+                </span>
+                <span className="lab-badge px-2 py-0.5 text-[10px] bg-[#EFECE6] text-[#18181B]">
+                  {currentViewLabel}
                 </span>
               </div>
-              <div className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
-                {user.full_name} • شماره دانشجویی: <span>{toPersianDigits(user.student_id)}</span>
+              <div className="text-[11px] text-[#52525B]">
+                {user.full_name} · <span className="font-mono">{user.student_id}</span>
               </div>
             </div>
           </div>
 
-          <div data-tour="progress" className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            {/* دکمه بی‌سیم داستان */}
+          {/* Center: Segmented Progress Bar (2px solid #18181B) */}
+          <div data-tour="progress" className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-1 p-1 rounded-[6px] border-2 border-[#18181B] bg-[#EFECE6]">
+              {ALL_STAGES.map((st) => {
+                const done = session?.completed_stages?.includes(st);
+                const isCurrent = activeView === st;
+                return (
+                  <div
+                    key={st}
+                    title={st}
+                    className={`h-3 w-7 rounded-[3px] border border-[#18181B] transition-colors ${
+                      done
+                        ? 'bg-[#16A34A]'
+                        : isCurrent
+                        ? 'bg-[#0D9488]'
+                        : 'bg-[#FFFFFF]'
+                    }`}
+                  />
+                );
+              })}
+            </div>
+            <span dir="ltr" className="font-mono text-xs font-extrabold text-[#18181B] metric-mono">
+              {completedCount}/7
+            </span>
+          </div>
+
+          {/* End: Streak/Timer + XP Badge in JetBrains Mono + Compact Actions */}
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={() => triggerStoryBeat(currentStoryBeatId, true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 text-xs font-bold transition"
+              className="btn-tactile btn-tactile-cream px-2.5 py-1 text-xs"
             >
-              <Radio className="w-3.5 h-3.5" />
-              <span>بی‌سیم داستان</span>
+              <Radio className="w-3.5 h-3.5 text-[#0D9488]" />
+              <span className="hidden sm:inline">بی‌سیم</span>
             </button>
 
-            {/* تایمر */}
+            {/* Timer */}
             <div
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold ${
+              dir="ltr"
+              className={`lab-badge px-2.5 py-1 text-xs font-mono metric-mono ${
                 gameCompleted
-                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                  ? 'bg-[#16A34A] text-white'
                   : timeLeft < 600
-                  ? 'border-rose-500/50 bg-rose-500/15 text-rose-700 dark:text-rose-300 animate-pulse'
-                  : 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                  ? 'bg-[#E11D48] text-white'
+                  : 'bg-[#EFECE6] text-[#18181B]'
               }`}
             >
-              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">{gameCompleted ? 'زمان باقی‌مانده:' : 'مهلت عملیات:'}</span>
-              <span dir="ltr" className="font-mono text-xs sm:text-sm">
-                {formatTime(timeLeft)}
-              </span>
+              <Clock className="w-3.5 h-3.5" />
+              <span>{formatTime(timeLeft)}</span>
             </div>
 
-            {/* امتیاز */}
-            <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>امتیاز: {toPersianDigits(session?.total_score ?? 0)}</span>
+            {/* Streak / Clues + XP Badge */}
+            <div
+              dir="ltr"
+              className="lab-badge px-2.5 py-1 text-xs font-mono metric-mono bg-[#F59E0B] text-[#18181B]"
+            >
+              <Flame className="w-3.5 h-3.5" />
+              <span>{session?.total_score ?? 0} XP</span>
             </div>
 
-            {/* پیش‌آزمون / پس‌آزمون */}
             <button
               type="button"
               onClick={() => setQuizModalPhase(activeQuizPhase)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition ${
-                activeQuizDone
-                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                  : 'border-purple-500/40 bg-purple-500/10 text-purple-700 dark:text-purple-200 hover:border-purple-400'
+              className={`btn-tactile px-2.5 py-1 text-xs ${
+                activeQuizDone ? 'btn-tactile-emerald' : 'btn-tactile-surface'
               }`}
             >
-              <BookOpenCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>
-                {activeQuizPhase === 'post'
-                  ? postAssessment
-                    ? `پس‌آزمون (${toPersianDigits(postAssessment.percentage)}٪) ✓`
-                    : 'پس‌آزمون'
-                  : preAssessment
-                  ? `پیش‌آزمون (${toPersianDigits(preAssessment.percentage)}٪) ✓`
-                  : 'پیش‌آزمون'}
+              <BookOpenCheck className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">
+                {activeQuizPhase === 'post' ? 'پس‌آزمون' : 'پیش‌آزمون'}
               </span>
             </button>
 
-            {/* پرسشنامه MEEGA+ */}
             <button
               type="button"
               onClick={() => setShowMeegaModal(true)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition ${
-                meegaSubmitted
-                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                  : 'border-cyan-500/40 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200 hover:border-cyan-400'
+              className={`btn-tactile px-2.5 py-1 text-xs ${
+                meegaSubmitted ? 'btn-tactile-emerald' : 'btn-tactile-primary'
               }`}
             >
-              <ClipboardCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>{meegaSubmitted ? 'MEEGA+ ✓' : 'MEEGA+'}</span>
+              <ClipboardCheck className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">MEEGA+</span>
             </button>
 
-            {/* پروفایل */}
             <button
               type="button"
               data-tour="profile"
               onClick={() => setShowProfileModal(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-cyan-500 bg-slate-100 dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 transition"
+              title="پروفایل"
+              aria-label="پروفایل"
+              className="btn-tactile btn-tactile-surface p-1.5"
             >
-              <UserRound className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-600 dark:text-cyan-400" />
-              <span>پروفایل</span>
+              <UserRound className="w-4 h-4" />
             </button>
 
-            {/* راهنمای سریع */}
             <button
               type="button"
               onClick={() => setShowTour(true)}
               title="راهنمای بازی"
               aria-label="راهنمای بازی"
-              className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-cyan-500 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 transition"
+              className="btn-tactile btn-tactile-surface p-1.5"
             >
               <CircleHelp className="w-4 h-4" />
             </button>
 
-            {/* تغییر تم تاریک / روشن */}
-            <button
-              type="button"
-              onClick={() => setDarkMode((prev) => !prev)}
-              title={darkMode ? 'تغییر به تم روشن' : 'تغییر به تم تاریک'}
-              aria-label={darkMode ? 'تغییر به تم روشن' : 'تغییر به تم تاریک'}
-              className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-amber-400 bg-slate-100 dark:bg-slate-900 text-amber-600 dark:text-amber-300 transition"
-            >
-              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 text-slate-700" />}
-            </button>
-
-            {/* خروج */}
             <button
               type="button"
               onClick={handleLogout}
               title="خروج از حساب"
               aria-label="خروج از حساب"
-              className="p-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:border-rose-400 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition"
+              className="btn-tactile btn-tactile-surface p-1.5 hover:bg-[#FFE4E6] hover:text-[#E11D48]"
             >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* نوار دسترسی سریع به تمام مراحل */}
+        {/* Navigation Ribbon */}
         <nav
           data-tour="navigation"
           aria-label="ناوبری بازی"
-          className="border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-100/70 dark:bg-[#050c17]"
+          className="border-t-2 border-[#18181B] bg-[#EFECE6]"
         >
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={() => setActiveView('entrance')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 ${
+              className={`px-3 py-1 rounded-[6px] border-2 border-[#18181B] text-xs font-bold whitespace-nowrap transition flex items-center gap-1 ${
                 activeView === 'entrance'
-                  ? 'bg-cyan-500 text-slate-950 font-bold'
+                  ? 'bg-[#0D9488] text-white'
                   : entranceSolved
-                  ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+                  ? 'bg-[#DCFCE7] text-[#18181B]'
+                  : 'bg-[#FFFFFF] text-[#18181B] hover:bg-[#F7F5F0]'
               }`}
             >
               <span>ورودی کارخانه</span>
-              {entranceSolved && <span>✓</span>}
+              {entranceSolved && <span className="text-[#16A34A]">✓</span>}
             </button>
             <button
               type="button"
               disabled={!entranceSolved}
               onClick={() => setActiveView('map')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition disabled:opacity-40 disabled:cursor-not-allowed ${
+              className={`px-3 py-1 rounded-[6px] border-2 border-[#18181B] text-xs font-bold whitespace-nowrap transition disabled:opacity-40 disabled:cursor-not-allowed ${
                 activeView === 'map'
-                  ? 'bg-cyan-500 text-slate-950'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+                  ? 'bg-[#0D9488] text-white'
+                  : 'bg-[#FFFFFF] text-[#18181B] hover:bg-[#F7F5F0]'
               }`}
             >
               نقشه کارخانه
@@ -655,16 +650,16 @@ export function App() {
                   type="button"
                   disabled={!entranceSolved}
                   onClick={() => setActiveView(d.code as ActiveView)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed ${
+                  className={`px-3 py-1 rounded-[6px] border-2 border-[#18181B] text-xs font-bold whitespace-nowrap transition flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed ${
                     activeView === d.code
-                      ? 'bg-cyan-500 text-slate-950 font-bold'
+                      ? 'bg-[#0D9488] text-white'
                       : done
-                      ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+                      ? 'bg-[#DCFCE7] text-[#18181B]'
+                      : 'bg-[#FFFFFF] text-[#18181B] hover:bg-[#F7F5F0]'
                   }`}
                 >
                   <span>{d.shortTitle}</span>
-                  {done && <span>✓</span>}
+                  {done && <span className="text-[#16A34A]">✓</span>}
                 </button>
               );
             })}
@@ -672,12 +667,12 @@ export function App() {
               type="button"
               disabled={!allFiveDepartmentsDone}
               onClick={() => setActiveView('final')}
-              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${
+              className={`px-3 py-1 rounded-[6px] border-2 border-[#18181B] text-xs font-bold whitespace-nowrap transition ${
                 activeView === 'final'
-                  ? 'bg-rose-500 text-white'
+                  ? 'bg-[#E11D48] text-white'
                   : allFiveDepartmentsDone
-                  ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20'
-                  : 'text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                  ? 'bg-[#FFE4E6] text-[#E11D48] hover:bg-[#FECDD3]'
+                  : 'bg-[#FFFFFF] text-[#52525B] opacity-40 cursor-not-allowed'
               }`}
             >
               اتاق مخفی ارول
@@ -685,37 +680,37 @@ export function App() {
             <button
               type="button"
               onClick={openLeaderboard}
-              className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition flex items-center gap-1 ${
+              className={`px-3 py-1 rounded-[6px] border-2 border-[#18181B] text-xs font-bold whitespace-nowrap transition flex items-center gap-1 ${
                 activeView === 'leaderboard'
-                  ? 'bg-amber-400 text-slate-950'
-                  : 'text-amber-700 dark:text-amber-300 hover:bg-slate-200/70 dark:hover:bg-slate-800'
+                  ? 'bg-[#F59E0B] text-[#18181B]'
+                  : 'bg-[#FFFFFF] text-[#18181B] hover:bg-[#FEF3C7]'
               }`}
             >
-              <Trophy className="w-3.5 h-3.5" />
+              <Trophy className="w-3.5 h-3.5 text-[#F59E0B]" />
               <span>رده‌بندی</span>
             </button>
           </div>
         </nav>
       </header>
 
-      {/* مسیر راهنمای صفحه (Breadcrumb) + بنر حالت مرور */}
-      <div className="max-w-7xl w-full mx-auto px-4 pt-4 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+      {/* Breadcrumb & Review Mode Indicator */}
+      <div className="relative z-10 max-w-7xl w-full mx-auto px-4 pt-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-xs text-[#52525B]">
           <button
             type="button"
             onClick={() => setActiveView(entranceSolved ? 'map' : 'entrance')}
-            className="hover:text-cyan-600 dark:hover:text-cyan-400"
+            className="hover:text-[#0D9488] font-semibold"
           >
-            کارخانه مولکول دکتر ارول
+            دفترچه کارخانه مولکول
           </button>
           <ChevronLeft className="w-3.5 h-3.5" />
-          <span className="font-bold text-cyan-700 dark:text-cyan-300">{currentViewLabel}</span>
+          <span className="font-heading font-bold text-[#18181B]">{currentViewLabel}</span>
         </div>
 
         {gameCompleted && (
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
-            <Eye className="w-3.5 h-3.5" />
-            <span>حالت مرور فعال است — می‌توانید هر مرحله را بدون تغییر امتیاز دوباره بررسی کنید</span>
+          <div className="lab-badge px-3 py-1 text-[11px] bg-[#DCFCE7] text-[#18181B]">
+            <Eye className="w-3.5 h-3.5 text-[#16A34A]" />
+            <span>حالت مرور آزاد فعال است — می‌توانید هر مرحله را دوباره بررسی کنید</span>
           </div>
         )}
       </div>
@@ -723,23 +718,22 @@ export function App() {
       {toast && (
         <div
           role={toast.isError ? 'alert' : 'status'}
-          className={`fixed bottom-5 left-5 z-50 rounded-2xl border px-4 py-3 text-sm shadow-xl flex items-center gap-2 ${
-            toast.isError
-              ? 'border-rose-400/50 bg-rose-950/95 text-rose-100'
-              : 'border-emerald-400/50 bg-emerald-950/95 text-emerald-100'
+          className={`fixed bottom-5 left-5 z-50 lab-card px-4 py-3 text-xs sm:text-sm font-bold flex items-center gap-2 ${
+            toast.isError ? 'bg-[#FFE4E6] text-[#E11D48]' : 'bg-[#DCFCE7] text-[#18181B]'
           }`}
         >
           {toast.isError ? (
-            <AlertOctagon className="w-5 h-5 text-rose-400 shrink-0" />
+            <AlertOctagon className="w-5 h-5 text-[#E11D48] shrink-0" />
           ) : (
-            <Award className="w-5 h-5 text-emerald-400 shrink-0" />
+            <Award className="w-5 h-5 text-[#16A34A] shrink-0" />
           )}
           <span>{toast.message}</span>
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-5 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div data-tour="workspace" className="lg:col-span-9">
+      {/* Main 65/35 Desktop Split Layout (Stacked on Mobile) */}
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-5 grid grid-cols-1 lg:grid-cols-[minmax(0,68%)_minmax(0,32%)] gap-6 items-start">
+        <div data-tour="workspace" className="min-w-0">
           {activeView === 'entrance' && (
             <EntranceGatePuzzle
               isSolved={entranceSolved}
@@ -825,56 +819,56 @@ export function App() {
           )}
 
           {activeView === 'leaderboard' && (
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 p-5 sm:p-6 space-y-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <h2 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-amber-500" />
+            <div className="lab-card p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-3">
+                <h2 className="font-heading font-bold text-base sm:text-lg text-[#18181B] flex items-center gap-2">
+                  <MolecularTrophyBadge className="w-8 h-8" />
                   <span>جدول رده‌بندی پژوهشگران (Leaderboard)</span>
                 </h2>
                 <button
                   type="button"
                   onClick={() => setActiveView(entranceSolved ? 'map' : 'entrance')}
-                  className="rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:border-cyan-500"
+                  className="btn-tactile btn-tactile-surface px-4 py-1.5 text-xs"
                 >
                   بازگشت به ماموریت
                 </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-right text-sm">
-                  <thead className="border-b border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+                  <thead className="border-b-2 border-[#18181B] bg-[#EFECE6] text-xs text-[#18181B]">
                     <tr>
                       <th className="py-2.5 px-3">رتبه</th>
                       <th className="py-2.5 px-3">نام دانشجو</th>
                       <th className="py-2.5 px-3">شماره دانشجویی</th>
-                      <th className="py-2.5 px-3">امتیاز کل</th>
-                      <th className="py-2.5 px-3">تعداد خطا</th>
-                      <th className="py-2.5 px-3">زمان صرف‌شده</th>
+                      <th className="py-2.5 px-3">امتیاز (XP)</th>
+                      <th className="py-2.5 px-3">خطاها</th>
+                      <th className="py-2.5 px-3">زمان</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
+                  <tbody className="divide-y divide-[#18181B]/15">
                     {leaderboard.map((row) => (
-                      <tr key={row.student_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="py-2.5 px-3 font-bold text-cyan-600 dark:text-cyan-400">
-                          #{toPersianDigits(row.rank)}
+                      <tr key={row.student_id} className="hover:bg-[#EFECE6]/60">
+                        <td className="py-2.5 px-3 font-mono font-extrabold text-[#0D9488] metric-mono">
+                          #{row.rank}
                         </td>
-                        <td className="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-100">{row.full_name}</td>
-                        <td className="py-2.5 px-3 text-xs text-slate-500 dark:text-slate-400">
-                          {toPersianDigits(row.student_id)}
+                        <td className="py-2.5 px-3 font-bold text-[#18181B]">{row.full_name}</td>
+                        <td className="py-2.5 px-3 font-mono text-xs text-[#52525B] metric-mono">
+                          {row.student_id}
                         </td>
-                        <td className="py-2.5 px-3 font-bold text-emerald-600 dark:text-emerald-400">
-                          {toPersianDigits(row.total_score)}
+                        <td className="py-2.5 px-3 font-mono font-extrabold text-[#16A34A] metric-mono">
+                          {row.total_score}
                         </td>
-                        <td className="py-2.5 px-3 text-rose-600 dark:text-rose-300">
-                          {toPersianDigits(row.total_errors)}
+                        <td className="py-2.5 px-3 font-mono font-bold text-[#E11D48] metric-mono">
+                          {row.total_errors}
                         </td>
-                        <td className="py-2.5 px-3 text-xs text-slate-600 dark:text-slate-300">
+                        <td className="py-2.5 px-3 font-mono text-xs text-[#52525B] metric-mono">
                           {formatTime(row.time_spent_seconds)}
                         </td>
                       </tr>
                     ))}
                     {leaderboard.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="py-6 text-center text-slate-400 text-xs">
+                        <td colSpan={6} className="py-8 text-center text-[#52525B] text-xs">
                           هنوز رکوردی ثبت نشده است.
                         </td>
                       </tr>
@@ -888,21 +882,24 @@ export function App() {
           {activeView === 'map' && (
             <div className="space-y-6">
               {gameCompleted ? (
-                <div className="rounded-2xl border border-emerald-400/50 bg-emerald-50 dark:bg-gradient-to-l dark:from-emerald-950/50 dark:via-slate-900 dark:to-slate-900 p-6 flex flex-wrap items-center justify-between gap-4 shadow-sm">
-                  <div className="space-y-1">
-                    <h2 className="font-extrabold text-base text-emerald-800 dark:text-emerald-300">
-                      تبریک! به ساختار اهریمن رسیدی و پادزهرش رو ساختی!
-                    </h2>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-6">
-                      امتیاز نهایی شما: <strong>{toPersianDigits(session?.total_score ?? 0)}</strong> | تعداد خطاها:{' '}
-                      <strong>{toPersianDigits(session?.total_errors ?? 0)}</strong>. هنوز می‌تونی هر اتاقی (حتی ورودی کارخونه) رو دوباره مرور کنی.
-                    </p>
+                <div className="lab-card bg-[#DCFCE7] p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <MolecularTrophyBadge className="w-12 h-12 shrink-0" />
+                    <div className="space-y-1">
+                      <h2 className="font-heading font-bold text-base text-[#18181B]">
+                        تبریک! به ساختار اهریمن رسیدی و پادزهرش رو ساختی!
+                      </h2>
+                      <p className="text-xs text-[#52525B] leading-6">
+                        امتیاز نهایی: <strong className="font-mono text-[#18181B]">{session?.total_score ?? 0} XP</strong> · خطاها:{' '}
+                        <strong className="font-mono text-[#18181B]">{session?.total_errors ?? 0}</strong>. هنوز می‌تونی هر اتاقی رو دوباره مرور کنی.
+                      </p>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => setQuizModalPhase('post')}
-                      className="rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-extrabold px-4 py-2.5 text-xs transition flex items-center gap-1.5"
+                      className="btn-tactile btn-tactile-amber px-4 py-2 text-xs"
                     >
                       <BookOpenCheck className="w-4 h-4" />
                       <span>{postAssessment ? 'مشاهده پس‌آزمون ✓' : 'انجام پس‌آزمون'}</span>
@@ -910,7 +907,7 @@ export function App() {
                     <button
                       type="button"
                       onClick={() => setShowMeegaModal(true)}
-                      className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-4 py-2.5 text-xs transition flex items-center gap-1.5"
+                      className="btn-tactile btn-tactile-primary px-4 py-2 text-xs"
                     >
                       <ClipboardCheck className="w-4 h-4" />
                       <span>{meegaSubmitted ? 'مشاهده MEEGA+ ✓' : 'تکمیل MEEGA+'}</span>
@@ -918,42 +915,38 @@ export function App() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-rose-500/30 bg-rose-50/90 dark:bg-gradient-to-l dark:from-rose-950/30 dark:via-slate-900/90 dark:to-slate-900/90 p-5 flex items-start gap-3 shadow-sm">
-                  <AlertOctagon className="w-6 h-6 text-rose-500 shrink-0 mt-0.5" />
+                <div className="lab-card-cream p-5 flex items-start gap-3">
+                  <SteroidScaffoldBadge className="w-12 h-10 shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <h2 className="font-bold text-base text-rose-800 dark:text-rose-200">
-                      🎧 پیام همکار پشت بی‌سیم: از هر اتاقی که دوست داری شروع کن!
+                    <h2 className="font-heading font-bold text-base text-[#18181B]">
+                      پیام همکار پشت بی‌سیم: از هر اتاقی که دوست داری شروع کن!
                     </h2>
-                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-6">
+                    <p className="text-xs text-[#52525B] leading-6">
                       هر اتاق توی کارخانه دکتر ارول مربوط به یه دسته از هورمون‌های استروئیدیه. هر ۵ اتاق رو بگرد و سرنخ‌های مولکول «اهریمن» رو جمع کن تا درِ اتاق مخفی خود ارول باز بشه.
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* کارت مرحله نهایی */}
+              {/* Final Secret Room Card */}
               <div
-                className={`rounded-2xl border p-5 flex flex-wrap items-center justify-between gap-4 transition shadow-sm ${
-                  allFiveDepartmentsDone
-                    ? 'border-rose-400/60 bg-rose-50 dark:bg-gradient-to-l dark:from-rose-950/40 dark:to-slate-900'
-                    : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 opacity-80'
+                className={`lab-card p-5 flex flex-wrap items-center justify-between gap-4 ${
+                  allFiveDepartmentsDone ? 'bg-[#FFE4E6]' : 'bg-[#EFECE6] opacity-80'
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      allFiveDepartmentsDone
-                        ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
-                    }`}
-                  >
-                    {allFiveDepartmentsDone ? <Skull className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+                  <div className="w-10 h-10 rounded-[6px] border-2 border-[#18181B] bg-[#FFFFFF] flex items-center justify-center shrink-0">
+                    {allFiveDepartmentsDone ? (
+                      <Skull className="w-5 h-5 text-[#E11D48]" />
+                    ) : (
+                      <Lock className="w-5 h-5 text-[#52525B]" />
+                    )}
                   </div>
                   <div>
-                    <div className="font-extrabold text-sm text-slate-900 dark:text-white">
+                    <div className="font-heading font-bold text-sm text-[#18181B]">
                       اتاق مخفی دکتر ارول و گاوصندوق «اهریمن»
                     </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                    <div className="text-xs text-[#52525B] mt-1">
                       {allFiveDepartmentsDone
                         ? 'همه ۵ سرنخ جمع شدن! وارد اتاق مخفی شو، رمز جدول رو بشکن و ساختار اهریمن رو خنثی کن.'
                         : `نیازمند گشتن هر ۵ اتاق کارخانه (${toPersianDigits(
@@ -966,55 +959,52 @@ export function App() {
                   type="button"
                   disabled={!allFiveDepartmentsDone}
                   onClick={() => setActiveView('final')}
-                  className="rounded-xl bg-rose-500 hover:bg-rose-400 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold px-5 py-2 text-xs transition"
+                  className="btn-tactile btn-tactile-crimson px-5 py-2 text-xs"
                 >
                   {gameCompleted ? 'مرور اتاق مخفی' : 'ورود به اتاق مخفی'}
                 </button>
               </div>
 
+              {/* 5 Department Workbook Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {DEPARTMENTS.map((dept) => {
+                {DEPARTMENTS.map((dept, idx) => {
                   const isCompleted = session?.completed_stages?.includes(dept.code);
                   return (
                     <div
                       key={dept.code}
-                      className={`rounded-2xl border p-5 flex flex-col justify-between transition shadow-sm ${
-                        isCompleted
-                          ? 'border-emerald-500/40 bg-emerald-50/40 dark:bg-slate-900/85'
-                          : 'border-slate-200 dark:border-cyan-500/40 bg-white dark:bg-slate-900/80 hover:border-cyan-500'
+                      className={`lab-card p-5 flex flex-col justify-between ${
+                        isCompleted ? 'bg-[#F0FDF4]' : 'bg-[#FFFFFF]'
                       }`}
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl" aria-hidden="true">{dept.emoji}</span>
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-8 h-8 rounded-[6px] border-2 border-[#18181B] bg-[#EFECE6] font-mono text-xs font-extrabold flex items-center justify-center text-[#18181B]">
+                              0{idx + 1}
+                            </span>
                             <div>
-                              <div className="font-extrabold text-sm text-slate-900 dark:text-white">
+                              <div className="font-heading font-bold text-sm text-[#18181B]">
                                 {dept.roomName}
                               </div>
-                              <div className="text-[11px] font-semibold text-cyan-700 dark:text-cyan-400">
+                              <div className="font-mono text-[10px] font-bold uppercase tracking-wide text-[#0D9488]">
                                 {dept.hormoneTag}
                               </div>
                             </div>
                           </div>
-                          {isCompleted && <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />}
+                          {isCompleted && <CheckCircle2 className="w-5 h-5 text-[#16A34A] shrink-0" />}
                         </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-6 mt-2">
-                          {dept.subtitle}
-                        </p>
+                        <p className="text-xs text-[#52525B] leading-6 mt-2">{dept.subtitle}</p>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {isCompleted ? 'سرنخ ثبت شد · قابل مرور ✓' : 'آماده ورود و کشف سرنخ'}
+                      <div className="mt-4 pt-3 border-t-2 border-[#18181B]/15 flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-[#52525B]">
+                          {isCompleted ? 'تکمیل شده · قابل مرور ✓' : 'آماده ورود و رمزگشایی'}
                         </span>
                         <button
                           type="button"
                           onClick={() => setActiveView(dept.code as ActiveView)}
-                          className={`rounded-xl font-bold px-4 py-1.5 text-xs transition ${
-                            isCompleted
-                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/25'
-                              : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950'
+                          className={`btn-tactile px-4 py-1.5 text-xs ${
+                            isCompleted ? 'btn-tactile-surface' : 'btn-tactile-primary'
                           }`}
                         >
                           {isCompleted ? 'مرور اتاق' : 'ورود به اتاق'}
@@ -1028,59 +1018,81 @@ export function App() {
           )}
         </div>
 
-        {/* ستون کناری: پرونده سرنخ‌های کشف‌شده و نشان‌ها */}
-        <aside data-tour="clues" className="lg:col-span-3 space-y-5">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 p-4 space-y-3 shadow-sm">
-            <div className="flex items-center gap-2 text-sm font-bold text-cyan-700 dark:text-cyan-300 border-b border-slate-100 dark:border-slate-800 pb-2.5">
-              <FileSearch className="w-4 h-4" />
-              <span>پرونده سرنخ‌های اهریمن ({toPersianDigits(session?.unlocked_clues?.length ?? 0)}/۵)</span>
+        {/* Right Lab Notebook Sidebar (32%) */}
+        <aside data-tour="clues" className="space-y-5">
+          {/* Clues Dossier */}
+          <div className="lab-card p-4 space-y-3">
+            <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-2.5">
+              <div className="flex items-center gap-2 text-sm font-heading font-bold text-[#18181B]">
+                <FileSearch className="w-4 h-4 text-[#0D9488]" />
+                <span>پرونده سرنخ‌های اهریمن</span>
+              </div>
+              <span dir="ltr" className="font-mono text-xs font-extrabold px-2 py-0.5 rounded-[4px] border border-[#18181B] bg-[#EFECE6] metric-mono">
+                {session?.unlocked_clues?.length ?? 0}/5
+              </span>
             </div>
+
             {session?.unlocked_clues && session.unlocked_clues.length > 0 ? (
               <div className="space-y-2.5">
                 {session.unlocked_clues.map((clue) => (
                   <div
                     key={clue.id}
-                    className="rounded-xl border border-cyan-500/30 bg-cyan-50/70 dark:bg-cyan-950/30 p-3 text-xs space-y-1"
+                    className="rounded-[6px] border-2 border-[#18181B] bg-[#EFECE6] p-3 text-xs space-y-1"
                   >
-                    <div className="font-bold text-cyan-800 dark:text-cyan-200">{clue.title}</div>
-                    <div className="text-slate-600 dark:text-slate-300 leading-5">{clue.detail}</div>
+                    <div className="font-bold text-[#0D9488]">{clue.title}</div>
+                    <div className="text-[#18181B] leading-5">{clue.detail}</div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-6">
-                هنوز سرنخی از ساختار اهریمن پیدا نکردی. اتاق‌های کارخونه رو بگرد!
-              </p>
+              <div className="rounded-[6px] border-2 border-dashed border-[#71717A] bg-[#F7F5F0] p-4 flex flex-col items-center text-center gap-2">
+                <AtomicOrbitalBadge className="w-10 h-10" />
+                <p className="text-xs text-[#52525B] leading-5">
+                  هنوز سرنخی از ساختار اهریمن پیدا نکردی. اتاق‌های کارخونه رو بگرد!
+                </p>
+              </div>
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/80 p-4 space-y-3 shadow-sm">
-            <div className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-300 border-b border-slate-100 dark:border-slate-800 pb-2.5">
-              <Award className="w-4 h-4" />
-              <span>مدال‌های ماموریت ({toPersianDigits(badges.length)})</span>
+          {/* Illustrated Chemistry Badges */}
+          <div className="lab-card p-4 space-y-3">
+            <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-2.5">
+              <div className="flex items-center gap-2 text-sm font-heading font-bold text-[#18181B]">
+                <Sparkles className="w-4 h-4 text-[#F59E0B]" />
+                <span>نشان‌های آزمایشگاهی</span>
+              </div>
+              <span dir="ltr" className="font-mono text-xs font-extrabold px-2 py-0.5 rounded-[4px] border border-[#18181B] bg-[#F59E0B] text-[#18181B] metric-mono">
+                {badges.length}
+              </span>
             </div>
+
             {badges.length > 0 ? (
               <div className="space-y-2">
                 {badges.map((b) => (
                   <div
                     key={b.badge_code}
-                    className="rounded-xl border border-amber-500/30 bg-amber-50/70 dark:bg-amber-950/25 p-3 text-xs"
+                    className="rounded-[6px] border-2 border-[#18181B] bg-[#FEF3C7] p-3 text-xs flex items-start gap-2.5"
                   >
-                    <div className="font-bold text-amber-800 dark:text-amber-200">{b.title}</div>
-                    <div className="text-slate-600 dark:text-slate-400 text-[11px] mt-0.5">{b.description}</div>
+                    <MolecularTrophyBadge className="w-8 h-8 shrink-0" />
+                    <div>
+                      <div className="font-bold text-[#18181B]">{b.title}</div>
+                      <div className="text-[#52525B] text-[11px] mt-0.5">{b.description}</div>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-6">
-                با حل بدون خطای معماهای هر اتاق، مدال تخصصی دریافت کن.
-              </p>
+              <div className="rounded-[6px] border-2 border-dashed border-[#71717A] bg-[#F7F5F0] p-4 flex flex-col items-center text-center gap-2">
+                <MolecularTrophyBadge className="w-10 h-10 opacity-85" />
+                <p className="text-xs text-[#52525B] leading-5">
+                  با حل بدون خطای معماهای هر اتاق، نشان شیمیایی تخصصی دریافت کن.
+                </p>
+              </div>
             )}
           </div>
         </aside>
       </main>
 
-      {/* دکمه شناور میز کار آزاد مولکول‌سازی در تمام صفحات */}
       <FloatingLabBench />
 
       {showProfileModal && user && (
