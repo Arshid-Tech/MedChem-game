@@ -14,7 +14,12 @@ DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "*").split(",") if h.strip()]
 
 CSRF_TRUSTED_ORIGINS = [
-    o.strip() for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "https://*.onrender.com").split(",") if o.strip()
+    o.strip()
+    for o in os.environ.get(
+        "CSRF_TRUSTED_ORIGINS",
+        "https://*.onrender.com,https://*.arshid.tech",
+    ).split(",")
+    if o.strip()
 ]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -112,7 +117,11 @@ if DEBUG and not _raw_cors_origins:
 else:
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = [o.strip() for o in _raw_cors_origins.split(",") if o.strip()]
-    CORS_ALLOWED_ORIGIN_REGEXES = [r"^https://.*\.onrender\.com$"]
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^https://.*\.onrender\.com$",
+        r"^https://.*\.arshid\.tech$",
+        r"^https://arshid\.tech$",
+    ]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
