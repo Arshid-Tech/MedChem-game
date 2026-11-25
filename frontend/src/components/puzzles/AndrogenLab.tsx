@@ -39,9 +39,9 @@ const ENTRY_POTENCY_ITEMS = [
   {
     id: '3',
     blindLabel: 'ساختار ۳',
-    revealedName: 'میبولرون / مشتق دی‌متیل',
-    revealedNote: 'بیشترین قدرت اثر در این مجموعه',
-    smiles: 'C[C@@H]1CC2=CC(=O)CC[C@@H]2[C@H]3CC[C@]4(C)[C@H]([C@@H]13)CC[C@]4(C)O',
+    revealedName: 'متاسترون (Methasterone — 2α,17α-دی‌متیل DHT)',
+    revealedNote: 'حلقه A اشباع (5α-H) با 2α-متیل و 17α-متیل — بیشترین قدرت در این مجموعه',
+    smiles: 'C[C@@H]1C[C@]2(C)[C@@H](CC[C@@H]3[C@@H]2CC[C@]4(C)[C@H]3CC[C@]4(C)O)CC1=O',
   },
   {
     id: '4',
@@ -56,6 +56,8 @@ const INITIAL_ENTRY_ORDER = deterministicShuffle(['1', '2', '3', '4'], 'and-entr
 
 const FLUTAMIDE_PARENT_SMILES = 'CC(C)C(=O)Nc1ccc([N+](=O)[O-])c(C(F)(F)F)c1';
 const BICALUTAMIDE_SMILES = 'CC(O)(CS(=O)(=O)c1ccc(F)cc1)C(=O)Nc2ccc(C#N)c(C(F)(F)F)c2';
+const TESTOSTERONE_REF_SMILES = 'C[C@]12CCC(=O)C=C1CC[C@@H]3[C@@H]2CC[C@]4(C)[C@H]3CC[C@@H]4O';
+const FINASTERIDE_SMILES = 'CC(C)(C)NC(=O)[C@H]1CC[C@H]2[C@@H]3CC[C@H]4NC(=O)C=C[C@]4(C)[C@H]3CC[C@]12C';
 
 const FLUTAMIDE_CANDIDATES = [
   {
@@ -128,35 +130,35 @@ const ANDROGEN_DRUGS = [
     blindLabel: 'ترکیب ۳',
     revealedName: 'فیناستراید',
     revealedNote: 'مهارکننده ۵-آلفا ردوکتاز',
-    smiles: 'CC(C)(C)NC(=O)[C@H]1CC[C@H]2[C@@H]3CC[C@H]4NC(=O)C=C[C@]4(C)[C@H]3CC[C@]12C',
+    smiles: FINASTERIDE_SMILES,
   },
   {
     id: '4',
     blindLabel: 'ترکیب ۴',
     revealedName: 'لیاروزول',
-    revealedNote: 'مهارکننده 17α-هیدروکسیلاز / لایز',
-    smiles: 'Clc1ccc(cc1)C(c2ccc3nc[nH]c3c2)n4ccnc4',
+    revealedNote: 'مهارکننده 17α-هیدروکسیلاز / لایز (کلر در موقعیت متا)',
+    smiles: 'Clc1cccc(c1)C(c2ccc3nc[nH]c3c2)n4ccnc4',
   },
   {
     id: '5',
     blindLabel: 'ترکیب ۵',
-    revealedName: 'آبیراترون',
-    revealedNote: 'مهارکننده 17α-هیدروکسیلاز / لایز',
-    smiles: 'C[C@]12CC[C@H](O)CC1=CC[C@@H]3[C@@H]2CC[C@]4(C)[C@H]3CC=C4c5cccnc5',
+    revealedName: '۱۷β-سیکلوپروپیل‌آمینو استروئید',
+    revealedNote: 'مهارکننده 17α-هیدروکسیلاز / 17,20-لایز',
+    smiles: 'C[C@]12CC[C@H](O)CC1=CC[C@@H]3[C@@H]2CC[C@]4(C)[C@H]3CC[C@@H]4NC5CC5',
   },
   {
     id: '6',
     blindLabel: 'ترکیب ۶',
-    revealedName: 'انوبوسارم (SARM)',
-    revealedNote: 'تعدیل‌کننده انتخابی گیرنده آندروژن',
-    smiles: 'C[C@@](O)(COc1ccc(C#N)cc1)C(=O)Nc2ccc(C#N)c(C(F)(F)F)c2',
+    revealedName: 'SARM فلوئوروفنوکسی (S-1)',
+    revealedNote: 'تعدیل‌کننده انتخابی گیرنده آندروژن با پل اتری (-O-)',
+    smiles: 'C[C@](O)(COc1ccc(F)cc1)C(=O)Nc2ccc([N+](=O)[O-])c(C(F)(F)F)c2',
   },
   {
     id: '7',
     blindLabel: 'ترکیب ۷',
-    revealedName: 'اوساترون استات',
-    revealedNote: 'آنتی‌اندروژن استروئیدی',
-    smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C=C(Cl)C4=CC(=O)OC[C@]4(C)[C@H]3CC[C@@]12C',
+    revealedName: 'زانوترون (Zanoterone)',
+    revealedNote: 'آنتی‌اندروژن استروئیدی با حلقه پیرازول و متان‌سولفونیل',
+    smiles: 'C#C[C@]1(O)CC[C@H]2[C@@H]3CCc4nn(S(C)(=O)=O)cc4C[C@]3(C)CC[C@@]12C',
   },
   {
     id: '8',
@@ -169,14 +171,14 @@ const ANDROGEN_DRUGS = [
     id: '9',
     blindLabel: 'ترکیب ۹',
     revealedName: 'دوتاستراید',
-    revealedNote: 'مهارکننده ۵-آلفا ردوکتاز',
-    smiles: 'C[C@]12CC[C@H]3[C@@H](CC[C@@H]4NC(=O)C=C[C@]34C)[C@@H]1CC[C@@H]2C(=O)Nc5cc(C(F)(F)F)cc(C(F)(F)F)c5',
+    revealedNote: 'مهارکننده ۵-آلفا ردوکتاز (بیس-تری‌فلورومتیل در ۲ و ۵)',
+    smiles: 'C[C@]12CC[C@H]3[C@@H](CC[C@@H]4NC(=O)C=C[C@]34C)[C@@H]1CC[C@@H]2C(=O)Nc5cc(C(F)(F)F)ccc5C(F)(F)F',
   },
   {
     id: '10',
     blindLabel: 'ترکیب ۱۰',
     revealedName: 'آندارین (SARM)',
-    revealedNote: 'تعدیل‌کننده انتخابی گیرنده آندروژن',
+    revealedNote: 'تعدیل‌کننده انتخابی گیرنده آندروژن با پل اتری و پارا-استامیدو',
     smiles: 'CC(=O)Nc1ccc(OC[C@](C)(O)C(=O)Nc2ccc([N+](=O)[O-])c(C(F)(F)F)c2)cc1',
   },
 ];
@@ -498,7 +500,7 @@ export const AndrogenLab: React.FC<Props> = ({
         <ProgressiveHintBox
           solved={entryPotencySolved}
           hints={[
-            'ساختار ۳ (مشتق متیله بدون C19) بالاترین قدرت را دارد.',
+            'ساختار ۳ (مشتق 2α,17α-دی‌متیل از DHT با حلقه A اشباع) بالاترین قدرت را دارد.',
             'حلقه پیرازول (ساختار ۲) قوی‌تر از 2-هیدروکسی‌متیلن (ساختار ۱) است و ترکیب فلوئوره (ساختار ۴) کمترین قدرت را دارد.',
           ]}
         />
@@ -610,14 +612,14 @@ export const AndrogenLab: React.FC<Props> = ({
         }`}
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          گام {toPersianDigits(3)}: پیشنهاد یک SARM بهتر به‌جای بیکالوتامید
+          گام {toPersianDigits(3)}: تبدیل بیکالوتامید به یک SARM بهتر
         </h3>
         <p className="text-xs leading-6 text-slate-600 dark:text-slate-300">
-          ساختار قبلی دو تا مشکل داره: ۱) باید چند بار در روز مصرف بشه، ۲) PSA زیگموند همچنان بالاست. از روی ساختار بیکالوتامید، کدوم ترکیب زیر یه <strong>SARM</strong> با اثر قوی‌تر و خطر متابولیسم کمتره؟
+          ساختار قبلی دو تا مشکل داره: ۱) باید چند بار در روز مصرف بشه، ۲) PSA زیگموند همچنان بالاست. از روی ساختار بیکالوتامید (که پل سولفونیل <code dir="ltr">-SO2-</code> داره)، با جایگزینی پل به اتر (<code dir="ltr">-O-</code>) به کدام ساختار <strong>SARM</strong> می‌رسیم؟
         </p>
 
         <div className="max-w-xs">
-          <MoleculeStructureCard smiles={BICALUTAMIDE_SMILES} label="ساختار مرجع: بیکالوتامید" compact />
+          <MoleculeStructureCard smiles={BICALUTAMIDE_SMILES} label="ساختار مرجع: بیکالوتامید (پل سولفونیل -SO2-)" compact />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -667,7 +669,7 @@ export const AndrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* گام ۴: کمک زیگموند — کمینه‌کردن آندروژنیسیته */}
+      {/* گام ۴: کمک زیگموند — کمینه‌کردن آندروژنیسیته + ساختار مرجع تستوسترون */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           sarmSolved
@@ -681,6 +683,15 @@ export const AndrogenLab: React.FC<Props> = ({
         <div className="rounded-xl border border-indigo-500/30 bg-indigo-50/70 dark:bg-indigo-950/20 p-3.5 text-xs leading-7 text-slate-700 dark:text-slate-200">
           <strong>🧔 آقای زیگموند:</strong> <em>«ارول اهریمن رو با کمترین آندروژنیسیته می‌سازه؛ اون قسمتایی که خواص آندروژنی می‌دن رو باید حذف کنی و قسمتایی که آندروژنیسیته رو کم می‌کنن اضافه کنی.»</em>
         </div>
+
+        <div className="max-w-xs">
+          <MoleculeStructureCard
+            smiles={TESTOSTERONE_REF_SMILES}
+            label="ساختار مرجع آندروژن: تستوسترون (دارای C19-CH3 و Δ4)"
+            compact
+          />
+        </div>
+
         <div className="space-y-2">
           {ANDROGENICITY_OPTIONS.map((modification) => {
             const active = androgenicityMods.includes(modification.id);
@@ -846,8 +857,8 @@ export const AndrogenLab: React.FC<Props> = ({
           solved={classificationSolved}
           disabled={!androgenicitySolved}
           hints={[
-            'مهارکننده‌های ۵-آلفا ردوکتاز (۳ و ۹) حلقه A لاکتامی (NH-C=O) دارند؛ مهارکننده‌های CYP17 (۴ و ۵) حلقه ایمیدازول یا پیریدین دارند.',
-            'SARMها (۶ و ۱۰) پل اتری (-O-) دارند و آنتی‌آندروژن‌های غیراستروئیدی (۲ و ۸) ایمیدازولیدین‌دیون یا پل سولفونیل (-SO2-) دارند.',
+            'مهارکننده‌های ۵-آلفا ردوکتاز (۳ و ۹) حلقه A لاکتامی (NH-C=O) دارند؛ مهارکننده‌های CYP17 (۴ و ۵) ایمیدازول یا سیکلوپروپیل‌آمین C17 دارند.',
+            'SARMها (۶ و ۱۰) پل اتری (-O-) دارند، آنتی‌آندروژن‌های استروئیدی (۱ و ۷) هسته استروئیدی با کلر یا پیرازول، و غیراستروئیدی‌ها (۲ و ۸) ایمیدازولیدین‌دیون یا پل سولفونیل دارند.',
           ]}
         />
 
@@ -878,7 +889,7 @@ export const AndrogenLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* گام ۶: قرار دادن مهارکننده ۵-آلفا ردوکتاز داخل سایت فعال آنزیم */}
+      {/* گام ۶: نمایش مکانیسم کمپلکس فیناستراید-NADPH در سایت فعال آنزیم */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           classificationSolved
@@ -894,6 +905,45 @@ export const AndrogenLab: React.FC<Props> = ({
         <p className="text-xs text-slate-600 dark:text-slate-300 leading-6">
           ببین کدوم قسمت از ساختار مهارکننده‌های ۵-آلفا ردوکتاز با کوفاکتور آنزیم وارد واکنش می‌شه و برای ارول مهم بوده:
         </p>
+
+        {/* شماتیک واکنش فیناستراید + NADPH → Finasteride-NADPH Complex */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-3">
+          <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">
+            شماتیک واکنش در سایت فعال آنزیم 5α-Reductase:
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-11 gap-3 items-center">
+            <div className="md:col-span-5">
+              <MoleculeStructureCard
+                smiles={FINASTERIDE_SMILES}
+                label="مهارکننده ۴-آزااستروئید (حلقه A لاکتام + Δ1)"
+                compact
+              />
+            </div>
+            <div className="md:col-span-1 text-center font-mono text-xs font-extrabold text-cyan-600 dark:text-cyan-400">
+              + NADPH
+              <div className="text-lg">→</div>
+            </div>
+            <div dir="ltr" className="md:col-span-5 rounded-xl border border-emerald-500/40 bg-slate-950 p-3 flex flex-col items-center">
+              <svg viewBox="0 0 260 120" className="w-full max-w-[250px] h-28">
+                {/* حلقه نیکوتین‌آمید NADPH متصل به C2 حلقه A */}
+                <polygon points="22,22 44,10 66,22 66,46 44,58 22,46" fill="rgba(56,189,248,0.16)" stroke="#38bdf8" strokeWidth="2" />
+                <text x="12" y="16" fill="#38bdf8" fontSize="9.5" fontWeight="bold" fontFamily="monospace">NADPH</text>
+                {/* پیوند کووالانسی جدید به حلقه A لاکتام */}
+                <line x1="66" y1="46" x2="88" y2="62" stroke="#34d399" strokeWidth="2.8" />
+                <circle cx="77" cy="54" r="3.5" fill="#34d399" />
+                {/* حلقه A لاکتام + هسته استروئید */}
+                <polygon points="88,62 114,48 140,62 140,90 114,104 88,90" fill="rgba(52,211,153,0.14)" stroke="#34d399" strokeWidth="2" />
+                <text x="104" y="114" fill="#fbbf24" fontSize="9.5" fontWeight="bold" fontFamily="monospace">NH-C=O</text>
+                <polygon points="140,62 166,48 192,62 192,90 166,104 140,90" fill="none" stroke="#cbd5e1" strokeWidth="1.8" />
+                <polygon points="166,48 192,34 218,48 218,76 192,90 192,62" fill="none" stroke="#cbd5e1" strokeWidth="1.8" />
+                <polygon points="218,48 242,56 248,78 232,90 218,76" fill="none" stroke="#cbd5e1" strokeWidth="1.8" />
+              </svg>
+              <span className="text-[11px] font-bold text-emerald-300 font-mono">
+                Finasteride–NADPH Covalent Complex
+              </span>
+            </div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#081220] p-4 space-y-2">
