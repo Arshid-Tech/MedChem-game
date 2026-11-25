@@ -2,67 +2,244 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg-paper: #F7F5F0;
+  --bg-surface: #FFFFFF;
+  --bg-cream: #EFECE6;
+  --ink-primary: #18181B;
+  --ink-secondary: #52525B;
+  --reagent-teal: #0D9488;
+  --chem-amber: #F59E0B;
+  --chem-emerald: #16A34A;
+  --chem-crimson: #E11D48;
+  --chem-nitrogen: #2563EB;
+  --dot-color: #D6D3CD;
+}
+
 @layer base {
   html,
   body {
-    font-family: 'Vazirmatn', system-ui, sans-serif;
-    overflow-x: hidden;
+    font-family: 'Plus Jakarta Sans', 'Vazirmatn', system-ui, sans-serif;
+    background-color: var(--bg-paper);
+    color: var(--ink-primary);
+    min-width: 320px;
+    min-height: 100vh;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-heading {
+    font-family: 'Space Grotesk', 'Vazirmatn', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  code,
+  pre,
+  .font-mono,
+  .metric-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-variant-numeric: tabular-nums;
   }
 
   button,
-  a,
+  input,
   select,
-  input[type='checkbox'],
-  input[type='radio'],
-  [role='button'] {
-    cursor: pointer;
+  textarea {
+    font: inherit;
   }
 
-  button:focus-visible,
-  a:focus-visible,
-  select:focus-visible,
-  input:focus-visible,
-  textarea:focus-visible {
-    outline: 2px solid #06b6d4;
+  :focus-visible {
+    outline: 2px solid var(--reagent-teal);
     outline-offset: 2px;
   }
+
+  ::selection {
+    background: rgba(13, 148, 136, 0.22);
+    color: #18181B;
+  }
 }
 
-.lab-grid-bg {
+/* ===== Tactile Lab Workbook Layered Graph-Paper Background ===== */
+.workbook-bg {
+  position: relative;
+  background-color: #F7F5F0;
+}
+
+.workbook-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background-image:
-    linear-gradient(to right, rgba(6, 182, 212, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(6, 182, 212, 0.06) 1px, transparent 1px);
-  background-size: 32px 32px;
+    linear-gradient(to right, rgba(24, 24, 27, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(24, 24, 27, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+  /* Radial mask keeps center workspace crisp and readable */
+  -webkit-mask-image: radial-gradient(circle at 50% 42%, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.75) 55%, rgba(0, 0, 0, 1) 100%);
+  mask-image: radial-gradient(circle at 50% 42%, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.75) 55%, rgba(0, 0, 0, 1) 100%);
 }
 
-.lab-grid-light-bg {
-  background-image:
-    linear-gradient(to right, rgba(14, 116, 144, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(14, 116, 144, 0.05) 1px, transparent 1px);
-  background-size: 32px 32px;
+/* Interactive Molecule Canvas Dot-Grid (20px, #D6D3CD) */
+.molecule-dot-grid {
+  background-color: #FFFFFF;
+  background-image: radial-gradient(#D6D3CD 1.35px, transparent 1.35px);
+  background-size: 20px 20px;
 }
 
-/* مخفی کردن کامل نوار اسکرول افقی اضافی در نوار ناوبری و تب‌ها */
+.molecule-dot-grid-cream {
+  background-color: #EFECE6;
+  background-image: radial-gradient(#C8C4BC 1.35px, transparent 1.35px);
+  background-size: 20px 20px;
+}
+
+/* ===== Tactile Surface Cards ===== */
+.lab-card {
+  background-color: #FFFFFF;
+  border: 2px solid #18181B;
+  border-radius: 8px;
+  box-shadow: 4px 4px 0px #18181B;
+}
+
+.lab-card-cream {
+  background-color: #EFECE6;
+  border: 2px solid #18181B;
+  border-radius: 8px;
+  box-shadow: 4px 4px 0px #18181B;
+}
+
+.lab-panel-flat {
+  background-color: #EFECE6;
+  border: 2px solid #18181B;
+  border-radius: 8px;
+}
+
+/* ===== 3D Mechanical Pressable Buttons ===== */
+.btn-tactile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 2px solid #18181B;
+  border-bottom-width: 5px;
+  border-radius: 6px;
+  font-weight: 700;
+  transition: transform 80ms ease, border-bottom-width 80ms ease, background-color 120ms ease;
+  cursor: pointer;
+}
+
+.btn-tactile:active:not(:disabled) {
+  transform: translateY(3px);
+  border-bottom-width: 2px;
+}
+
+.btn-tactile:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-tactile-primary {
+  background-color: #0D9488;
+  color: #FFFFFF;
+}
+
+.btn-tactile-primary:hover:not(:disabled) {
+  background-color: #0F766E;
+}
+
+.btn-tactile-amber {
+  background-color: #F59E0B;
+  color: #18181B;
+}
+
+.btn-tactile-amber:hover:not(:disabled) {
+  background-color: #D97706;
+  color: #FFFFFF;
+}
+
+.btn-tactile-emerald {
+  background-color: #16A34A;
+  color: #FFFFFF;
+}
+
+.btn-tactile-emerald:hover:not(:disabled) {
+  background-color: #15803D;
+}
+
+.btn-tactile-crimson {
+  background-color: #E11D48;
+  color: #FFFFFF;
+}
+
+.btn-tactile-crimson:hover:not(:disabled) {
+  background-color: #BE123C;
+}
+
+.btn-tactile-surface {
+  background-color: #FFFFFF;
+  color: #18181B;
+}
+
+.btn-tactile-surface:hover:not(:disabled) {
+  background-color: #EFECE6;
+}
+
+.btn-tactile-cream {
+  background-color: #EFECE6;
+  color: #18181B;
+}
+
+.btn-tactile-cream:hover:not(:disabled) {
+  background-color: #E5E0D6;
+}
+
+/* Technical Badges */
+.lab-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 2px solid #18181B;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+/* Tactile Workbook Uniform Harmonization for Puzzle Sections */
+.workbook-scope .rounded-2xl,
+.workbook-scope .rounded-3xl {
+  border-radius: 8px;
+}
+
+.workbook-scope .rounded-xl,
+.workbook-scope .rounded-lg {
+  border-radius: 6px;
+}
+
+.workbook-scope .shadow-sm,
+.workbook-scope .shadow-md,
+.workbook-scope .shadow-lg,
+.workbook-scope .shadow-xl,
+.workbook-scope .shadow-2xl {
+  box-shadow: 4px 4px 0px #18181B;
+}
+
+/* Remove scrollbar clutter on horizontal nav */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
 
-/* استایل ظریف برای اسکرول عمودی */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 0px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.35);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.55);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
