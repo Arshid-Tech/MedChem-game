@@ -42,42 +42,42 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] bg-[#18181B]/70 flex items-center justify-center p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="change-password-title"
-        className="w-full max-w-md rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0d1b2e] text-slate-900 dark:text-slate-100 p-6 space-y-4 shadow-2xl"
+        className="w-full max-w-md lab-card p-6 space-y-4"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <KeyRound className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+        <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-3">
+          <div className="flex items-center gap-2 font-heading font-bold text-sm text-[#18181B]">
+            <KeyRound className="w-4 h-4 text-[#0D9488]" />
             <span id="change-password-title">تغییر رمز عبور حساب دانشجویی</span>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="بستن پنجره تغییر رمز"
-            className="text-slate-400 hover:text-slate-800 dark:hover:text-white"
+            className="btn-tactile btn-tactile-surface p-1.5"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs text-slate-600 dark:text-slate-300 mb-1">رمز عبور فعلی</label>
+            <label className="block text-xs font-bold text-[#18181B] mb-1">رمز عبور فعلی</label>
             <input
               type="password"
               required
               dir="ltr"
               value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-cyan-400 focus:outline-none"
+              className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3.5 py-2 text-sm font-mono text-[#18181B]"
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-600 dark:text-slate-300 mb-1">رمز عبور جدید (حداقل ۶ کاراکتر)</label>
+            <label className="block text-xs font-bold text-[#18181B] mb-1">رمز عبور جدید (حداقل ۶ کاراکتر)</label>
             <input
               type="password"
               required
@@ -85,11 +85,11 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
               dir="ltr"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-cyan-400 focus:outline-none"
+              className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3.5 py-2 text-sm font-mono text-[#18181B]"
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-600 dark:text-slate-300 mb-1">تکرار رمز عبور جدید</label>
+            <label className="block text-xs font-bold text-[#18181B] mb-1">تکرار رمز عبور جدید</label>
             <input
               type="password"
               required
@@ -97,36 +97,26 @@ export const ChangePasswordModal: React.FC<Props> = ({ onClose }) => {
               dir="ltr"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-white focus:border-cyan-400 focus:outline-none"
+              className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3.5 py-2 text-sm font-mono text-[#18181B]"
             />
           </div>
 
           {status && (
             <div
-              className={`rounded-xl border p-2.5 text-xs flex items-center gap-2 ${
-                status.ok
-                  ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
-                  : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
+              className={`rounded-[6px] border-2 border-[#18181B] p-2.5 text-xs font-bold flex items-center gap-2 ${
+                status.ok ? 'bg-[#DCFCE7] text-[#18181B]' : 'bg-[#FFE4E6] text-[#E11D48]'
               }`}
             >
-              {status.ok ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
+              {status.ok ? <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0" /> : <AlertTriangle className="w-4 h-4 text-[#E11D48] shrink-0" />}
               <span>{status.msg}</span>
             </div>
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
+            <button type="button" onClick={onClose} className="btn-tactile btn-tactile-surface px-4 py-2 text-xs">
               بستن
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-2 text-xs"
-            >
+            <button type="submit" disabled={loading} className="btn-tactile btn-tactile-primary px-5 py-2 text-xs">
               {loading ? 'در حال ذخیره...' : 'ذخیره رمز جدید'}
             </button>
           </div>

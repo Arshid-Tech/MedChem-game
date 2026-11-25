@@ -97,6 +97,10 @@ const POTENCY_COMPOUNDS = [
   },
 ];
 
+// ساختارهای مرجع گام ۵ خانم لارنس (تبدیل استروژن به کاتکول استروژن / کوئینون سرطان‌زا)
+const LAWRENCE_PARENT_ESTROGEN_SMILES = 'C[C@]12CC[C@H]3[C@@H](CCc4cc(O)ccc34)[C@@H]1CC[C@@H]2O';
+const LAWRENCE_CATECHOL_METABOLITE_SMILES = 'C[C@]12CC[C@H]3[C@@H](CCc4c(O)c(O)ccc34)[C@@H]1CC[C@@H]2O';
+
 const INITIAL_POTENCY_ORDER = deterministicShuffle(['1', '2', '3', '4'], 'est-potency-v3');
 
 const METABOLITE_OPTIONS = deterministicShuffle(
@@ -109,7 +113,7 @@ const METABOLITE_OPTIONS = deterministicShuffle(
 );
 
 const DRUG_CLASS_FIELDS = [
-  { key: 'serm', blindTitle: '۱) تعدیل‌کننده انتخابی گیرنده استروژن (SERM)', revealedTitle: '۱) SERM — رالوکسیفن' },
+  { key: 'serm', blindTitle: '۱) تعدیل‌کننده انتخابی گیرنده استروژن (SERM)', revealedTitle: '۱) SERM — آرزوکسیفن' },
   { key: 'pure_antiestrogen', blindTitle: '۲) آنتی‌استروژن خالص (Pure Antiestrogen)', revealedTitle: '۲) آنتی‌استروژن خالص — فولوسترانت' },
   { key: 'steroid_aromatase_inhibitor', blindTitle: '۳) مهارکننده استروئیدی آروماتاز', revealedTitle: '۳) مهارکننده استروئیدی آروماتاز — اگزمستان' },
   { key: 'non_steroid_aromatase_inhibitor', blindTitle: '۴) مهارکننده غیراستروئیدی آروماتاز', revealedTitle: '۴) مهارکننده غیراستروئیدی آروماتاز — لتروزول' },
@@ -126,9 +130,9 @@ const DRUG_CLASS_STRUCTURES = [
   {
     id: 'B',
     blindLabel: 'ساختار B',
-    revealedName: 'رالوکسیفن (Raloxifene)',
-    revealedNote: 'تعدیل‌کننده انتخابی گیرنده استروژن (SERM)',
-    smiles: 'Oc1ccc(cc1)c2sc3cc(O)ccc3c2C(=O)c4ccc(OCCN5CCCCC5)cc4',
+    revealedName: 'آرزوکسیفن (Arzoxifene)',
+    revealedNote: 'تعدیل‌کننده انتخابی گیرنده استروژن (SERM) با داربست بنزوتیوفن، پل اتری و متوکسی',
+    smiles: 'COc1ccc(cc1)c2sc3cc(O)ccc3c2Oc4ccc(OCCN5CCCCC5)cc4',
   },
   {
     id: 'C',
@@ -834,7 +838,7 @@ export const EstrogenLab: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* گام ۵: معامله با خانم لارنس */}
+      {/* گام ۵: معامله با خانم لارنس + نمایش ساختار متابولیت فعال سرطان‌زا */}
       <div
         className={`rounded-2xl border p-6 space-y-4 transition ${
           dockingSolved
@@ -843,11 +847,25 @@ export const EstrogenLab: React.FC<Props> = ({
         }`}
       >
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-          گام {toPersianDigits(5)}: گفت‌وگو با خانم لارنس
+          گام {toPersianDigits(5)}: گفت‌وگو با خانم لارنس و بررسی متابولیت فعال
         </h3>
         <div className="rounded-xl border border-pink-500/30 bg-pink-50/70 dark:bg-pink-950/20 p-3.5 text-xs leading-7 text-slate-700 dark:text-slate-200">
           <strong>🔬 خانم لارنس:</strong> <em>«که اومدی اینجا جاسوسی کنی! باشه، من بهت کمک می‌کنم؛ چون ارول یه دارویی به من داد بخورم و باعث شد به سرطان مبتلا بشم... کمکم کن طوری تغییرش بدیم که به متابولیت فعالش تبدیل نشه.»</em>
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <MoleculeStructureCard
+            smiles={LAWRENCE_PARENT_ESTROGEN_SMILES}
+            label="داروی اولیه (استروژن فنولیک)"
+            compact
+          />
+          <MoleculeStructureCard
+            smiles={LAWRENCE_CATECHOL_METABOLITE_SMILES}
+            label="متابولیت فعال کاتکول (۴-هیدروکسی — پیش‌ساز کوئینون آسیب‌زننده به DNA)"
+            compact
+          />
+        </div>
+
         <div className="space-y-2">
           {METABOLITE_OPTIONS.map((opt) => (
             <button

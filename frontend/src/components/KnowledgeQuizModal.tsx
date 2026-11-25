@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { BookOpenCheck, CheckCircle2, AlertTriangle, X, Sparkles } from 'lucide-react';
+import { BookOpenCheck, AlertTriangle, X, Sparkles } from 'lucide-react';
 import { api } from '../api';
+import { MolecularTrophyBadge } from './visuals/ChemBadges';
 import { toPersianDigits } from '../utils/persian';
 
 interface Props {
@@ -124,25 +125,25 @@ export const KnowledgeQuizModal: React.FC<Props> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="quiz-title"
-      className="fixed inset-0 z-[105] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[105] bg-[#18181B]/70 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl border border-cyan-500/40 bg-white dark:bg-[#0b1728] text-slate-900 dark:text-slate-100 p-5 sm:p-7 space-y-5 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 sticky top-0 bg-white dark:bg-[#0b1728] z-10">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto lab-card p-5 sm:p-7 space-y-5">
+        <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-4 sticky top-0 bg-[#FFFFFF] z-10">
           <div className="flex items-center gap-2.5">
-            <BookOpenCheck className="w-6 h-6 text-cyan-600 dark:text-cyan-400 shrink-0" />
+            <BookOpenCheck className="w-6 h-6 text-[#0D9488] shrink-0" />
             <div>
-              <h2 id="quiz-title" className="font-extrabold text-base sm:text-lg">
+              <h2 id="quiz-title" className="font-heading font-bold text-base sm:text-lg text-[#18181B]">
                 {phase === 'pre'
                   ? 'پیش‌آزمون کوتاه شیمی دارویی (Pre-test)'
                   : 'پس‌آزمون ارزیابی یادگیری (Post-test)'}
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-[#52525B]">
                 {phase === 'pre'
-                  ? '۵ سوال کوتاه برای سنجش سطح دانش اولیه پیش از شروع ماموریت پژوهشی'
-                  : '۵ سوال برای سنجش میزان رشد یادگیری پس از تکمیل آزمایشگاه‌های استروئیدها'}
+                  ? '۵ سوال کوتاه برای سنجش سطح دانش اولیه پیش از شروع ماموریت'
+                  : '۵ سوال برای سنجش میزان رشد یادگیری پس از تکمیل آزمایشگاه‌ها'}
               </p>
             </div>
           </div>
@@ -150,28 +151,30 @@ export const KnowledgeQuizModal: React.FC<Props> = ({
             type="button"
             onClick={onClose}
             aria-label="بستن آزمون"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            className="btn-tactile btn-tactile-surface p-1.5"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {result ? (
           <div className="space-y-5">
-            <div className="rounded-2xl border border-emerald-500/40 bg-emerald-50/70 dark:bg-emerald-950/30 p-5 text-center space-y-2">
-              <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
-              <div className="text-lg font-extrabold text-emerald-800 dark:text-emerald-300">
-                نمره شما: {toPersianDigits(result.assessment.score)} از {toPersianDigits(result.assessment.total_questions)} ({toPersianDigits(result.assessment.percentage)}٪)
+            <div className="rounded-[8px] border-2 border-[#18181B] bg-[#DCFCE7] p-5 text-center space-y-2">
+              <MolecularTrophyBadge className="w-14 h-14 mx-auto" />
+              <div className="text-lg font-heading font-bold text-[#18181B]">
+                نمره شما:{' '}
+                <span dir="ltr" className="font-mono metric-mono">
+                  {result.assessment.score}/{result.assessment.total_questions} ({result.assessment.percentage}%)
+                </span>
               </div>
               {phase === 'post' && preScorePercent != null && (
-                <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">
-                  تغییر نسبت به پیش‌آزمون ({toPersianDigits(preScorePercent)}٪):{' '}
-                  {result.assessment.percentage >= preScorePercent ? '+' : ''}
-                  {toPersianDigits(Math.round((result.assessment.percentage - preScorePercent) * 10) / 10)}٪
+                <div className="text-xs font-mono font-bold text-[#0D9488] metric-mono">
+                  Learning Gain: {result.assessment.percentage >= preScorePercent ? '+' : ''}
+                  {Math.round((result.assessment.percentage - preScorePercent) * 10) / 10}% (vs Pre: {preScorePercent}%)
                 </div>
               )}
               {phase === 'pre' && (
-                <p className="text-xs text-slate-600 dark:text-slate-300">
+                <p className="text-xs text-[#52525B]">
                   پاسخنامه تشریحی پس از تکمیل بازی و انجام پس‌آزمون در اختیار شما قرار می‌گیرد.
                 </p>
               )}
@@ -179,7 +182,7 @@ export const KnowledgeQuizModal: React.FC<Props> = ({
 
             {phase === 'post' && result.answer_key && (
               <div className="space-y-3">
-                <div className="text-xs font-bold text-cyan-700 dark:text-cyan-300">پاسخنامه تشریحی:</div>
+                <div className="text-xs font-heading font-bold text-[#0D9488]">پاسخنامه تشریحی:</div>
                 {QUESTIONS.map((q, idx) => {
                   const correctKey = result.answer_key![q.id];
                   const isRight = answers[q.id] === correctKey;
@@ -187,19 +190,15 @@ export const KnowledgeQuizModal: React.FC<Props> = ({
                   return (
                     <div
                       key={q.id}
-                      className={`rounded-xl border p-3.5 text-xs space-y-1.5 ${
-                        isRight
-                          ? 'border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20'
-                          : 'border-rose-500/30 bg-rose-50/40 dark:bg-rose-950/20'
+                      className={`rounded-[6px] border-2 border-[#18181B] p-3.5 text-xs space-y-1.5 ${
+                        isRight ? 'bg-[#DCFCE7]' : 'bg-[#FFE4E6]'
                       }`}
                     >
-                      <div className="font-bold">
+                      <div className="font-bold text-[#18181B]">
                         {toPersianDigits(idx + 1)}. {q.question}
                       </div>
-                      <div className="text-emerald-700 dark:text-emerald-300 font-semibold">
-                        پاسخ صحیح: {correctOption?.text}
-                      </div>
-                      <div className="text-slate-600 dark:text-slate-300 leading-5">{q.explanation}</div>
+                      <div className="text-[#16A34A] font-bold">پاسخ صحیح: {correctOption?.text}</div>
+                      <div className="text-[#52525B] leading-5">{q.explanation}</div>
                     </div>
                   );
                 })}
@@ -207,11 +206,7 @@ export const KnowledgeQuizModal: React.FC<Props> = ({
             )}
 
             <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-2.5 text-sm"
-              >
+              <button type="button" onClick={onClose} className="btn-tactile btn-tactile-primary px-6 py-2.5 text-sm">
                 ادامه
               </button>
             </div>
@@ -222,9 +217,9 @@ export const KnowledgeQuizModal: React.FC<Props> = ({
               {QUESTIONS.map((q, idx) => (
                 <div
                   key={q.id}
-                  className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70 p-4 space-y-2.5"
+                  className="rounded-[8px] border-2 border-[#18181B] bg-[#F7F5F0] p-4 space-y-2.5"
                 >
-                  <div className="text-xs sm:text-sm font-bold leading-6">
+                  <div className="text-xs sm:text-sm font-bold text-[#18181B] leading-6">
                     {toPersianDigits(idx + 1)}. {q.question}
                   </div>
                   <div className="space-y-1.5">
@@ -238,10 +233,10 @@ export const KnowledgeQuizModal: React.FC<Props> = ({
                             setAnswers((prev) => ({ ...prev, [q.id]: opt.key }));
                             if (error) setError(null);
                           }}
-                          className={`w-full text-right rounded-xl border px-3.5 py-2.5 text-xs transition ${
+                          className={`w-full text-right rounded-[6px] border-2 border-[#18181B] px-3.5 py-2.5 text-xs transition ${
                             selected
-                              ? 'border-cyan-500 bg-cyan-500/15 text-cyan-900 dark:text-cyan-100 font-bold'
-                              : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-cyan-400'
+                              ? 'bg-[#0D9488] text-white font-bold shadow-[2px_2px_0px_#18181B]'
+                              : 'bg-[#FFFFFF] text-[#18181B] hover:bg-[#EFECE6]'
                           }`}
                         >
                           {opt.text}
@@ -254,28 +249,24 @@ export const KnowledgeQuizModal: React.FC<Props> = ({
             </div>
 
             {error && (
-              <div className="rounded-xl border border-rose-500/40 bg-rose-950/85 p-3 text-xs text-rose-200 flex items-center gap-2">
+              <div className="rounded-[6px] border-2 border-[#18181B] bg-[#FFE4E6] p-3 text-xs font-bold text-[#E11D48] flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             <div className="flex items-center justify-between gap-3 pt-2">
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                پاسخ‌داده‌شده: {toPersianDigits(answeredCount)} از {toPersianDigits(QUESTIONS.length)}
+              <span className="font-mono text-xs font-bold text-[#52525B] metric-mono">
+                {answeredCount}/{QUESTIONS.length} answered
               </span>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 text-xs text-slate-600 dark:text-slate-300"
-                >
+                <button type="button" onClick={onClose} className="btn-tactile btn-tactile-surface px-4 py-2 text-xs">
                   انصراف
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !allAnswered}
-                  className="rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-extrabold px-5 py-2.5 text-xs sm:text-sm flex items-center gap-1.5 transition"
+                  className="btn-tactile btn-tactile-emerald px-5 py-2 text-xs sm:text-sm"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>{loading ? 'در حال ثبت...' : 'ثبت پاسخ‌های آزمون'}</span>

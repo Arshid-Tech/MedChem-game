@@ -8,10 +8,6 @@ interface Props {
   onClose: () => void;
 }
 
-/**
- * پنجره دیالوگ داستانی تعاملی (بی‌سیم مامور مخفی و شخصیت‌های کارخانه دکتر ارول)
- * بازیکن می‌تواند دیالوگ‌ها را گام‌به‌گام بخواند یا رد کند و هر زمان دوباره مرور نماید.
- */
 export const StoryCommsModal: React.FC<Props> = ({ beat, onClose }) => {
   const [index, setIndex] = useState(0);
   const currentMsg = beat.messages[index];
@@ -23,23 +19,22 @@ export const StoryCommsModal: React.FC<Props> = ({ beat, onClose }) => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="story-beat-title"
-      className="fixed inset-0 z-[95] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[95] bg-[#18181B]/70 flex items-center justify-center p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-xl rounded-3xl border border-cyan-500/40 bg-white dark:bg-[#091424] text-slate-900 dark:text-slate-100 shadow-2xl overflow-hidden">
-        {/* نوار بالای بی‌سیم */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#060e1a]">
+      <div className="w-full max-w-xl lab-card overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-[#18181B] bg-[#EFECE6]">
           <div className="flex items-center gap-2.5">
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
-              <Radio className="w-4 h-4 animate-pulse" />
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-[6px] border-2 border-[#18181B] bg-[#0D9488] text-white">
+              <Radio className="w-4 h-4" />
             </span>
             <div>
-              <h2 id="story-beat-title" className="text-sm font-extrabold text-slate-900 dark:text-white">
+              <h2 id="story-beat-title" className="text-sm font-heading font-bold text-[#18181B]">
                 {beat.title}
               </h2>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
+              <div className="text-[11px] font-mono text-[#52525B] flex items-center gap-2">
                 <span>{beat.timeStamp}</span>
                 <span>•</span>
                 <span>{beat.location}</span>
@@ -50,40 +45,36 @@ export const StoryCommsModal: React.FC<Props> = ({ beat, onClose }) => {
             type="button"
             onClick={onClose}
             aria-label="بستن پیام داستانی"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-white"
+            className="btn-tactile btn-tactile-surface p-1.5"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* بدنه دیالوگ */}
-        <div className="p-5 sm:p-6 space-y-5">
-          <div className={`rounded-2xl border p-4 sm:p-5 space-y-3 transition-all ${character.accentClass}`}>
-            <div className="flex items-center justify-between gap-2">
+        <div className="p-5 sm:p-6 space-y-5 bg-[#FFFFFF]">
+          <div className="rounded-[8px] border-2 border-[#18181B] bg-[#F7F5F0] p-4 sm:p-5 space-y-3">
+            <div className="flex items-center justify-between gap-2 border-b border-[#18181B]/15 pb-2.5">
               <div className="flex items-center gap-2.5">
                 <span className="text-2xl leading-none select-none" aria-hidden="true">
                   {character.emoji}
                 </span>
                 <div>
-                  <div className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white">
+                  <div className="text-xs sm:text-sm font-heading font-bold text-[#18181B]">
                     {character.name}
                   </div>
-                  <div className="text-[11px] text-slate-600 dark:text-slate-400">{character.role}</div>
+                  <div className="text-[11px] text-[#52525B]">{character.role}</div>
                 </div>
               </div>
               {currentMsg.mood && (
-                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${character.badgeClass}`}>
+                <span className="lab-badge px-2.5 py-0.5 text-[10px] bg-[#F59E0B] text-[#18181B]">
                   {currentMsg.mood}
                 </span>
               )}
             </div>
 
-            <p className="text-sm leading-8 text-slate-800 dark:text-slate-100 font-medium">
-              {currentMsg.text}
-            </p>
+            <p className="text-sm leading-8 text-[#18181B] font-medium">{currentMsg.text}</p>
           </div>
 
-          {/* نشانگر پیشرفت دیالوگ */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-1.5">
               {beat.messages.map((_, i) => (
@@ -92,15 +83,13 @@ export const StoryCommsModal: React.FC<Props> = ({ beat, onClose }) => {
                   type="button"
                   onClick={() => setIndex(i)}
                   aria-label={`پیام ${toPersianDigits(i + 1)}`}
-                  className={`h-2 rounded-full transition-all ${
-                    i === index
-                      ? 'w-6 bg-cyan-500'
-                      : 'w-2 bg-slate-300 dark:bg-slate-700 hover:bg-cyan-400/60'
+                  className={`h-2.5 rounded-[3px] border border-[#18181B] transition-all ${
+                    i === index ? 'w-6 bg-[#0D9488]' : 'w-2.5 bg-[#EFECE6]'
                   }`}
                 />
               ))}
-              <span className="mr-2 text-[11px] text-slate-500 dark:text-slate-400">
-                {toPersianDigits(index + 1)} از {toPersianDigits(beat.messages.length)}
+              <span className="mr-2 font-mono text-[11px] font-bold text-[#52525B] metric-mono">
+                {index + 1}/{beat.messages.length}
               </span>
             </div>
 
@@ -109,7 +98,7 @@ export const StoryCommsModal: React.FC<Props> = ({ beat, onClose }) => {
                 <button
                   type="button"
                   onClick={() => setIndex((i) => i - 1)}
-                  className="rounded-xl border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1 hover:border-cyan-400 transition"
+                  className="btn-tactile btn-tactile-surface px-3 py-1.5 text-xs"
                 >
                   <ChevronRight className="w-4 h-4" />
                   <span>قبلی</span>
@@ -120,7 +109,7 @@ export const StoryCommsModal: React.FC<Props> = ({ beat, onClose }) => {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-5 py-2 text-xs sm:text-sm flex items-center gap-1.5 transition shadow-md"
+                  className="btn-tactile btn-tactile-emerald px-5 py-2 text-xs sm:text-sm"
                 >
                   <Volume2 className="w-4 h-4" />
                   <span>ادامه ماموریت</span>
@@ -129,7 +118,7 @@ export const StoryCommsModal: React.FC<Props> = ({ beat, onClose }) => {
                 <button
                   type="button"
                   onClick={() => setIndex((i) => i + 1)}
-                  className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold px-5 py-2 text-xs sm:text-sm flex items-center gap-1 transition shadow-md"
+                  className="btn-tactile btn-tactile-primary px-5 py-2 text-xs sm:text-sm"
                 >
                   <span>بعدی</span>
                   <ChevronLeft className="w-4 h-4" />

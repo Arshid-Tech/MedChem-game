@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { FlaskConical, KeyRound, UserPlus, LogIn, ShieldAlert } from 'lucide-react';
+import { KeyRound, UserPlus, LogIn, ShieldAlert } from 'lucide-react';
 import { api, setTokens } from '../api';
 import { StudentUser } from '../types';
+import { LabWatermarks } from './visuals/LabWatermarks';
+import { ReagentVialBadge } from './visuals/ChemBadges';
 
 interface Props {
   onSuccess: (user: StudentUser) => void;
@@ -50,32 +52,33 @@ export const AuthScreen: React.FC<Props> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen lab-grid-bg flex items-center justify-center p-4">
-      <div className="w-full max-w-lg rounded-3xl border border-cyan-500/30 bg-[#0a1526]/95 shadow-2xl shadow-cyan-950/40 p-6 md:p-8 space-y-6">
+    <div className="min-h-screen workbook-bg flex items-center justify-center p-4">
+      <LabWatermarks />
+      <div className="relative z-10 w-full max-w-lg lab-card p-6 md:p-8 space-y-6">
         <div className="text-center space-y-2">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-cyan-500/15 border border-cyan-400/40 flex items-center justify-center text-cyan-400">
-            <FlaskConical className="w-8 h-8" />
+          <div className="mx-auto w-16 h-16 rounded-[8px] border-2 border-[#18181B] bg-[#EFECE6] shadow-[3px_3px_0px_#18181B] flex items-center justify-center">
+            <ReagentVialBadge className="w-11 h-11" />
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">
-            بحران در فارماکوکم
+          <h1 className="text-2xl font-heading font-bold text-[#18181B]">
+            کارخانه مولکول دکتر ارول
           </h1>
-          <p className="text-xs text-cyan-300 font-medium">
-            شبیه‌ساز آموزشی شیمی دارویی — دانشکده داروسازی دانشگاه علوم پزشکی البرز
+          <p className="text-xs font-semibold text-[#0D9488]">
+            دفترچه تعاملی شیمی دارویی — دانشکده داروسازی دانشگاه علوم پزشکی البرز
           </p>
         </div>
 
-        {/* تب‌های ورود / ثبت‌نام */}
-        <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-900 border border-slate-800">
+        {/* Mode Switcher Tabs */}
+        <div className="grid grid-cols-2 gap-2 p-1 rounded-[8px] border-2 border-[#18181B] bg-[#EFECE6]">
           <button
             type="button"
             onClick={() => {
               setMode('register');
               setError(null);
             }}
-            className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+            className={`py-2 rounded-[6px] text-xs font-bold flex items-center justify-center gap-1.5 transition ${
               mode === 'register'
-                ? 'bg-cyan-500 text-slate-950'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#0D9488] text-white border-2 border-[#18181B]'
+                : 'text-[#52525B] hover:text-[#18181B]'
             }`}
           >
             <UserPlus className="w-4 h-4" />
@@ -87,10 +90,10 @@ export const AuthScreen: React.FC<Props> = ({ onSuccess }) => {
               setMode('login');
               setError(null);
             }}
-            className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+            className={`py-2 rounded-[6px] text-xs font-bold flex items-center justify-center gap-1.5 transition ${
               mode === 'login'
-                ? 'bg-cyan-500 text-slate-950'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#0D9488] text-white border-2 border-[#18181B]'
+                : 'text-[#52525B] hover:text-[#18181B]'
             }`}
           >
             <LogIn className="w-4 h-4" />
@@ -100,23 +103,23 @@ export const AuthScreen: React.FC<Props> = ({ onSuccess }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-bold text-[#18181B] mb-1.5">
               شماره دانشجویی *
             </label>
             <input
               type="text"
               required
               dir="ltr"
-              placeholder="مثال: 401234567"
+              placeholder="401234567"
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-4 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none"
+              className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3.5 py-2.5 text-sm font-mono text-[#18181B] focus:bg-[#FFFFFF] focus:border-[#0D9488] focus:outline-none"
             />
           </div>
 
           {mode === 'register' && (
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-[#18181B] mb-1.5">
                 نام و نام خانوادگی *
               </label>
               <input
@@ -125,13 +128,13 @@ export const AuthScreen: React.FC<Props> = ({ onSuccess }) => {
                 placeholder="مثال: سارا محمدی"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-4 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3.5 py-2.5 text-sm text-[#18181B] focus:bg-[#FFFFFF] focus:border-[#0D9488] focus:outline-none"
               />
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+            <label className="block text-xs font-bold text-[#18181B] mb-1.5">
               رمز عبور (حداقل ۶ کاراکتر) *
             </label>
             <input
@@ -142,34 +145,34 @@ export const AuthScreen: React.FC<Props> = ({ onSuccess }) => {
               placeholder="••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-4 py-2.5 text-sm text-white focus:border-cyan-400 focus:outline-none"
+              className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3.5 py-2.5 text-sm font-mono text-[#18181B] focus:bg-[#FFFFFF] focus:border-[#0D9488] focus:outline-none"
             />
           </div>
 
           {mode === 'register' && (
-            <div className="pt-2 border-t border-slate-800 space-y-3">
-              <div className="text-[11px] text-slate-400">
+            <div className="pt-3 border-t-2 border-[#18181B]/15 space-y-2.5">
+              <div className="text-[11px] font-semibold text-[#52525B]">
                 اطلاعات پژوهشی (اختیاری — برای تحلیل آماری طرح آموزشی)
               </div>
               <div className="grid grid-cols-3 gap-2.5">
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">سن</label>
+                  <label className="block text-[11px] font-bold text-[#18181B] mb-1">سن</label>
                   <input
                     type="number"
                     min={17}
                     max={60}
-                    placeholder="۲۲"
+                    placeholder="22"
                     value={age}
                     onChange={(e) => setAge(e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white focus:border-cyan-400 focus:outline-none"
+                    className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3 py-2 text-xs font-mono text-[#18181B]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">جنسیت</label>
+                  <label className="block text-[11px] font-bold text-[#18181B] mb-1">جنسیت</label>
                   <select
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-2 text-xs text-white focus:border-cyan-400 focus:outline-none"
+                    className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-2 py-2 text-xs text-[#18181B]"
                   >
                     <option value="">انتخاب...</option>
                     <option value="female">زن</option>
@@ -177,15 +180,15 @@ export const AuthScreen: React.FC<Props> = ({ onSuccess }) => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">ساعت بازی/هفته</label>
+                  <label className="block text-[11px] font-bold text-[#18181B] mb-1">ساعت بازی/هفته</label>
                   <input
                     type="number"
                     min={0}
                     max={80}
-                    placeholder="۳"
+                    placeholder="3"
                     value={gamingFrequency}
                     onChange={(e) => setGamingFrequency(e.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-white focus:border-cyan-400 focus:outline-none"
+                    className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3 py-2 text-xs font-mono text-[#18181B]"
                   />
                 </div>
               </div>
@@ -193,8 +196,8 @@ export const AuthScreen: React.FC<Props> = ({ onSuccess }) => {
           )}
 
           {error && (
-            <div className="rounded-xl border border-rose-500/40 bg-rose-950/40 p-3 text-xs text-rose-200 flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+            <div className="rounded-[6px] border-2 border-[#18181B] bg-[#FFE4E6] p-3 text-xs font-bold text-[#E11D48] flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -202,7 +205,7 @@ export const AuthScreen: React.FC<Props> = ({ onSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-extrabold py-3 text-sm transition flex items-center justify-center gap-2"
+            className="btn-tactile btn-tactile-primary w-full py-3 text-sm"
           >
             <KeyRound className="w-4 h-4" />
             {loading

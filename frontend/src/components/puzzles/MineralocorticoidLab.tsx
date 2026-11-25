@@ -29,67 +29,72 @@ const ROUTE_COMPOUNDS: RouteCompound[] = [
   {
     id: '1',
     blindLabel: 'ترکیب ۱',
-    revealedName: 'پردنیزولون فسفات (سیستمیک)',
-    revealedNote: 'گروه فسفات قطبی و محلول در آب روی C21',
-    smiles: 'C[C@]12C=CC(=O)C=C1CC[C@@H]3[C@@H]2[C@@H](O)C[C@]4(C)[C@H]3CC[C@]4(O)C(=O)COP(=O)(O)O',
+    revealedName: 'دگزامتازون (سیستمیک)',
+    revealedNote: 'دارای Δ1، فلوئور 9α، متیل 16α و هیدروکسیل آزاد C21',
+    smiles: 'C[C@@H]1C[C@H]2[C@@H]3CCC4=CC(=O)C=C[C@]4(C)[C@@]3(F)[C@@H](O)C[C@]2(C)[C@@]1(O)C(=O)CO',
   },
   {
     id: '2',
     blindLabel: 'ترکیب ۲',
     revealedName: 'فلوسینولون استونید (موضعی)',
-    revealedNote: 'کتال حلقوی استونید 16,17 + دو فلوئور با نفوذ پوستی بالا',
+    revealedNote: 'کتال حلقوی استونید 16α,17α + دو فلوئور با نفوذ پوستی بالا',
     smiles: 'CC1(C)O[C@@H]2C[C@H]3[C@@H]4C[C@H](F)C5=CC(=O)C=C[C@]5(C)[C@@]4(F)[C@@H](O)C[C@]3(C)[C@@]2(O1)C(=O)CO',
   },
   {
     id: '3',
     blindLabel: 'ترکیب ۳',
-    revealedName: 'فلوتیکازون پروپیونات (استنشاقی)',
-    revealedNote: 'تیواستر فلوئورومتیل با متابولیسم کبدی سریع',
-    smiles: 'CCC(=O)O[C@@]1(C(=O)SCF)[C@H](C)C[C@H]2[C@@H]3C[C@H](F)C4=CC(=O)C=C[C@]4(C)[C@@]3(F)[C@@H](O)C[C@@]12C',
+    revealedName: 'بکلومتازون دی‌پروپیونات (استنشاقی)',
+    revealedNote: 'دارای کلر 9α، متیل 16β و دو استر پروپیونات در C17/C21',
+    smiles: 'CCC(=O)OCC(=O)[C@@]1(OC(=O)CC)[C@@H](C)C[C@H]2[C@@H]3CCC4=CC(=O)C=C[C@]4(C)[C@@]3(Cl)[C@@H](O)C[C@@]12C',
   },
   {
     id: '4',
     blindLabel: 'ترکیب ۴',
     revealedName: 'بودزوناید (استنشاقی)',
-    revealedNote: 'استال نامتقارن روی C16,C17 با کلیرانس کبدی بالا',
+    revealedNote: 'استال نامتقارن بوتیرآلدهید روی C16,C17 با کلیرانس کبدی بالا',
     smiles: 'CCCC1O[C@@H]2C[C@H]3[C@@H]4CCC5=CC(=O)C=C[C@]5(C)[C@H]4[C@@H](O)C[C@]3(C)[C@@]2(O1)C(=O)CO',
   },
   {
     id: '5',
     blindLabel: 'ترکیب ۵',
-    revealedName: 'هیدروکورتیزون همی‌سوکسینات (سیستمیک)',
-    revealedNote: 'استر قطبی محلول در آب روی C21',
-    smiles: 'C[C@]12CCC(=O)C=C1CC[C@@H]3[C@@H]2[C@@H](O)C[C@]4(C)[C@H]3CC[C@]4(O)C(=O)COC(=O)CCC(=O)O',
+    revealedName: 'پردنیزولون (سیستمیک)',
+    revealedNote: 'هسته Δ1,4 با هیدروکسیل آزاد 11β، 17α و C21 بدون استر لیپوفیل',
+    smiles: 'C[C@]12C=CC(=O)C=C1CC[C@@H]3[C@@H]2[C@@H](O)C[C@]4(C)[C@H]3CC[C@]4(O)C(=O)CO',
   },
   {
     id: '6',
     blindLabel: 'ترکیب ۶',
-    revealedName: 'بتامتازون والرات (موضعی)',
-    revealedNote: 'استر لیپوفیل والرات روی C17 برای اثر موضعی پوستی',
-    smiles: 'CCCCC(=O)O[C@@]1(C(=O)CO)[C@@H](C)C[C@H]2[C@@H]3CCC4=CC(=O)C=C[C@]4(C)[C@@]3(F)[C@@H](O)C[C@@]12C',
+    revealedName: 'آلکلومتازون دی‌پروپیونات (موضعی)',
+    revealedNote: 'دارای کلر 7α، متیل 16α و دی‌پروپیونات C17/C21 برای مصرف پوستی',
+    smiles: 'CCC(=O)OCC(=O)[C@@]1(OC(=O)CC)[C@H](C)C[C@H]2[C@@H]3[C@H](Cl)CC4=CC(=O)C=C[C@]4(C)[C@H]3[C@@H](O)C[C@@]12C',
   },
   {
     id: '7',
     blindLabel: 'ترکیب ۷',
-    revealedName: 'تریامسینولون استونید (موضعی)',
-    revealedNote: 'کتال حلقوی استونید با جذب سیستمیک ناچیز',
-    smiles: 'CC1(C)O[C@@H]2C[C@H]3[C@@H]4CCC5=CC(=O)C=C[C@]5(C)[C@@]4(F)[C@@H](O)C[C@]3(C)[C@@]2(O1)C(=O)CO',
+    revealedName: 'آمسینوناید (موضعی)',
+    revealedNote: 'کتال سیکلوپنتیلیدن 16α,17α + استات C21 با لیپوفیلیته موضعی بالا',
+    smiles: 'CC(=O)OCC(=O)[C@@]12OC3(CCCC3)O[C@@H]1C[C@H]4[C@@H]5CCC6=CC(=O)C=C[C@]6(C)[C@@]5(F)[C@@H](O)C[C@@]24C',
   },
   {
     id: '8',
     blindLabel: 'ترکیب ۸',
     revealedName: 'متیل‌پردنیزولون (سیستمیک)',
-    revealedNote: 'هیدروکسیل آزاد C21 و متیل 6α برای مصرف خوراکی',
+    revealedNote: 'هیدروکسیل آزاد C21 و متیل 6α برای مصرف خوراکی/سیستمیک',
     smiles: 'C[C@H]1C[C@H]2[C@@H]3CC[C@](O)(C(=O)CO)[C@@]3(C)C[C@H](O)[C@@H]2[C@@]4(C)C=CC(=O)C=C14',
   },
   {
     id: '9',
     blindLabel: 'ترکیب ۹',
-    revealedName: 'مومتازون فوروئات (استنشاقی)',
-    revealedNote: 'استر فوروئات C17 و کلر C21 برای افشانه تنفسی',
-    smiles: 'C[C@@H]1C[C@H]2[C@@H]3CCC4=CC(=O)C=C[C@]4(C)[C@@]3(Cl)[C@@H](O)C[C@]2(C)[C@@]1(OC(=O)c5ccco5)C(=O)CCl',
+    revealedName: 'فلوتیکازون پروپیونات (استنشاقی)',
+    revealedNote: 'تیواستر فلوئورومتیل در C17β + دو فلوئور با متابولیسم کبدی بسیار سریع',
+    smiles: 'CCC(=O)O[C@@]1(C(=O)SCF)[C@H](C)C[C@H]2[C@@H]3C[C@H](F)C4=CC(=O)C=C[C@]4(C)[C@@]3(F)[C@@H](O)C[C@@]12C',
   },
 ];
+
+// ساختارهای نامه کژتاب به زهتاب (مقایسه مینرالوکورتیکوئید پایه و ترکیب پرفشار با 9α-F و 18-CHO)
+const KAZHTAB_LETTER_DOC_SMILES = 'C[C@]12CCC(=O)C=C1CC[C@@H]3[C@@H]2CC[C@]4(C)[C@H]3CC[C@@H]4C(=O)CO';
+const KAZHTAB_LETTER_HIGH_MC_SMILES =
+  'C[C@H]1C[C@H]2[C@@H]3CC[C@@H](C(=O)CO)[C@@]3(C=O)C[C@H](O)[C@@]2(F)[C@@]4(C)CCC(=O)C=C14';
 
 type BucketKey = 'systemic' | 'topical' | 'inhalation';
 
@@ -212,7 +217,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* گام ۱: ورود به اتاق با مقایسه دو ساختار */}
+      {/* گام ۱: مقایسه متیل‌پردنیزولون (۱) نسبت به پردنیزولون (۲) مطابق PDF */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900/75 p-6 space-y-5 shadow-sm">
         <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
           گام {toPersianDigits(1)}: برای ورود به اتاق، این دو ساختار رو با هم مقایسه کن و فلش‌هاشونو بزن
@@ -226,8 +231,9 @@ export const MineralocorticoidLab: React.FC<Props> = ({
             c6AlphaSub="CH3"
           />
           <SteroidMoleculeSVG
-            name={arrowsSolved ? 'ساختار ۲ — هیدروکورتیزون' : 'ساختار ۲'}
-            formulaNote={arrowsSolved ? 'ساختار پایه بدون Δ1 و متیل 6α' : undefined}
+            name={arrowsSolved ? 'ساختار ۲ — پردنیزولون' : 'ساختار ۲'}
+            formulaNote={arrowsSolved ? 'دارای پیوند دوگانه Δ1 بدون متیل 6α' : undefined}
+            hasDelta1
           />
         </div>
 
@@ -272,8 +278,8 @@ export const MineralocorticoidLab: React.FC<Props> = ({
         <ProgressiveHintBox
           solved={arrowsSolved}
           hints={[
-            'به دو تفاوت روی حلقه‌های A و B ساختار ۱ نسبت به ساختار ۲ نگاه کن: پیوند دوگانه Δ1 و گروه متیل روی C6.',
-            'این دو تغییر اثر ضدالتهابی و نیمه‌عمر را بالا می‌برند اما اثر احتباس سدیم (مینرالوکورتیکوئیدی) را کم می‌کنند.',
+            'هر دو ساختار پیوند دوگانه Δ1 دارند؛ تفاوت اصلی، افزودن گروه متیل 6α روی حلقه B در ساختار ۱ است.',
+            'افزودن متیل 6α اثر ضدالتهابی و نیمه‌عمر را بیشتر می‌کند و هم‌زمان اثر مینرالوکورتیکوئیدی (احتباس سدیم) را کاهش می‌دهد.',
           ]}
         />
 
@@ -304,10 +310,10 @@ export const MineralocorticoidLab: React.FC<Props> = ({
         )}
       </div>
 
-      {/* گام ۲ (نامه کژتاب روی میز) + زنگ خوردن تلفن زهتاب */}
+      {/* گام ۲ (نامه کژتاب + دو ساختار پیوست نامه) و زنگ خوردن تلفن زهتاب */}
       {arrowsSolved && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-2xl border border-amber-500/40 bg-amber-50/70 dark:bg-amber-950/20 p-5 space-y-2.5 shadow-sm">
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-amber-500/40 bg-amber-50/70 dark:bg-amber-950/20 p-5 space-y-4 shadow-sm">
             <div className="flex items-center gap-2 text-xs font-extrabold text-amber-800 dark:text-amber-300">
               <ScrollText className="w-4 h-4" />
               <span>نامه پروفسور کژتاب روی میز زهتاب</span>
@@ -315,8 +321,20 @@ export const MineralocorticoidLab: React.FC<Props> = ({
             <p className="text-xs leading-7 text-slate-700 dark:text-slate-200 italic">
               «زهتاب جان، می‌دونم از من دلخوری. راست می‌گی، من اشتباه کردم رفتم سراغ گلوکو... ولی الان فرصت ندارم حرفامو بزنم. یه چیزی می‌خوام ازت: <strong>اثر مینرال ترکیبم رو کم کن!</strong>»
             </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <MoleculeStructureCard
+                smiles={KAZHTAB_LETTER_DOC_SMILES}
+                label="ساختار پایه مینرالوکورتیکوئید (بدون 11β-OH و 17α-OH)"
+                compact
+              />
+              <MoleculeStructureCard
+                smiles={KAZHTAB_LETTER_HIGH_MC_SMILES}
+                label="ترکیب ارسالی کژتاب (دارای 9α-F و آلدهید C18 با اثر مینرال شدید)"
+                compact
+              />
+            </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              (می‌تونی با دکمه شناور «میز کار مولکول‌سازی» پایین صفحه، امتحان کنی چطور اضافه کردن گروه روی C16 اثر مینرال رو صفر می‌کنه!)
+              نکته آموزشی: با افزودن استخلاف روی C16 یا حذف 9α-F/آلدهید C18 (قابل تست در «میز کار مولکول‌سازی») اثر احتباس آب و نمک به حداقل می‌رسد.
             </p>
           </div>
 
@@ -359,7 +377,7 @@ export const MineralocorticoidLab: React.FC<Props> = ({
         </div>
       )}
 
-      {/* گام ۳: چرک‌نویس ۹ ترکیب با ترتیب تصادفی */}
+      {/* گام ۳: چرک‌نویس ۹ ترکیب دقیقاً مطابق PDF با ترتیب تصادفی */}
       <div
         className={`rounded-2xl border p-6 space-y-5 transition ${
           arrowsSolved && phoneAnswered
@@ -477,8 +495,8 @@ export const MineralocorticoidLab: React.FC<Props> = ({
           solved={routesSolved}
           disabled={!arrowsSolved || !phoneAnswered}
           hints={[
-            'ترکیبات دارای گروه‌های قطبی محلول در آب (فسفات، همی‌سوکسینات) یا OH آزاد بدون استر لیپوفیل سیستمیک هستند.',
-            'کتال‌های حلقوی استونید و استر والرات (۲، ۶، ۷) موضعی‌اند؛ تیواستر فلوئورومتیل (۳)، استال نامتقارن (۴) و فوروئات کلردار (۹) استنشاقی هستند.',
+            'ترکیباتی که هیدروکسیل‌های آزاد 17α و C21 بدون استر/کتال لیپوفیل دارند (۱، ۵ و ۸) برای مصرف سیستمیک هستند.',
+            'استونیدها و کتال سیکلوپنتیلیدن و 7α-کلر دی‌پروپیونات (۲، ۶ و ۷) موضعی‌اند؛ بکلومتازون دی‌پروپیونات (۳)، بودزوناید (۴) و فلوتیکازون تیواستر (۹) استنشاقی هستند.',
           ]}
         />
 

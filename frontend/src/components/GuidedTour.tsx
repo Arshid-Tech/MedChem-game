@@ -66,11 +66,11 @@ export const GuidedTour: React.FC<Props> = ({ steps, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[80]" role="presentation">
-      {!highlight && <div className="absolute inset-0 bg-slate-950/75" />}
+      {!highlight && <div className="absolute inset-0 bg-[#18181B]/65" />}
       {highlight && (
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed z-[81] rounded-xl border-2 border-cyan-400 shadow-[0_0_0_9999px_rgba(2,6,23,0.78),0_0_24px_rgba(34,211,238,0.55)] transition-all duration-300"
+          className="pointer-events-none fixed z-[81] rounded-[8px] border-2 border-[#0D9488] shadow-[0_0_0_9999px_rgba(24,24,27,0.68)] transition-all duration-200"
           style={{
             top: highlight.top,
             left: highlight.left,
@@ -83,14 +83,14 @@ export const GuidedTour: React.FC<Props> = ({ steps, onClose }) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="tour-title"
-        className="fixed bottom-4 left-1/2 z-[82] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-2xl border border-cyan-500/50 bg-white dark:bg-[#0b1728] text-slate-900 dark:text-slate-100 p-5 shadow-2xl sm:bottom-8"
+        className="fixed bottom-4 left-1/2 z-[82] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 lab-card p-5 sm:bottom-8"
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 border-b-2 border-[#18181B] pb-3">
           <div>
-            <p className="text-[11px] font-bold text-cyan-600 dark:text-cyan-300">
-              راهنمای بازی · {toPersianDigits(stepIndex + 1)} از {toPersianDigits(steps.length)}
+            <p className="font-mono text-[11px] font-bold text-[#0D9488]">
+              GUIDE · {toPersianDigits(stepIndex + 1)} / {toPersianDigits(steps.length)}
             </p>
-            <h2 id="tour-title" className="mt-1 text-base font-extrabold text-slate-900 dark:text-white">
+            <h2 id="tour-title" className="mt-1 text-base font-heading font-bold text-[#18181B]">
               {step.title}
             </h2>
           </div>
@@ -98,17 +98,17 @@ export const GuidedTour: React.FC<Props> = ({ steps, onClose }) => {
             type="button"
             onClick={onClose}
             aria-label="بستن راهنما"
-            className="text-slate-400 hover:text-slate-800 dark:hover:text-white"
+            className="btn-tactile btn-tactile-surface p-1.5"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">{step.description}</p>
+        <p className="mt-3 text-sm leading-7 text-[#52525B]">{step.description}</p>
         <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            className="text-xs font-bold text-[#52525B] hover:text-[#18181B]"
           >
             رد کردن راهنما
           </button>
@@ -117,17 +117,17 @@ export const GuidedTour: React.FC<Props> = ({ steps, onClose }) => {
               type="button"
               onClick={() => setStepIndex((current) => current - 1)}
               disabled={stepIndex === 0}
-              className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 disabled:opacity-40"
+              className="btn-tactile btn-tactile-surface px-3 py-1.5 text-xs"
             >
-              <ArrowRight className="ml-1 inline h-4 w-4" /> قبلی
+              <ArrowRight className="h-4 w-4" /> قبلی
             </button>
             <button
               type="button"
               onClick={() => (stepIndex === steps.length - 1 ? onClose() : setStepIndex((current) => current + 1))}
-              className="rounded-lg bg-cyan-500 px-4 py-2 text-xs font-extrabold text-slate-950 hover:bg-cyan-400"
+              className="btn-tactile btn-tactile-primary px-4 py-1.5 text-xs"
             >
               {stepIndex === steps.length - 1 ? 'پایان' : 'بعدی'}
-              {stepIndex < steps.length - 1 && <ArrowLeft className="mr-1 inline h-4 w-4" />}
+              {stepIndex < steps.length - 1 && <ArrowLeft className="h-4 w-4" />}
             </button>
           </div>
         </div>

@@ -22,9 +22,9 @@ const PROGESTIN_STRUCTURES = [
   {
     id: '1',
     blindLabel: 'ساختار ۱',
-    revealedName: 'مژسترول استات (Megestrol Acetate)',
-    revealedNote: 'مشتق پرگنان با کاهش عوارض آندروژنی',
-    smiles: 'CC(=O)O[C@@]1(C(C)=O)CC[C@H]2[C@@H]3C=C(C)C4=CC(=O)CC[C@]4(C)[C@H]3CC[C@@]12C',
+    revealedName: '۱۶-متیلن-۱۷α-استوکسی‌پروژسترون',
+    revealedNote: 'مشتق پرگنان دارای متیلن C16 و استات C17α (کاهش عوارض آندروژنی)',
+    smiles: 'CC(=O)O[C@@]1(C(C)=O)C(=C)C[C@H]2[C@@H]3CCC4=CC(=O)CC[C@]4(C)[C@H]3CC[C@@]12C',
   },
   {
     id: '2',
@@ -293,7 +293,6 @@ export const ProgestinLab: React.FC<Props> = ({
           </div>
         )}
 
-        {/* گام ۳ (شیشه قفسه ماریا): پس از حل تخته تحقیقات */}
         {designSolved && (
           <div className="rounded-2xl border border-emerald-500/40 bg-emerald-50/70 dark:bg-emerald-950/25 p-4 flex items-start gap-3">
             <FlaskRound className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
