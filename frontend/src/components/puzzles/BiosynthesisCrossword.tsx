@@ -31,7 +31,7 @@ const CROSSWORD_ROWS: CrosswordRow[] = [
     clueNumber: '۳ →',
     clue: 'آندروژن کلیدی و پیش‌ساز مستقیم 5α-DHT و استرادیول (Testosterone)',
     answer: 'TESTOSTERONE',
-    numberedCells: { 0: 4, 5: 9, 6: 10, 7: 11, 8: 12 },
+    numberedCells: { 0: 4, 6: 9, 7: 10, 8: 11, 9: 12 },
   },
   {
     id: 'w4',
@@ -49,7 +49,7 @@ interface Props {
 }
 
 /**
- * جدول کلمات متقاطع تعاملی اتاق مخفی دکتر ارول (الهام‌گرفته از برگه مجله علمی روی گاوصندوق).
+ * جدول کلمات متقاطع تعاملی اتاق مخفی دکتر ارول.
  * دانشجو با پر کردن کلمات، حروف خانه‌های شماره‌گذاری‌شده ۱ تا ۱۴ را کنار هم می‌بیند
  * تا کلیدواژه ۱۴ حرفی رمز گاوصندوق (CORTICOSTEROID) آشکار شود.
  */
@@ -138,7 +138,6 @@ export const BiosynthesisCrossword: React.FC<Props> = ({
                 />
               </div>
 
-              {/* خانه‌های گرافیکی جدول */}
               <div dir="ltr" className="flex flex-wrap gap-1">
                 {Array.from({ length: row.answer.length }).map((_, idx) => {
                   const slotNum = row.numberedCells[idx];
@@ -167,7 +166,6 @@ export const BiosynthesisCrossword: React.FC<Props> = ({
         })}
       </div>
 
-      {/* پیش‌نمایش رمز ۱۴ حرفی استخراج‌شده از خانه‌های قرمز */}
       <div className="rounded-xl border border-rose-500/30 bg-white dark:bg-slate-950/80 p-3 space-y-2">
         <div className="flex items-center gap-1.5 text-[11px] font-bold text-rose-600 dark:text-rose-300">
           <Sparkles className="w-3.5 h-3.5" />

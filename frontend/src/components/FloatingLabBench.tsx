@@ -3,8 +3,8 @@ import { FlaskConical, X, Sparkles } from 'lucide-react';
 import { SteroidSandbox } from './molecules/SteroidSandbox';
 
 /**
- * دکمه شناور و پنجره «میز کار آزاد مولکول‌سازی» که در تمام صفحات بازی در دسترس است
- * تا دانشجو هر زمان خواست آزادانه ساختار استروئیدی بسازد و اثر SAR آن را ببیند.
+ * دکمه شناور و پنجره «میز کار آزاد مولکول‌سازی» که در تمام صفحات بازی در دسترس است.
+ * در موبایل به‌صورت دکمه دایره‌ای جمع‌وجور نمایش داده می‌شود تا روی متن کارت‌ها نیفتد.
  */
 export const FloatingLabBench: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -14,10 +14,12 @@ export const FloatingLabBench: React.FC = () => {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-40 rounded-2xl border border-cyan-400/60 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold px-4 py-3 text-xs sm:text-sm shadow-xl shadow-cyan-950/30 flex items-center gap-2 transition"
+        aria-label="باز کردن میز کار مولکول‌سازی"
+        title="میز کار مولکول‌سازی"
+        className="fixed bottom-4 right-4 z-40 rounded-full sm:rounded-2xl border border-cyan-400/60 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold p-3 sm:px-4 sm:py-3 text-xs sm:text-sm shadow-xl shadow-cyan-950/30 flex items-center gap-2 transition"
       >
-        <FlaskConical className="w-4 h-4 shrink-0" />
-        <span>میز کار مولکول‌سازی</span>
+        <FlaskConical className="w-5 h-5 sm:w-4 sm:h-4 shrink-0" />
+        <span className="hidden sm:inline">میز کار مولکول‌سازی</span>
         <Sparkles className="w-3.5 h-3.5 hidden sm:inline" />
       </button>
 
