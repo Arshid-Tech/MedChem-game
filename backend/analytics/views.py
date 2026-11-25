@@ -88,7 +88,7 @@ class ExportResearchCsvView(APIView):
 
     def get(self, request):
         response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
-        response["Content-Disposition"] = 'attachment; filename="medchem_research_export.csv"'
+        response["Content-Disposition"] = 'attachment; filename="pharmacochem_research_export.csv"'
 
         writer = csv.writer(response)
         header = [

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: medchem-game-backend
+    name: pharmacochem-backend
     runtime: python
     plan: free
     rootDir: backend
@@ -22,11 +22,11 @@ services:
         value: "https://*.onrender.com"
       - key: DATABASE_URL
         fromDatabase:
-          name: medchem-game-db
+          name: pharmacochem-db
           property: connectionString
 
   - type: web
-    name: medchem-game-frontend
+    name: pharmacochem-frontend
     runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
@@ -43,11 +43,11 @@ services:
       - key: VITE_API_URL
         fromService:
           type: web
-          name: medchem-game-backend
+          name: pharmacochem-backend
           property: host
 
 databases:
-  - name: medchem-game-db
+  - name: pharmacochem-db
     plan: free
-    databaseName: medchem_game
-    user: medchem_user
+    databaseName: pharmacochem
+    user: pharmacochem_user

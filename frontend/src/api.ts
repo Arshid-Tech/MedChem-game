@@ -16,17 +16,17 @@ export class ApiError extends Error {
 }
 
 export function getAccessToken(): string | null {
-  return localStorage.getItem('medchem_access_token');
+  return localStorage.getItem('pharmacochem_access_token');
 }
 
 export function setTokens(access: string, refresh: string) {
-  localStorage.setItem('medchem_access_token', access);
-  localStorage.setItem('medchem_refresh_token', refresh);
+  localStorage.setItem('pharmacochem_access_token', access);
+  localStorage.setItem('pharmacochem_refresh_token', refresh);
 }
 
 export function clearTokens() {
-  localStorage.removeItem('medchem_access_token');
-  localStorage.removeItem('medchem_refresh_token');
+  localStorage.removeItem('pharmacochem_access_token');
+  localStorage.removeItem('pharmacochem_refresh_token');
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
