@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ClipboardCheck, CheckCircle2, AlertTriangle, X, Sparkles } from 'lucide-react';
+import { ClipboardCheck, AlertTriangle, X, Sparkles } from 'lucide-react';
 import { api } from '../api';
+import { MolecularTrophyBadge } from './visuals/ChemBadges';
 import { toPersianDigits } from '../utils/persian';
 
 interface Props {
@@ -27,8 +28,8 @@ const MEEGA_QUESTIONS: { id: string; domain: string; text: string }[] = [
   { id: 'q16', domain: 'احساس رضایت', text: 'این بازی را به سایر دانشجویان داروسازی برای یادگیری شیمی دارویی توصیه می‌کنم.' },
   { id: 'q17', domain: 'احساس رضایت', text: 'ترجیح می‌دهم سایر مباحث شیمی دارویی (مانند آنتی‌بیوتیک‌ها) نیز در این قالب ارائه شوند.' },
   { id: 'q18', domain: 'لذت و سرگرمی', text: 'انجام این بازی آموزشی برایم لذت‌بخش و هیجان‌انگیز بود.' },
-  { id: 'q19', domain: 'لذت و سرگرمی', text: 'داستان و سناریوی «بحران در فارماکوکم» باعث جذابیت بیشتر فرآیند یادگیری شد.' },
-  { id: 'q20', domain: 'لذت و سرگرمی', text: 'وجود محدودیت زمانی (بازرسی FDA) حس هیجان و مشارکت فعال را تقویت کرد.' },
+  { id: 'q19', domain: 'لذت و سرگرمی', text: 'داستان و سناریوی بازی باعث جذابیت بیشتر فرآیند یادگیری شد.' },
+  { id: 'q20', domain: 'لذت و سرگرمی', text: 'وجود محدودیت زمانی حس هیجان و مشارکت فعال را تقویت کرد.' },
   { id: 'q21', domain: 'لذت و توجه متمرکز', text: 'هنگام بازی کردن کاملاً غرق در حل معماهای شیمیایی شدم.' },
   { id: 'q22', domain: 'توجه متمرکز', text: 'محتوای تعاملی بازی باعث شد تمرکز بالاتری نسبت به مطالعه جزوه سنتی داشته باشم.' },
   { id: 'q23', domain: 'توجه و ارتباط با موضوع', text: 'محیط بازی حواس مرا از مفاهیم اصلی شیمی دارویی منحرف نکرد.' },
@@ -47,7 +48,6 @@ const LIKERT_LABELS = [
 ];
 
 export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
-  // بدون هیچ گزینه از پیش انتخاب‌شده
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [comments, setComments] = useState('');
   const [loading, setLoading] = useState(false);
@@ -86,21 +86,21 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="meega-title"
-      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] bg-[#18181B]/70 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-cyan-500/40 bg-white dark:bg-[#0b1728] text-slate-900 dark:text-slate-100 p-5 md:p-8 space-y-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 sticky top-0 bg-white dark:bg-[#0b1728] z-20">
+      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto lab-card p-5 md:p-7 space-y-5">
+        <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-4 sticky top-0 bg-[#FFFFFF] z-20">
           <div className="flex items-center gap-2.5">
-            <ClipboardCheck className="w-6 h-6 text-emerald-500 shrink-0" />
+            <ClipboardCheck className="w-6 h-6 text-[#0D9488] shrink-0" />
             <div>
-              <h2 id="meega-title" className="font-extrabold text-base md:text-lg text-slate-900 dark:text-white">
+              <h2 id="meega-title" className="font-heading font-bold text-base md:text-lg text-[#18181B]">
                 پرسشنامه استاندارد ارزیابی کیفیت بازی آموزشی (MEEGA+)
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                دانشکده داروسازی دانشگاه علوم پزشکی البرز — داده‌ها به صورت محرمانه در تحلیل پژوهشی ثبت می‌شوند
+              <p className="text-xs text-[#52525B]">
+                دانشکده داروسازی دانشگاه علوم پزشکی البرز — داده‌ها به صورت محرمانه ثبت می‌شوند
               </p>
             </div>
           </div>
@@ -108,60 +108,56 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
             type="button"
             onClick={onClose}
             aria-label="بستن پرسشنامه"
-            className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white p-1.5 rounded-lg"
+            className="btn-tactile btn-tactile-surface p-1.5"
           >
-            <X className="w-6 h-6" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {doneData ? (
           <div className="space-y-5 py-4 text-center">
-            <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto" />
-            <h3 className="text-xl font-extrabold text-emerald-600 dark:text-emerald-300">
+            <MolecularTrophyBadge className="w-16 h-16 mx-auto" />
+            <h3 className="text-xl font-heading font-bold text-[#16A34A]">
               سپاسگزاریم! پاسخ‌های شما با موفقیت در سامانه پژوهشی ثبت شد.
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-2">
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3">
-                <div className="text-slate-500 dark:text-slate-400">کاربردی بودن (Usability)</div>
-                <div className="text-lg font-extrabold text-cyan-600 dark:text-cyan-300 mt-1">
-                  {toPersianDigits(doneData.usability_score)} / ۵
+              <div className="rounded-[6px] border-2 border-[#18181B] bg-[#EFECE6] p-3">
+                <div className="text-[#52525B]">کاربردی بودن</div>
+                <div dir="ltr" className="text-lg font-mono font-extrabold text-[#0D9488] mt-1 metric-mono">
+                  {doneData.usability_score} / 5
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3">
-                <div className="text-slate-500 dark:text-slate-400">یادگیری درک‌شده</div>
-                <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-300 mt-1">
-                  {toPersianDigits(doneData.perceived_learning_score)} / ۵
+              <div className="rounded-[6px] border-2 border-[#18181B] bg-[#EFECE6] p-3">
+                <div className="text-[#52525B]">یادگیری درک‌شده</div>
+                <div dir="ltr" className="text-lg font-mono font-extrabold text-[#16A34A] mt-1 metric-mono">
+                  {doneData.perceived_learning_score} / 5
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3">
-                <div className="text-slate-500 dark:text-slate-400">لذت و سرگرمی</div>
-                <div className="text-lg font-extrabold text-amber-600 dark:text-amber-300 mt-1">
-                  {toPersianDigits(doneData.fun_score)} / ۵
+              <div className="rounded-[6px] border-2 border-[#18181B] bg-[#EFECE6] p-3">
+                <div className="text-[#52525B]">لذت و سرگرمی</div>
+                <div dir="ltr" className="text-lg font-mono font-extrabold text-[#F59E0B] mt-1 metric-mono">
+                  {doneData.fun_score} / 5
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3">
-                <div className="text-slate-500 dark:text-slate-400">ارتباط با محتوای درس</div>
-                <div className="text-lg font-extrabold text-purple-600 dark:text-purple-300 mt-1">
-                  {toPersianDigits(doneData.relevance_score)} / ۵
+              <div className="rounded-[6px] border-2 border-[#18181B] bg-[#EFECE6] p-3">
+                <div className="text-[#52525B]">ارتباط با درس</div>
+                <div dir="ltr" className="text-lg font-mono font-extrabold text-[#18181B] mt-1 metric-mono">
+                  {doneData.relevance_score} / 5
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-8 py-2.5 text-sm"
-            >
-              بازگشت به صفحه اصلی بازی
+            <button type="button" onClick={onClose} className="btn-tactile btn-tactile-primary px-8 py-2.5 text-sm">
+              بازگشت به دفترچه بازی
             </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-cyan-500/30 bg-cyan-50/70 dark:bg-cyan-950/30 px-4 py-2.5 text-xs">
-              <span className="font-bold text-cyan-800 dark:text-cyan-200" aria-live="polite">
-                پیشرفت تکمیل پرسشنامه: {toPersianDigits(answeredCount)} از {toPersianDigits(MEEGA_QUESTIONS.length)} سوال
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-[6px] border-2 border-[#18181B] bg-[#EFECE6] px-4 py-2.5 text-xs">
+              <span className="font-bold text-[#18181B]" aria-live="polite">
+                پیشرفت تکمیل پرسشنامه: <span className="font-mono metric-mono">{answeredCount}/{MEEGA_QUESTIONS.length}</span>
               </span>
               {unansweredCount > 0 && (
-                <span className="text-amber-700 dark:text-amber-300">
+                <span className="font-bold text-[#E11D48]">
                   {toPersianDigits(unansweredCount)} سوال باقی‌مانده
                 </span>
               )}
@@ -171,17 +167,15 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
               {MEEGA_QUESTIONS.map((q, idx) => (
                 <div
                   key={q.id}
-                  className={`rounded-2xl border p-4 space-y-3 transition ${
-                    answers[q.id] !== undefined
-                      ? 'border-cyan-500/40 bg-slate-50 dark:bg-slate-900/90'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60'
+                  className={`rounded-[8px] border-2 border-[#18181B] p-4 space-y-3 ${
+                    answers[q.id] !== undefined ? 'bg-[#F0FDF4]' : 'bg-[#F7F5F0]'
                   }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                    <span className="text-xs font-bold text-[#18181B]">
                       {toPersianDigits(idx + 1)}. {q.text}
                     </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-700 dark:text-cyan-300">
+                    <span className="lab-badge px-2 py-0.5 text-[10px] bg-[#EFECE6] text-[#18181B]">
                       {q.domain}
                     </span>
                   </div>
@@ -199,10 +193,10 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
                           role="radio"
                           aria-checked={selected}
                           onClick={() => handleSelect(q.id, opt.val)}
-                          className={`py-2 px-2 rounded-xl text-[11px] font-semibold border transition ${
+                          className={`py-2 px-2 rounded-[6px] text-[11px] font-bold border-2 border-[#18181B] transition ${
                             selected
-                              ? 'border-cyan-500 bg-cyan-500 text-slate-950 font-bold shadow-sm'
-                              : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 hover:border-cyan-400'
+                              ? 'bg-[#0D9488] text-white shadow-[2px_2px_0px_#18181B]'
+                              : 'bg-[#FFFFFF] text-[#18181B] hover:bg-[#EFECE6]'
                           }`}
                         >
                           {opt.label}
@@ -215,7 +209,7 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold text-[#18181B] mb-1.5">
                 پیشنهادات یا دیدگاه شما درباره بهبود بازی آموزشی (اختیاری):
               </label>
               <textarea
@@ -223,35 +217,28 @@ export const MeegaSurveyModal: React.FC<Props> = ({ onClose, onSubmitted }) => {
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="نظرات خود را اینجا بنویسید..."
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:border-cyan-400 focus:outline-none"
+                className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-4 py-2.5 text-xs text-[#18181B]"
               />
             </div>
 
             {error && (
-              <div
-                role="alert"
-                className="rounded-xl border border-rose-500/40 bg-rose-950/85 p-3 text-xs text-rose-200 flex items-center gap-2"
-              >
+              <div role="alert" className="rounded-[6px] border-2 border-[#18181B] bg-[#FFE4E6] p-3 text-xs font-bold text-[#E11D48] flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-xl border border-slate-300 dark:border-slate-700 px-5 py-2.5 text-xs text-slate-600 dark:text-slate-300"
-              >
+              <button type="button" onClick={onClose} className="btn-tactile btn-tactile-surface px-5 py-2 text-xs">
                 انصراف
               </button>
               <button
                 type="submit"
                 disabled={loading || unansweredCount > 0}
-                className="rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-extrabold px-6 py-2.5 text-sm flex items-center gap-2 transition"
+                className="btn-tactile btn-tactile-emerald px-6 py-2.5 text-sm"
               >
                 <Sparkles className="w-4 h-4" />
-                {loading ? 'در حال ثبت پرسشنامه...' : 'ثبت نهایی پرسشنامه MEEGA+'}
+                {loading ? 'در حال ثبت...' : 'ثبت نهایی پرسشنامه MEEGA+'}
               </button>
             </div>
           </form>

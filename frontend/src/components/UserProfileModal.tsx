@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Award, Clock3, KeyRound, UserRound, X, CheckCircle2, AlertTriangle, Save } from 'lucide-react';
+import { Clock3, KeyRound, UserRound, X, CheckCircle2, AlertTriangle, Save } from 'lucide-react';
 import { api } from '../api';
 import { GameSession, StudentUser } from '../types';
-import { toPersianDigits } from '../utils/persian';
+import { MolecularTrophyBadge } from './visuals/ChemBadges';
 
 interface Props {
   user: StudentUser;
@@ -34,7 +34,7 @@ export const UserProfileModal: React.FC<Props> = ({
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return toPersianDigits(`${minutes}:${remainingSeconds.toString().padStart(2, '0')}`);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -62,7 +62,7 @@ export const UserProfileModal: React.FC<Props> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] bg-[#18181B]/70 flex items-center justify-center p-4 overflow-y-auto"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -71,102 +71,99 @@ export const UserProfileModal: React.FC<Props> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="profile-title"
-        className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-cyan-500/30 bg-white dark:bg-[#0d1b2e] text-slate-900 dark:text-slate-100 p-6 space-y-5 shadow-2xl"
+        className="w-full max-w-xl max-h-[90vh] overflow-y-auto lab-card p-6 space-y-5"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-            <UserRound className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-            <h2 id="profile-title">پروفایل کاربری و آمار بازی دانشجو</h2>
+        <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-3">
+          <div className="flex items-center gap-2 text-sm font-heading font-bold text-[#18181B]">
+            <UserRound className="w-5 h-5 text-[#0D9488]" />
+            <h2 id="profile-title">پروفایل کاربری و آمار آزمایشگاه</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="بستن پروفایل"
-            className="text-slate-400 hover:text-slate-800 dark:hover:text-white"
+            className="btn-tactile btn-tactile-surface p-1.5"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* کارت آمار عملکرد */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/20 p-3 text-center">
-            <div className="text-[11px] text-slate-500 dark:text-slate-400">امتیاز</div>
-            <div className="mt-1 font-extrabold text-emerald-700 dark:text-emerald-300">
-              {toPersianDigits(session?.total_score ?? 0)}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="rounded-[6px] border-2 border-[#18181B] bg-[#DCFCE7] p-3 text-center">
+            <div className="text-[11px] font-semibold text-[#52525B]">XP امتیاز</div>
+            <div dir="ltr" className="mt-1 font-mono font-extrabold text-[#16A34A] metric-mono">
+              {session?.total_score ?? 0}
             </div>
           </div>
-          <div className="rounded-xl border border-rose-500/30 bg-rose-50/70 dark:bg-rose-950/20 p-3 text-center">
-            <div className="text-[11px] text-slate-500 dark:text-slate-400">خطاها</div>
-            <div className="mt-1 font-extrabold text-rose-700 dark:text-rose-300">
-              {toPersianDigits(session?.total_errors ?? 0)}
+          <div className="rounded-[6px] border-2 border-[#18181B] bg-[#FFE4E6] p-3 text-center">
+            <div className="text-[11px] font-semibold text-[#52525B]">خطاها</div>
+            <div dir="ltr" className="mt-1 font-mono font-extrabold text-[#E11D48] metric-mono">
+              {session?.total_errors ?? 0}
             </div>
           </div>
-          <div className="rounded-xl border border-cyan-500/30 bg-cyan-50/70 dark:bg-cyan-950/20 p-3 text-center">
-            <div className="text-[11px] text-slate-500 dark:text-slate-400">مراحل تکمیل‌شده</div>
-            <div className="mt-1 font-extrabold text-cyan-700 dark:text-cyan-300">
-              {toPersianDigits(completedCount)} / ۷
+          <div className="rounded-[6px] border-2 border-[#18181B] bg-[#EFECE6] p-3 text-center">
+            <div className="text-[11px] font-semibold text-[#52525B]">مراحل</div>
+            <div dir="ltr" className="mt-1 font-mono font-extrabold text-[#0D9488] metric-mono">
+              {completedCount}/7
             </div>
           </div>
-          <div className="rounded-xl border border-amber-500/30 bg-amber-50/70 dark:bg-amber-950/20 p-3 text-center">
-            <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1">
-              <Award className="w-3.5 h-3.5" /> نشان‌ها
+          <div className="rounded-[6px] border-2 border-[#18181B] bg-[#FEF3C7] p-3 text-center flex flex-col items-center">
+            <div className="text-[11px] font-semibold text-[#52525B] flex items-center gap-1">
+              <MolecularTrophyBadge className="w-4 h-4" /> نشان‌ها
             </div>
-            <div className="mt-1 font-extrabold text-amber-700 dark:text-amber-300">
-              {toPersianDigits(badgeCount)}
+            <div dir="ltr" className="mt-1 font-mono font-extrabold text-[#18181B] metric-mono">
+              {badgeCount}
             </div>
           </div>
         </div>
 
-        {/* اطلاعات ثابت حساب */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs rounded-[6px] border-2 border-[#18181B] bg-[#EFECE6] p-3.5">
           <div>
-            <span className="text-slate-500 dark:text-slate-400">شماره دانشجویی: </span>
-            <span className="font-bold text-slate-900 dark:text-slate-100">{toPersianDigits(user.student_id)}</span>
+            <span className="text-[#52525B]">شماره دانشجویی: </span>
+            <span className="font-mono font-bold text-[#18181B]">{user.student_id}</span>
           </div>
           {user.date_joined && (
             <div>
-              <span className="text-slate-500 dark:text-slate-400">تاریخ ثبت‌نام: </span>
-              <span className="font-semibold text-slate-900 dark:text-slate-100">
+              <span className="text-[#52525B]">تاریخ ثبت‌نام: </span>
+              <span className="font-bold text-[#18181B]">
                 {new Date(user.date_joined).toLocaleDateString('fa-IR')}
               </span>
             </div>
           )}
         </div>
 
-        {/* فرم ویرایش مشخصات دموگرافیک و پژوهشی */}
         <form onSubmit={handleSaveProfile} className="space-y-3.5">
-          <div className="text-xs font-extrabold text-cyan-700 dark:text-cyan-300">
+          <div className="text-xs font-heading font-bold text-[#0D9488]">
             ویرایش مشخصات فردی و متغیرهای پژوهشی
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-slate-600 dark:text-slate-300 mb-1">نام و نام خانوادگی</label>
+              <label className="block text-xs font-bold text-[#18181B] mb-1">نام و نام خانوادگی</label>
               <input
                 type="text"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
+                className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3 py-2 text-xs text-[#18181B]"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-600 dark:text-slate-300 mb-1">سن (سال)</label>
+              <label className="block text-xs font-bold text-[#18181B] mb-1">سن (سال)</label>
               <input
                 type="number"
                 min={17}
                 max={65}
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
+                className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3 py-2 text-xs font-mono text-[#18181B]"
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-600 dark:text-slate-300 mb-1">جنسیت</label>
+              <label className="block text-xs font-bold text-[#18181B] mb-1">جنسیت</label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
+                className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3 py-2 text-xs text-[#18181B]"
               >
                 <option value="">انتخاب...</option>
                 <option value="female">زن</option>
@@ -175,29 +172,25 @@ export const UserProfileModal: React.FC<Props> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-600 dark:text-slate-300 mb-1">
-                تواتر بازی در هفته (ساعت)
-              </label>
+              <label className="block text-xs font-bold text-[#18181B] mb-1">تواتر بازی در هفته (ساعت)</label>
               <input
                 type="number"
                 min={0}
                 max={80}
                 value={gamingFrequency}
                 onChange={(e) => setGamingFrequency(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
+                className="w-full rounded-[6px] border-2 border-[#18181B] bg-[#F7F5F0] px-3 py-2 text-xs font-mono text-[#18181B]"
               />
             </div>
           </div>
 
           {saveMsg && (
             <div
-              className={`rounded-xl border p-2.5 text-xs flex items-center gap-2 ${
-                saveMsg.ok
-                  ? 'border-emerald-500/40 bg-emerald-950/85 text-emerald-200'
-                  : 'border-rose-500/40 bg-rose-950/85 text-rose-200'
+              className={`rounded-[6px] border-2 border-[#18181B] p-2.5 text-xs font-bold flex items-center gap-2 ${
+                saveMsg.ok ? 'bg-[#DCFCE7] text-[#18181B]' : 'bg-[#FFE4E6] text-[#E11D48]'
               }`}
             >
-              {saveMsg.ok ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
+              {saveMsg.ok ? <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0" /> : <AlertTriangle className="w-4 h-4 text-[#E11D48] shrink-0" />}
               <span>{saveMsg.text}</span>
             </div>
           )}
@@ -206,7 +199,7 @@ export const UserProfileModal: React.FC<Props> = ({
             <button
               type="submit"
               disabled={saving}
-              className="rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold px-4 py-2 text-xs transition flex items-center gap-1.5"
+              className="btn-tactile btn-tactile-primary px-4 py-2 text-xs"
             >
               <Save className="w-3.5 h-3.5" />
               <span>{saving ? 'در حال ذخیره...' : 'ذخیره تغییرات پروفایل'}</span>
@@ -214,18 +207,18 @@ export const UserProfileModal: React.FC<Props> = ({
           </div>
         </form>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <Clock3 className="w-4 h-4" />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-[#18181B] pt-4">
+          <div className="flex items-center gap-2 text-xs text-[#52525B] font-mono metric-mono">
+            <Clock3 className="w-4 h-4 text-[#18181B]" />
             <span>زمان بازی: {formatTime(session?.total_time_spent_seconds ?? 0)}</span>
           </div>
           <button
             type="button"
             onClick={onChangePassword}
-            className="rounded-xl border border-cyan-500/40 bg-cyan-500/15 px-4 py-2 text-xs font-bold text-cyan-700 dark:text-cyan-200 hover:border-cyan-400 transition"
+            className="btn-tactile btn-tactile-cream px-4 py-2 text-xs"
           >
-            <KeyRound className="ml-1 inline h-4 w-4" />
-            تغییر رمز عبور
+            <KeyRound className="w-4 h-4 text-[#0D9488]" />
+            <span>تغییر رمز عبور</span>
           </button>
         </div>
       </section>
