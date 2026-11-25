@@ -143,7 +143,7 @@ const TOUR_STEPS: TourStep[] = [
   },
 ];
 
-const STORY_STORAGE_KEY = 'medchem_story_seen_v3';
+const STORY_STORAGE_KEY = 'pharmacochem_story_seen_v3';
 
 function getSeenStoryIds(): string[] {
   try {
@@ -277,7 +277,7 @@ export function App() {
       session &&
       !finished &&
       !tourStarted &&
-      localStorage.getItem('medchem_tour_seen') !== 'true'
+      localStorage.getItem('pharmacochem_tour_seen') !== 'true'
     ) {
       setShowTour(true);
       setTourStarted(true);
@@ -367,7 +367,7 @@ export function App() {
 
   const closeTour = () => {
     setShowTour(false);
-    localStorage.setItem('medchem_tour_seen', 'true');
+    localStorage.setItem('pharmacochem_tour_seen', 'true');
   };
 
   if (loadingApp) {
@@ -528,7 +528,6 @@ export function App() {
               <span className="hidden sm:inline">بی‌سیم</span>
             </button>
 
-            {/* Timer */}
             <div
               dir="ltr"
               className={`lab-badge px-2.5 py-1 text-xs font-mono metric-mono ${
@@ -543,7 +542,6 @@ export function App() {
               <span>{formatTime(timeLeft)}</span>
             </div>
 
-            {/* Streak / Clues + XP Badge */}
             <div
               dir="ltr"
               className="lab-badge px-2.5 py-1 text-xs font-mono metric-mono bg-[#F59E0B] text-[#18181B]"
