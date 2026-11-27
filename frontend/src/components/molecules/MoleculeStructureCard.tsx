@@ -15,37 +15,25 @@ export interface MoleculeStructureCardProps {
   className?: string;
 }
 
-/**
- * Overrides OpenChemLib default SVG styles to match the Tactile Lab Workbook palette:
- * - Transparent background
- * - Carbon bonds: 2px thick in #18181B
- * - Heteroatoms: #E11D48 (Oxygen), #2563EB (Nitrogen), #0D9488 (Halogens)
- */
 function styleChemistrySvg(rawSvg: string): string {
   return rawSvg
-    // Ensure transparent background
     .replace(/background-color:[^;"]+;?/gi, '')
-    // Carbon bonds & black strokes -> #18181B at 2px
     .replace(/stroke="rgb\(0,0,0\)"/gi, 'stroke="#18181B"')
     .replace(/stroke="#000000"/gi, 'stroke="#18181B"')
     .replace(/stroke="black"/gi, 'stroke="#18181B"')
     .replace(/fill="rgb\(0,0,0\)"/gi, 'fill="#18181B"')
     .replace(/fill="#000000"/gi, 'fill="#18181B"')
     .replace(/stroke-width="[0-9.]+"/gi, 'stroke-width="2"')
-    // Oxygen (red) -> #E11D48
     .replace(/rgb\(255,0,0\)/gi, '#E11D48')
     .replace(/rgb\(160,0,0\)/gi, '#E11D48')
     .replace(/#ff0000/gi, '#E11D48')
-    // Nitrogen (blue) -> #2563EB
     .replace(/rgb\(0,0,255\)/gi, '#2563EB')
     .replace(/rgb\(0,0,160\)/gi, '#2563EB')
     .replace(/#0000ff/gi, '#2563EB')
-    // Halogens (green/teal) -> #0D9488
     .replace(/rgb\(0,128,0\)/gi, '#0D9488')
     .replace(/rgb\(0,160,0\)/gi, '#0D9488')
     .replace(/rgb\(0,255,0\)/gi, '#0D9488')
     .replace(/#008000/gi, '#0D9488')
-    // Monospace font for atom labels
     .replace(/font-family="[^"]*"/gi, 'font-family="JetBrains Mono, monospace"');
 }
 
@@ -56,7 +44,7 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
   revealedName,
   revealedNote,
   width = 280,
-  height = 165,
+  height = 175,
   compact = false,
   showZoom = true,
   className = '',
@@ -72,8 +60,8 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
         suppressESR: true,
         noStereoProblem: true,
         autoCrop: true,
-        autoCropMargin: 10,
-        factorTextSize: 1.18,
+        autoCropMargin: 18,
+        factorTextSize: 1.15,
       });
       return styleChemistrySvg(raw);
     } catch {
@@ -85,14 +73,14 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
     if (!zoomed) return null;
     try {
       const mol = Molecule.fromSmiles(smiles);
-      const raw = mol.toSVG(640, 380, undefined, {
+      const raw = mol.toSVG(640, 400, undefined, {
         suppressChiralText: true,
         suppressCIPParity: true,
         suppressESR: true,
         noStereoProblem: true,
         autoCrop: true,
-        autoCropMargin: 14,
-        factorTextSize: 1.25,
+        autoCropMargin: 20,
+        factorTextSize: 1.2,
       });
       return styleChemistrySvg(raw);
     } catch {
@@ -125,14 +113,13 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
 
         <div
           dir="ltr"
-          className={`flex items-center justify-center molecule-dot-grid p-2 ${
-            compact ? 'min-h-[108px]' : 'min-h-[145px]'
+          className={`flex items-center justify-center molecule-dot-grid p-2.5 ${
+            compact ? 'h-[132px]' : 'h-[172px]'
           }`}
         >
           {svgMarkup ? (
             <div
-              className="w-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:bg-transparent"
-              style={{ maxHeight: compact ? 115 : 165 }}
+              className="w-full h-full flex items-center justify-center [&>svg]:max-w-full [&>svg]:max-h-full [&>svg]:w-auto [&>svg]:h-auto [&>svg]:bg-transparent"
               dangerouslySetInnerHTML={{ __html: svgMarkup }}
             />
           ) : (
@@ -179,7 +166,7 @@ export const MoleculeStructureCard: React.FC<MoleculeStructureCardProps> = ({
             </div>
             <div
               dir="ltr"
-              className="molecule-dot-grid p-6 flex items-center justify-center [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:bg-transparent"
+              className="molecule-dot-grid p-6 flex items-center justify-center max-h-[70vh] [&>svg]:max-w-full [&>svg]:max-h-[60vh] [&>svg]:w-auto [&>svg]:h-auto [&>svg]:bg-transparent"
               dangerouslySetInnerHTML={{ __html: zoomedSvgMarkup }}
             />
             {revealed && revealedNote && (

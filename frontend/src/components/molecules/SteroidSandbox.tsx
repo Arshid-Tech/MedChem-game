@@ -9,9 +9,8 @@ import {
   Eraser,
   FlipHorizontal2,
 } from 'lucide-react';
-import { toPersianDigits } from '../../utils/persian';
 
-export type SandboxMode = 'free' | 'estrogen_oral' | 'progestin_nor' | 'antidote';
+export type SandboxMode = 'free' | 'reduce_mineral' | 'estrogen_oral' | 'progestin_nor' | 'antidote';
 
 export type HotspotId =
   | 'ringA'
@@ -39,7 +38,7 @@ export interface SandboxState {
   C16: 'H' | 'OH' | 'CH3' | 'CN';
   C16Stereo: Stereo;
   C17a: 'H' | 'OH' | 'ethynyl';
-  C17b: 'H' | 'OH' | 'ketol';
+  C17b: 'H' | 'OH' | 'ketol' | 'ester';
   C19: 'CH3' | 'H';
   C21: 'none' | 'OH' | 'ester' | 'phosphate';
 }
@@ -77,6 +76,22 @@ const INITIAL_STATES: Record<SandboxMode, SandboxState> = {
     C6: 'H',
     C6Stereo: 'alpha',
     C9: 'H',
+    C9Stereo: 'alpha',
+    C11: 'OH',
+    C11Stereo: 'beta',
+    C16: 'H',
+    C16Stereo: 'alpha',
+    C17a: 'OH',
+    C17b: 'ketol',
+    C19: 'CH3',
+    C21: 'OH',
+  },
+  reduce_mineral: {
+    ringA: 'delta4',
+    C3: '=O',
+    C6: 'H',
+    C6Stereo: 'alpha',
+    C9: 'F',
     C9Stereo: 'alpha',
     C11: 'OH',
     C11Stereo: 'beta',
@@ -139,6 +154,11 @@ const INITIAL_STATES: Record<SandboxMode, SandboxState> = {
 
 const SOLVED_STATES: Record<SandboxMode, SandboxState> = {
   free: INITIAL_STATES.free,
+  reduce_mineral: {
+    ...INITIAL_STATES.reduce_mineral,
+    C16: 'CH3',
+    C16Stereo: 'alpha',
+  },
   estrogen_oral: {
     ...INITIAL_STATES.estrogen_oral,
     C3: 'OCH3',
@@ -148,7 +168,7 @@ const SOLVED_STATES: Record<SandboxMode, SandboxState> = {
     ...INITIAL_STATES.progestin_nor,
     C19: 'H',
     C17a: 'ethynyl',
-    C3: '=N-OH',
+    C17b: 'ester',
   },
   antidote: {
     ...INITIAL_STATES.antidote,
@@ -207,10 +227,12 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     formula: '-CH3',
     category: 'groups',
     apply: (s, spot) => {
+      // متیلاسیون گروه هیدروکسیل C3 -> متیل اتر (-OCH3)
+      if (spot === 'C3') return { next: { ...s, C3: 'OCH3' } };
       if (spot === 'C6') return { next: { ...s, C6: 'CH3', C6Stereo: 'alpha' } };
       if (spot === 'C16') return { next: { ...s, C16: 'CH3' } };
       if (spot === 'C19') return { next: { ...s, C19: 'CH3' } };
-      return { error: 'گروه متیل را می‌توانید روی C6، C16 یا C19 قرار دهید.' };
+      return { error: 'گروه متیل را می‌توانید روی C3 (متیلاسیون هیدروکسیل)، C6، C16 یا C19 قرار دهید.' };
     },
   },
   {
@@ -223,7 +245,7 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
       if (spot === 'C11') return { next: { ...s, C11: 'OH', C11Stereo: 'beta' } };
       if (spot === 'C16') return { next: { ...s, C16: 'OH', C16Stereo: 'alpha' } };
       if (spot === 'C17a') return { next: { ...s, C17a: 'OH' } };
-      if (spot === 'C17b') return { next: { ...s, C17b: 'OH' } };
+      if (spot === 'C17b') return { next: { ...s, C17b: 'OH', C21: 'none' } };
       if (spot === 'C21') return { next: { ...s, C21: 'OH', C17b: 'ketol' } };
       return { error: 'گروه -OH را روی C3، C11، C16، C17 یا C21 قرار دهید.' };
     },
@@ -287,7 +309,7 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
     apply: (s, spot) =>
       spot === 'C11'
         ? { next: { ...s, C11: 'aryl', C11Stereo: 'beta' } }
-        : { error: 'گروه حجیم آریل آنتاگونیست (مشابه میفپریستون) روی C11β قرار می‌گیرد.' },
+        : { error: 'گروه حجیم آریل آنتاگونیست روی C11β قرار می‌گیرد.' },
   },
   {
     id: 'ketol',
@@ -301,13 +323,19 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
   },
   {
     id: 'ester',
-    label: 'استر لیپوفیل (موضعی)',
-    formula: '-OCOR',
+    label: 'استر (-O-CO-R)',
+    formula: '-O-CO-R',
     category: 'chains',
-    apply: (s, spot) =>
-      spot === 'C21' || spot === 'C17b'
-        ? { next: { ...s, C17b: 'ketol', C21: 'ester' } }
-        : { error: 'استر لیپوفیل موضعی روی زنجیره C21 قرار می‌گیرد.' },
+    apply: (s, spot) => {
+      // اگر روی C17β (استروژن/پروژستین با هیدروکسیل 17β) اعمال شود: استر مستقیم 17β (-O-CO-R)
+      if (spot === 'C17b' && s.C17b !== 'ketol') {
+        return { next: { ...s, C17b: 'ester', C21: 'none' } };
+      }
+      if (spot === 'C21' || (spot === 'C17b' && s.C17b === 'ketol')) {
+        return { next: { ...s, C17b: 'ketol', C21: 'ester' } };
+      }
+      return { error: 'گروه استر (-O-CO-R) روی موقعیت C17β یا C21 قرار می‌گیرد.' };
+    },
   },
   {
     id: 'phosphate',
@@ -361,14 +389,18 @@ const UNIVERSAL_TOOLS: UniversalTool[] = [
 
 function computeTokens(mode: SandboxMode, s: SandboxState): string[] {
   const tokens: string[] = [];
-  if (mode === 'estrogen_oral') {
+  if (mode === 'reduce_mineral') {
+    if (s.C16 !== 'H' || (s.C9 === 'H' && (s.ringA === 'delta14' || s.C6 === 'CH3'))) {
+      tokens.push('mc_reduced');
+    }
+  } else if (mode === 'estrogen_oral') {
     if (s.C17a === 'ethynyl') tokens.push('add_17alpha_ethynyl');
-    if (s.C3 === 'OCH3') tokens.push('methylate_3_hydroxyl');
+    if (s.C3 === 'OCH3' || s.C17b === 'ester') tokens.push('methylate_3_hydroxyl');
     if (s.C17b === 'H') tokens.push('remove_17beta_hydroxyl');
   } else if (mode === 'progestin_nor') {
     if (s.C19 === 'H') tokens.push('remove_c19_methyl');
     if (s.C17a === 'ethynyl') tokens.push('c17_alpha_ethynyl');
-    if (s.C3 === '=N-OH') tokens.push('c3_oxime_or_ester');
+    if (s.C3 === '=N-OH' || s.C17b === 'ester') tokens.push('c3_oxime_or_ester');
     if (s.ringA === 'aromatic') tokens.push('aromatize_ring_a');
   } else if (mode === 'antidote') {
     if (s.C9 === 'H') tokens.push('remove_9alpha_f');
@@ -381,14 +413,17 @@ function computeTokens(mode: SandboxMode, s: SandboxState): string[] {
 }
 
 function identifyDrug(s: SandboxState): string | null {
-  if (s.ringA === 'aromatic' && s.C17b === 'OH') {
-    if (s.C3 === 'OH' && s.C17a === 'H') return '17β-Estradiol';
-    if (s.C3 === 'OH' && s.C17a === 'ethynyl') return 'Ethinyl Estradiol (Oral)';
-    if (s.C3 === 'OCH3' && s.C17a === 'ethynyl') return 'Mestranol (Oral Long-Acting)';
+  if (s.ringA === 'aromatic') {
+    if (s.C3 === 'OH' && s.C17a === 'H' && s.C17b === 'OH') return '17β-Estradiol';
+    if (s.C3 === 'OH' && s.C17a === 'H' && s.C17b === 'ester') return 'Estradiol Valerate (Long-Acting)';
+    if (s.C3 === 'OH' && s.C17a === 'ethynyl' && s.C17b === 'OH') return 'Ethinyl Estradiol (Oral)';
+    if (s.C3 === 'OH' && s.C17a === 'ethynyl' && s.C17b === 'ester') return 'Ethinyl Estradiol 17β-Ester';
+    if (s.C3 === 'OCH3' && s.C17a === 'ethynyl' && s.C17b === 'OH') return 'Mestranol (Oral Long-Acting)';
   }
-  if (s.ringA === 'delta4' && s.C19 === 'H' && s.C17a === 'ethynyl' && s.C17b === 'OH') {
+  if (s.ringA === 'delta4' && s.C19 === 'H' && s.C17a === 'ethynyl') {
+    if (s.C17b === 'ester' && s.C3 === '=O') return 'Norethindrone Acetate (19-Nor Oral Long-Acting)';
     if (s.C3 === '=N-OH') return 'Norgestimate-like (19-Nor Progestin)';
-    if (s.C3 === '=O') return 'Norethindrone (Oral 19-Nor)';
+    if (s.C3 === '=O' && s.C17b === 'OH') return 'Norethindrone (Oral 19-Nor)';
   }
   if (s.C11 === 'aryl' && s.C9 === 'H' && s.C16 === 'H') {
     return '11β-Aryl Antagonist (Antidote)';
@@ -417,16 +452,18 @@ function identifyDrug(s: SandboxState): string | null {
 
 function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[]; insight: string } {
   if (mode === 'estrogen_oral') {
+    const hasLongActing = s.C3 === 'OCH3' || s.C17b === 'ester';
     const oral = s.C17a === 'ethynyl' ? 92 : 12;
-    const halfLife = (s.C17a === 'ethynyl' ? 50 : 15) + (s.C3 === 'OCH3' ? 42 : 0);
-    const binding = s.C17b === 'H' ? 10 : s.ringA !== 'aromatic' ? 15 : s.C3 === 'OCH3' ? 86 : 95;
-    let insight = 'استرادیول طبیعی خوراکی نیست. از جعبه‌ابزار آزاد استفاده کن و روی کربن‌های مختلف آزمایش کن تا اثر خوراکی و طول اثر بالا برود.';
+    const halfLife = (s.C17a === 'ethynyl' ? 48 : 15) + (hasLongActing ? 44 : 0);
+    const binding = s.C17b === 'H' ? 10 : s.ringA !== 'aromatic' ? 15 : hasLongActing ? 88 : 95;
+    let insight =
+      'استرادیول طبیعی خوراکی نیست. از جعبه‌ابزار آزاد روی کربن‌های مختلف آزمایش کن تا هم خوراکی شود و هم طول اثرش بالا برود.';
     if (s.C17b === 'H') {
       insight = 'حذف 17β-OH پیوند هیدروژنی کلیدی با گیرنده استروژن را از بین برد!';
-    } else if (s.C17a === 'ethynyl' && s.C3 === 'OCH3') {
-      insight = 'فوق‌العاده! ساختار اکنون هم خوراکی است و هم به شکل پیش‌دارو طول اثر بالایی دارد.';
+    } else if (s.C17a === 'ethynyl' && hasLongActing) {
+      insight = 'فوق‌العاده! ساختار اکنون هم خوراکی است و هم طول اثر بالایی دارد. دکمه ثبت را بزن.';
     } else if (s.C17a === 'ethynyl') {
-      insight = 'عالی، دارو خوراکی شد! برای افزایش طول اثر، روی حلقه A (کربن C3) هم فکر کن.';
+      insight = 'عالی، دارو خوراکی شد! حالا برای افزایش طول اثر، متیلاسیون C3 (با متیل یا متیل اتر) یا استریفیکاسیون C17β را امتحان کن.';
     }
     return {
       meters: [
@@ -439,18 +476,20 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
   }
 
   if (mode === 'progestin_nor') {
+    const hasLongActing = s.C3 === '=N-OH' || s.C17b === 'ester';
     const progestin =
       s.ringA === 'aromatic'
         ? 10
         : 35 + (s.C19 === 'H' ? 35 : 0) + (s.C17a === 'ethynyl' ? 25 : 0);
     const oral = s.C17a === 'ethynyl' ? 90 : 18;
-    const halfLife = 25 + (s.C3 === '=N-OH' ? 50 : 0) + (s.C17a === 'ethynyl' ? 20 : 0);
+    const halfLife = 25 + (hasLongActing ? 55 : 0) + (s.C17a === 'ethynyl' ? 15 : 0);
     const androgenic = s.ringA === 'aromatic' ? 5 : s.C19 === 'H' ? 18 : 82;
-    let insight = 'از جعبه‌ابزار کامل (از جمله پاک‌کن برای حذف گروه‌ها) استفاده کن تا ۳ هدف تخته دکتر ماریا هم‌زمان محقق شوند.';
+    let insight =
+      'از جعبه‌ابزار کامل (از جمله پاک‌کن برای حذف C19 و استر -O-CO-R روی C17β یا اکسیم روی C3) استفاده کن تا ۳ هدف دکتر ماریا هم‌زمان محقق شوند.';
     if (s.ringA === 'aromatic') {
       insight = 'آروماتیک کردن حلقه A مولکول را شبیه استروژن کرد و خاصیت پروژسترونی از بین رفت!';
-    } else if (s.C19 === 'H' && s.C17a === 'ethynyl' && s.C3 === '=N-OH') {
-      insight = 'دقیقاً همین بود! مشتق ۱۹-نورآندروستان خوراکی با طول اثر افزایش‌یافته ساخته شد.';
+    } else if (s.C19 === 'H' && s.C17a === 'ethynyl' && hasLongActing) {
+      insight = 'دقیقاً همین بود! مشتق ۱۹-نورآندروستان خوراکی با طول اثر افزایش‌یافته ساخته شد. دکمه ثبت را بزن.';
     }
     return {
       meters: [
@@ -518,7 +557,7 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
   if (s.C6 !== 'H') halfLifeHours += 8;
   if (s.C9 === 'F') halfLifeHours += 18;
   if (s.C16 !== 'H') halfLifeHours += 10;
-  if (s.C3 === 'OCH3' || s.C3 === '=N-OH') halfLifeHours += 12;
+  if (s.C3 === 'OCH3' || s.C3 === '=N-OH' || s.C17b === 'ester') halfLifeHours += 12;
   const hlPercent = Math.min(100, Math.round((halfLifeHours / 65) * 100));
 
   let logP = 1.6;
@@ -526,18 +565,21 @@ function computeMeters(mode: SandboxMode, s: SandboxState): { meters: MeterSpec[
   if (s.C9 === 'F') logP += 0.2;
   if (s.C16 === 'OH') logP -= 0.7;
   if (s.C16 === 'CH3') logP += 0.5;
-  if (s.C21 === 'ester') logP += 2.1;
+  if (s.C21 === 'ester' || s.C17b === 'ester') logP += 2.1;
   if (s.C21 === 'phosphate') logP -= 2.4;
   if (s.C3 === 'OCH3') logP += 0.6;
   const logPPercent = Math.max(5, Math.min(100, Math.round(((logP + 1.5) / 6.5) * 100)));
 
-  let insight = 'هر گروهی را از جعبه‌ابزار انتخاب کن و روی کربن دلخواه بگذار (یا با α/β آرایش فضایی‌اش را بچرخان) تا اثر واقعی SAR را ببینی.';
+  let insight =
+    mode === 'reduce_mineral'
+      ? 'ترکیب ارسالی کژتاب به دلیل وجود 9α-F اثر مینرالوکورتیکوئیدی بسیار بالایی دارد! ساختار را طوری تغییر بده که اثر احتباس سدیم (MC Activity) به حداقل برسد.'
+      : 'هر گروهی را از جعبه‌ابزار انتخاب کن و روی کربن دلخواه بگذار (یا با α/β آرایش فضایی‌اش را بچرخان) تا اثر واقعی SAR را ببینی.';
   if (s.C11 === 'OH' && s.C11Stereo === 'alpha') {
     insight = 'نکته کلیدی استریوشیمی: تنها ایزومر 11β-OH فعال است! چرخاندن به 11α-OH فعالیت گلوکوکورتیکوئیدی را تقریباً از بین می‌برد.';
-  } else if (s.C9 === 'F' && s.C16 === 'H') {
-    insight = 'فلوئور 9α هم قدرت ضدالتهابی و هم احتباس سدیم را به‌شدت بالا برد! حالا یک گروه روی C16 بگذار تا ببینیم اثر مینرال چه می‌شود.';
   } else if (s.C9 === 'F' && s.C16 !== 'H') {
-    insight = 'استخلاف روی C16 اثر احتباس سدیم ناشی از 9α-F را به صفر رساند در حالی که قدرت ضدالتهابی فوق‌العاده باقی ماند.';
+    insight = 'عالی! استخلاف روی C16 اثر احتباس سدیم ناشی از 9α-F را به صفر رساند در حالی که قدرت ضدالتهابی بالا باقی ماند.';
+  } else if (s.C9 === 'F' && s.C16 === 'H' && mode === 'free') {
+    insight = 'فلوئور 9α هم قدرت ضدالتهابی و هم احتباس سدیم را به‌شدت بالا برد! حالا یک گروه روی C16 بگذار تا ببینیم اثر مینرال چه می‌شود.';
   } else if (s.C21 === 'ester') {
     insight = 'استر لیپوفیل C21 (LogP بالا) ترکیب را برای مصرف موضعی و نفوذ پوستی ایده‌آل می‌کند.';
   } else if (s.C21 === 'phosphate') {
@@ -624,7 +666,6 @@ export const SteroidSandbox: React.FC<Props> = ({
         }}
         className="cursor-pointer"
       >
-        {/* Empty functional group attachment slot: 2px dashed #71717A */}
         <circle
           cx={cx}
           cy={cy}
@@ -673,10 +714,9 @@ export const SteroidSandbox: React.FC<Props> = ({
 
       {/* 65/35 Split on Desktop, Stacked on Mobile */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,65%)_minmax(0,35%)] gap-4 items-start">
-        {/* Primary Workspace (65%): Molecule Canvas on 20px dot-grid */}
         <div className="space-y-3">
           <div className="rounded-[8px] border-2 border-[#18181B] molecule-dot-grid p-4 flex flex-col items-center shadow-[3px_3px_0px_#18181B]">
-            <div className="w-full flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div className="w-full flex flex-wrap items-center justify-between gap-2 mb-3">
               <span className="font-mono text-[11px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-[6px] border border-[#18181B] bg-[#EFECE6] text-[#18181B]">
                 2D SCAFFOLD CANVAS
               </span>
@@ -688,8 +728,8 @@ export const SteroidSandbox: React.FC<Props> = ({
               )}
             </div>
 
-            <div dir="ltr" className="w-full flex justify-center">
-              <svg viewBox="0 0 395 230" className="w-full max-w-[460px] h-60 bg-transparent">
+            <div dir="ltr" className="w-full flex justify-center pt-1">
+              <svg viewBox="0 -14 405 244" className="w-full max-w-[470px] h-64 bg-transparent">
                 {/* Ring A */}
                 <polygon
                   points="68,118 101,99 134,118 134,156 101,175 68,156"
@@ -770,7 +810,7 @@ export const SteroidSandbox: React.FC<Props> = ({
                   </g>
                 )}
 
-                {/* C9-F (Halogen -> #0D9488) */}
+                {/* C9-F */}
                 {state.C9 === 'F' && (
                   <g>
                     <line
@@ -841,12 +881,25 @@ export const SteroidSandbox: React.FC<Props> = ({
                     <text x="300" y="38" fill="#E11D48" fontSize="12" fontWeight="bold" fontFamily="JetBrains Mono, monospace">OH</text>
                   </g>
                 )}
+                {/* C17β Direct Ester (-O-C(=O)-R) matching Norethindrone Acetate / Estradiol Valerate */}
+                {state.C17b === 'ester' && (
+                  <g>
+                    <polygon points="269,50 292,35 296,41" fill="#18181B" />
+                    <text x="298" y="39" fill="#E11D48" fontSize="11.5" fontWeight="bold" fontFamily="JetBrains Mono, monospace">O</text>
+                    <line x1="308" y1="32" x2="328" y2="22" stroke="#18181B" strokeWidth="2" />
+                    <line x1="326" y1="22" x2="326" y2="4" stroke="#E11D48" strokeWidth="1.8" />
+                    <line x1="330" y1="22" x2="330" y2="4" stroke="#E11D48" strokeWidth="1.8" />
+                    <text x="323" y="1" fill="#E11D48" fontSize="11" fontWeight="bold" fontFamily="JetBrains Mono, monospace">O</text>
+                    <line x1="328" y1="22" x2="349" y2="33" stroke="#18181B" strokeWidth="2" />
+                    <text x="352" y="37" fill="#18181B" fontSize="10.5" fontWeight="bold" fontFamily="JetBrains Mono, monospace">R</text>
+                  </g>
+                )}
                 {state.C17b === 'ketol' && (
                   <g>
                     <polygon points="269,50 294,34 298,40" fill="#18181B" />
                     <line x1="295" y1="36" x2="295" y2="18" stroke="#E11D48" strokeWidth="1.8" />
                     <line x1="299" y1="36" x2="299" y2="18" stroke="#E11D48" strokeWidth="1.8" />
-                    <text x="292" y="15" fill="#E11D48" fontSize="11" fontWeight="bold" fontFamily="JetBrains Mono, monospace">O</text>
+                    <text x="292" y="14" fill="#E11D48" fontSize="11" fontWeight="bold" fontFamily="JetBrains Mono, monospace">O</text>
                     <line x1="296" y1="36" x2="318" y2="46" stroke="#18181B" strokeWidth="2" />
                     <text
                       x="320"
@@ -910,7 +963,7 @@ export const SteroidSandbox: React.FC<Props> = ({
                 {renderHotspot('C17a', 284, 59, 'موقعیت C17α')}
                 {renderHotspot('C17b', 284, 38, 'موقعیت C17β')}
                 {renderHotspot('C19', 134, 98, 'موقعیت C19')}
-                {renderHotspot('C21', 332, 46, 'موقعیت C21')}
+                {state.C17b === 'ketol' && renderHotspot('C21', 332, 46, 'موقعیت C21')}
               </svg>
             </div>
           </div>
@@ -923,7 +976,6 @@ export const SteroidSandbox: React.FC<Props> = ({
 
         {/* Lab Readout & Controls Panel (35%) */}
         <div className="space-y-4">
-          {/* Live ADMET / SAR Metrics with Target Range Markers */}
           <div className="rounded-[8px] border-2 border-[#18181B] bg-[#FFFFFF] p-3.5 space-y-3 shadow-[3px_3px_0px_#18181B]">
             <div className="flex items-center justify-between border-b-2 border-[#18181B] pb-2">
               <span className="flex items-center gap-1.5 text-xs font-heading font-bold text-[#18181B]">
@@ -942,7 +994,6 @@ export const SteroidSandbox: React.FC<Props> = ({
                   </span>
                 </div>
                 <div className="relative h-3 w-full rounded-[4px] border-2 border-[#18181B] bg-[#EFECE6] overflow-hidden">
-                  {/* Target range markers */}
                   {m.targetMin !== undefined && (
                     <div
                       title="Target min"
@@ -966,7 +1017,6 @@ export const SteroidSandbox: React.FC<Props> = ({
             ))}
           </div>
 
-          {/* Selectable Reagent & Functional Group Tiles */}
           {!isLocked && (
             <div className="rounded-[8px] border-2 border-[#18181B] bg-[#FFFFFF] p-3.5 space-y-2.5 shadow-[3px_3px_0px_#18181B]">
               <div className="grid grid-cols-2 gap-1.5">
